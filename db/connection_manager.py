@@ -24,7 +24,10 @@ class DatabaseHelper:
             if connection is None:
                 return 
             with connection.cursor() as cursor:
-                result = cursor.execute(query, params)
+                if query.strip().upper().startswith('INSERT'): # Выводим либо ID записей, лиюо количество записей
+                    result = cursor.lastrowid 
+                else:
+                    result = cursor.execute(query, params)
                 connection.commit()
                 return result
         except pymysql.MySQLError as error:

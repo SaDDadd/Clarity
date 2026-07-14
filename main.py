@@ -13,28 +13,22 @@ def create_user(user_repo):
 
     # Хэширование пароля
     salt = bcrypt.gensalt()
-    password = bcrypt.hashpw(password, salt).encode('utf-8')
+    password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
     user_repo.create_user(username, email, password)
 
-def create_project(project_repo):
-    flag_stop = False
+    user_now = user_repo.get_by_username(username)
+    return user_now 
 
+def create_project(project_repo, user_now):
     print()
     print('Введите информацию о проекте!')
     name = input('Название проекта:')
     description = input('Описание проекта:')
-    while flag_stop == False:
-        try:
-            admin_id = int(input('Id администратора:'))
-            flag_stop = True
-        except ValueError as error:
-            print(f'Id состоит только из цифр {error}!')
-            print()
-
+    admin_id = user_now.get_user_id()
     project_repo.create_project(name, description, admin_id)
 
-def assign_task(task_repo, project_repo, user_repo):
+def assign_task(task_repo, project_repo, user_repo, user_now):
     flag_stop = False
 
     print()
@@ -89,59 +83,75 @@ def assign_task(task_repo, project_repo, user_repo):
             else:
                 flag_stop = True
         except ValueError as error:
-            print('Ошибка ввода дэдлайна {error}!')
+            print(f'Ошибка ввода дэдлайна {error}!')
             print()
 
     task_repo.create_task(title, description, status, project_id, \
                           assigned_to, deadline)
 
 def log_to_system(user_repo):
-    choice = input('Хотите войти в систему по имени пользователя(N) или по email(E)?:')
-    if choice.upper() == 'Y':
-        while True:
-            print()
-            email = input('Введите email: ')
-            password = input('Введите пароль: ')
+    user_now = None
 
-            if user_repo.check_user_exists_by_email(email) is None:
-                print()
-                print('Данного email нету!')
-            elif user_repo.check_user_correct_password_by_email(email, password) is False:
-                print()
-                print('Неправильно введен пароль!')
+    print()
+    have_profile= input('У тебя есть профиль? (Y/N): ')
+    if have_profile.upper() == 'Y':
+        flag_stop = False
+        choice = input('Хотите войти в систему по имени пользователя(N) или по email(E)?:')
+        while flag_stop == False:
+            if choice.upper() == 'E':
+                while True:
+                    print()
+                    email = input('Введите email: ')
+                    password = input('Введите пароль: ')
+
+                    if user_repo.check_user_exists_by_email(email) is None:
+                        print()
+                        print('Данного email нету!')
+                    elif user_repo.check_user_correct_password_by_email(email, password) is False:
+                        print()
+                        print('Неправильно введен пароль!')
+                    else:
+                        print()
+                        print('Вы вошли в систему!')
+                        flag_stop = True
+                        user_now = user_repo.get_by_email(email)
+                        break
+            elif choice.upper() == 'N':
+                while True:
+                    print()
+                    name = input('Введите имя пользователя: ')
+                    password = input('Ведите пароль: ')
+                    
+                    if user_repo.check_user_exists_by_username(name) is None:
+                        print()
+                        print('Данного имени не существует!')
+                    elif user_repo.check_user_correct_password_by_username(name, password) is False:
+                        print()
+                        print('Неправильно введен пароль!')
+                    else:
+                        print()
+                        print('Вы вошли в систему!')
+                        flag_stop = True
+                        user_now = user_repo.get_by_username(name)
+                        break
             else:
                 print()
-                print('Вы вошли в систему!')
-                break
-    elif choice.upper() == 'N':
-        while True:
-            print()
-            name = input('Введите имя пользователя: ')
-            password = input('Ведите пароль: ')
-            
-            if user_repo.check_user_exists_by_username(name) is None:
-                print()
-                print('Данного имени не существует!')
-            elif user_repo.check_user_correct_password_by_username(name, password) is False:
-                print()
-                print('Неправильно введен пароль!')
-            else:
-                print()
-                print('Вы вошли в систему!')
-                break
+                choice = input('Хотите войти в систему по имени пользователя(N) или по email(E)?:')
+    elif have_profile.upper() == 'N':
+        user_now = create_user(user_repo)
+
+    return user_now
 
 def menu():
     while True:
         print()
         print('Выберите действие, которое хотите выполнить!')
-        print('1 - Создать пользователя')
-        print('2 - Создать проект')
-        print('3 - Назначить задачу')
-        print('4 - Войти в систему')
-        print('5 - Закончить работу')
+        print('1 - Создать проект')
+        print('2 - Назначить задачу')
+        print('3 - Закончить работу')
         try:
             choice = int(input('Введите ваш выбор:'))
-            if choice not in (1, 2, 3, 4, 5):
+            if choice not in (1, 2, 3):
                 print()
                 print('Такого действия нет!')
             else:
@@ -154,21 +164,21 @@ def main():
     task_repo  = TaskRepository()
     project_repo = ProjectRepository()
 
-    while True:
-        choice = menu()
-        match choice:
-            case 1:
-                create_user(user_repo)
-            case 2:
-                create_project(project_repo)
-            case 3:
-                assign_task(task_repo, project_repo, user_repo)
-            case 4:
-                log_to_system(user_repo)
-            case 5:
-                print()
-                print('Работа закочена!')
-                break
+    user_now = log_to_system(user_repo)
+    if user_now is None:
+        print('Работа закончена!')
+    else:
+        while True:
+            choice = menu()
+            match choice:
+                case 1:
+                    create_project(project_repo, user_now)
+                case 2:
+                    assign_task(task_repo, project_repo, user_repo, user_now)
+                case 3:
+                    print()
+                    print('Работа закочена!')
+                    break
 
 if __name__ == '__main__':
     main()

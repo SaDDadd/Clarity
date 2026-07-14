@@ -24,6 +24,11 @@ class UserRepository:
         row = self.db_helper.fetch_one(sql, (username,))
         return User.from_dict_or_none(row)
 
+    def get_by_email(self, email): # Возращает всю информацию про пользователя по email
+        sql = 'SELECT * FROM users WHERE email = (%s)'
+        row = self.db_helper.fetch_one(sql, (email,))
+        return User.from_dict_or_none(row)
+
     def delete_user(self, user_id): # Удаление пользователя
         sql = 'DELETE FROM users WHERE user_id = (%s)'
 
