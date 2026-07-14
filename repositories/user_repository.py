@@ -1,4 +1,5 @@
 import pymysql
+import bcrypt
 from db.connection_manager import DatabaseHelper
 from models.user import User
 
@@ -47,16 +48,16 @@ class UserRepository:
         sql = 'SELECT password_hash FROM users WHERE email = (%s)'
 
         row = self.db_helper.fetch_one(sql, (email,))
-        if row is None or row != password:
+        if row is None:
             return False
-        else:
-            return True
+        stored_hash = row['password_hash'].encode('utf-8')
+        return bcrypt.checkpw(password.encode('utf-8'), stored_hash)
 
     def check_user_correct_password_by_username(self, username, password): # Проверка правильности пароля по имени
-        sql = 'SELECT pssword_hash FROM users WHERE username = (%s)'
+        sql = 'SELECT password_hash FROM users WHERE username = (%s)'
 
         row = self.db_helper.fetch_one(sql, (username,))
-        if row is None or row != password:
+        if row is None:
             return False 
-        else:
-            return True
+        stored_hash = row['password_hash'].encode('utf-8')
+        return bcrypt.checkpw(password.encode('utf-8'), stored_hash)

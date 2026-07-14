@@ -13,7 +13,7 @@ def create_user(user_repo):
 
     # Хэширование пароля
     salt = bcrypt.gensalt()
-    password = bcrypt.hashpw(password, salt)
+    password = bcrypt.hashpw(password, salt).encode('utf-8')
 
     user_repo.create_user(username, email, password)
 
@@ -96,19 +96,39 @@ def assign_task(task_repo, project_repo, user_repo):
                           assigned_to, deadline)
 
 def log_to_system(user_repo):
-    while True:
-        print()
-        email, name = input('Введите email: '), input('Введите имя пользователя:')
-        password = input('Введите пароль: ')
+    choice = input('Хотите войти в систему по имени пользователя(N) или по email(E)?:')
+    if choice.upper() == 'Y':
+        while True:
+            print()
+            email = input('Введите email: ')
+            password = input('Введите пароль: ')
 
-        if user_repo.check_user_exists_by_email(email) is None \
-            or user_repo.check_exists_by_username(name) is None \
-                or user_repo.check_user_correct_password_by_email(email, password) is False \
-                    or user_repo.check_user_correct_password_by_username(name, password) is False:
-            print('Неверное имя пользователя, email или пароль!')
-        else:
-            print('Вы вошли в систему!')
-            break
+            if user_repo.check_user_exists_by_email(email) is None:
+                print()
+                print('Данного email нету!')
+            elif user_repo.check_user_correct_password_by_email(email, password) is False:
+                print()
+                print('Неправильно введен пароль!')
+            else:
+                print()
+                print('Вы вошли в систему!')
+                break
+    elif choice.upper() == 'N':
+        while True:
+            print()
+            name = input('Введите имя пользователя: ')
+            password = input('Ведите пароль: ')
+            
+            if user_repo.check_user_exists_by_username(name) is None:
+                print()
+                print('Данного имени не существует!')
+            elif user_repo.check_user_correct_password_by_username(name, password) is False:
+                print()
+                print('Неправильно введен пароль!')
+            else:
+                print()
+                print('Вы вошли в систему!')
+                break
 
 def menu():
     while True:
