@@ -15,9 +15,7 @@ def create_user(user_repo):
     salt = bcrypt.gensalt()
     password = bcrypt.hashpw(password, salt)
 
-
     user_repo.create_user(username, email, password)
-
 
 def create_project(project_repo):
     flag_stop = False
@@ -93,6 +91,21 @@ def assign_task(task_repo, project_repo, user_repo):
     task_repo.create_task(title, description, status, project_id, \
                           assigned_to, deadline)
 
+def log_to_system(user_repo):
+    while True:
+        print()
+        email, name = input('Введите email: '), input('Введите имя пользователя:')
+        password = input('Введите пароль: ')
+
+        if user_repo.check_user_exists_by_email(email) is None \
+            or user_repo.check_exists_by_username(name) is None \
+                or user_repo.check_user_correct_password_by_email(email, password) is False \
+                    or user_repo.check_user_correct_password_by_username(name, password) is False:
+            print('Неверное имя пользователя, email или пароль!')
+        else:
+            print('Вы вошли в систему!')
+            break
+
 def menu():
     while True:
         print()
@@ -100,10 +113,11 @@ def menu():
         print('1 - Создать пользователя')
         print('2 - Создать проект')
         print('3 - Назначить задачу')
-        print('4 - Закончить работу')
+        print('4 - Войти в систему')
+        print('5 - Закончить работу')
         try:
             choice = int(input('Введите ваш выбор:'))
-            if choice not in (1, 2, 3, 4):
+            if choice not in (1, 2, 3, 4, 5):
                 print()
                 print('Такого действия нет!')
             else:
@@ -126,6 +140,8 @@ def main():
             case 3:
                 assign_task(task_repo, project_repo, user_repo)
             case 4:
+                log_to_system(user_repo)
+            case 5:
                 print()
                 print('Работа закочена!')
                 break

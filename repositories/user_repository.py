@@ -32,3 +32,31 @@ class UserRepository:
         sql = 'SELECT user_id FROM users WHERE user_id = (%s)'
 
         return self.db_helper.fetch_one(sql, (user_id,))
+
+    def check_user_exists_by_username(self, username): # Проверка сущетвования пользователя по имени
+        sql = 'SELECT user_id FROM users WHERE username = (%s)'
+
+        return self.db_helper.fetch_one(sql, (username,))
+
+    def check_user_exists_by_email(self, email): # Проверка существования пользователя по email
+        sql = 'SELECT user_id FROM users WHERE email = (%s)'
+
+        return self.db_helper.fetch_one(sql, (email,))
+
+    def check_user_correct_password_by_email(self, email, password): # Проверка правильного пароля по email
+        sql = 'SELECT password_hash FROM users WHERE email = (%s)'
+
+        row = self.db_helper.fetch_one(sql, (email,))
+        if row is None or row != password:
+            return False
+        else:
+            return True
+
+    def check_user_correct_password_by_username(self, username, password): # Проверка правильности пароля по имени
+        sql = 'SELECT pssword_hash FROM users WHERE username = (%s)'
+
+        row = self.db_helper.fetch_one(sql, (username,))
+        if row is None or row != password:
+            return False 
+        else:
+            return True
