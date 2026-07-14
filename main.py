@@ -15,6 +15,7 @@ def create_user(user_repo):
     salt = bcrypt.gensalt()
     password = bcrypt.hashpw(password, salt)
 
+
     user_repo.create_user(username, email, password)
 
 
