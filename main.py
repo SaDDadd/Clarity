@@ -83,7 +83,11 @@ def assign_task(task_repo, project_repo, user_repo):
         deadline = input('Время дэдлайна:')
         try:
             deadline = datetime.datetime.strptime(deadline, '%Y-%m-%d').date()
-            flag_stop = True
+            if deadline < datetime.date.today():
+                print()
+                print('Время дедлайна не может быть меньше нынешнего времени!')
+            else:
+                flag_stop = True
         except ValueError as error:
             print('Ошибка ввода дэдлайна {error}!')
             print()
