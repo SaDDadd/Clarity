@@ -4,7 +4,7 @@ from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 
-def create_user(user_repo):
+def create_user(user_repo): # Создание ппрофиля
     print()
     print('Введите информацию о пользователе!')
     username = input('Имя пользователя:')
@@ -20,7 +20,7 @@ def create_user(user_repo):
     user_now = user_repo.get_by_username(username)
     return user_now 
 
-def create_project(project_repo, user_now):
+def create_project(project_repo, user_now): # Создание проекта 
     print()
     print('Введите информацию о проекте!')
     name = input('Название проекта:')
@@ -28,7 +28,7 @@ def create_project(project_repo, user_now):
     admin_id = user_now.get_user_id()
     project_repo.create_project(name, description, admin_id)
 
-def assign_task(task_repo, project_repo, user_repo, user_now):
+def assign_task(task_repo, project_repo, user_repo, user_now): # Назначение задачи какому-то пользователю состоящему в проекте
     flag_stop = False
 
     print()
@@ -89,7 +89,7 @@ def assign_task(task_repo, project_repo, user_repo, user_now):
     task_repo.create_task(title, description, status, project_id, \
                           assigned_to, deadline)
 
-def log_to_system(user_repo):
+def log_to_system(user_repo): # Вход в систему
     user_now = None
 
     print()
