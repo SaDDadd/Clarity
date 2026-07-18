@@ -23,7 +23,7 @@ class Task:
     def from_dict_or_none(cls, data): # Проверка, если в запросе выводиться None
         return cls.from_dict(data) if data else None
     
-    def overdue(self, ): # Проверка на просроченную задачу
+    def overdue(self): # Проверка на просроченную задачу
         if self._deadline < datetime.date.today():
             return f'Время deadline прошло {datetime.date.today() - self._deadline}'
         else:

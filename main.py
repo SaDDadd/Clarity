@@ -3,7 +3,6 @@ import bcrypt
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
-from models.task import Task
 
 def create_user(user_repo): # Создание профиля
     print()
@@ -50,7 +49,7 @@ def create_project(project_repo, user_now): # Создание проекта
         print()
         print('Проект создан!')
 
-def assign_task(task_repo, project_repo, user_repo, user_now, project_now, role_now): # Назначение задачи какому-то пользователю состоящему в проекте
+def assign_task(task_repo, project_repo, user_repo, project_now, role_now): # Назначение задачи какому-то пользователю состоящему в проекте
     if role_now != 'admin':
         print('Только администратор проекта может назначать задачи.')
         return
@@ -94,7 +93,7 @@ def assign_task(task_repo, project_repo, user_repo, user_now, project_now, role_
     else:
         print('Ошибка при назначении задачи.')
 
-def change_status(project_repo, task_repo, user_now, user_repo, project_now, role_now): # Изменить статус задачи
+def change_status(task_repo, user_now, project_now, role_now): # Изменить статус задачи
     project_id = project_now.get_project_id()
     print(f'Изменение статуса задачи в проекте "{project_now.get_project_name()}"')
 
@@ -131,7 +130,7 @@ def change_status(project_repo, task_repo, user_now, user_repo, project_now, rol
     else:
         print('Ошибка при обновлении статуса.')
     
-def create_task(project_repo, task_repo, user_repo, user_now, project_now, role):
+def create_task(project_repo, task_repo, user_repo, project_now, role): # Создание задач
     if role != 'admin':
         print('Только администратор проекта может создавать задачи!')
         return
@@ -241,7 +240,7 @@ def log_to_system(user_repo): # Вход в систему
 
     return user_now
 
-def log_to_project(project_repo, user_now):
+def log_to_project(project_repo, user_now): # Вход в проект
     user_id = user_now.get_user_id()
     while True:
         try:
@@ -263,7 +262,7 @@ def log_to_project(project_repo, user_now):
         print(f'Вы вошли в проект "{project.get_project_name()}" с ролью "{role}".')
         return project, role
         
-def menu_for_project():
+def menu_for_project(): # Меню для работы с проектом
     print()
     print('Выберите что вы хотите делать с проектом!')
     print('1 - Войти в проект')
@@ -280,7 +279,7 @@ def menu_for_project():
     except ValueError as error:
         print(f'Ошибка ввода {error}')
 
-def menu():
+def menu(): # Меню для начала работы
     while True:
         print()
         print('Выберите действие, которое хотите выполнить!')
@@ -314,27 +313,17 @@ def main():
             case 1:
                 create_project(project_repo, user_now)
             case 2:
-                project, role = log_to_project(project_repo, user_now)
+                project_now, role_now = log_to_project(project_repo, user_now)
                 if project is None:
                     continue
                 while True:
-                    print()
-                    print('Действия с проектом:')
-                    print('1 - Создать задачу (только админ)')
-                    print('2 - Назначить задачу (только админ)')
-                    print('3 - Изменить статус задачи')
-                    print('4 - Выйти из проекта')
-                    try:
-                        action = int(input('Ваш выбор: '))
-                    except ValueError:
-                        print('Ошибка ввода.')
-                        continue
+                    action = menu_for_project()
                     if action == 1:
-                        create_task(project_repo, task_repo, user_repo, user_now, project, role)
+                        create_task(project_repo, task_repo, user_repo, project_now, role_now)
                     elif action == 2:
-                        assign_task(project_repo, task_repo, user_repo, user_now, project, role)
+                        assign_task(project_repo, task_repo, user_repo, project_now, role_now)
                     elif action == 3:
-                        change_status(project_repo, task_repo, user_now, project, role)
+                        change_status(task_repo, user_now, project_now, role_now)
                     elif action == 4:
                         print('Выход из проекта.')
                         break

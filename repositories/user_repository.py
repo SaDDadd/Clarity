@@ -1,4 +1,3 @@
-import pymysql
 import bcrypt
 from db.connection_manager import DatabaseHelper
 from models.user import User
