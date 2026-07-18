@@ -31,3 +31,11 @@ class TaskRepository:
     def delete_task(self, task_id): # Удаление задачи
         sql = 'DELETE FROM tasks WHERE task_id = (%s)'
         return self.db_helper.execute_query(sql, (task_id,))
+
+    def get_task_by_id(self, task_id): # Поиск задачи по названию
+        sql = 'SELECT task_id FROM tasks WHERE task_id = (%s)'
+        return self.db_helper.fetch_one(sql, (task_id))
+
+    def update_task_by_id(self, task_id, status): # Обновление статуса задачи
+        sql = 'UPDATE tasks SET task_status = (%s) WHERE task_id = (%s)'
+        return self.db_helper.execute_query(sql, (status, task_id))

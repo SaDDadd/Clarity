@@ -114,7 +114,32 @@ def assign_task(task_repo, project_repo, user_repo, user_now): # Назначе�
                           assigned_to, deadline)
 
 def change_status(project_repo, task_repo, user_now, user_repo): # Изменить статус задачи
+    print()
+    flag_stop = False
+    while flag_stop == False:
+        task_id = int(input('Введите ID задачи:'))
+        if task_repo.get_task_by_id(task_id) is None:
+            print()
+            print(f'Такой задачи по {task_id} нет!')
+        else:
+            print()
+            print('Задача найдена!')
+            flag_stop = True
 
+    flag_stop = False
+    while flag_stop == False:
+        status = input('Введите статус задачи (pending/in_progress/completed):')
+        if status not in ('pending', 'in_progress', 'completed'):
+            print()
+            print('Такой выбор невозможен!')
+        else:
+            task_repo.update_task_by_id(task_id, status)
+            print()
+            print('Статус обновлен!')
+            flag_stop = True
+    
+def create_task():
+    pass
 
 def log_to_system(user_repo): # Вход в систему
     user_now = None
@@ -174,12 +199,13 @@ def menu():
         print()
         print('Выберите действие, которое хотите выполнить!')
         print('1 - Создать проект')
-        print('2 - Назначить задачу')
-        print('3 - Изменить статус задачи')
-        print('4 - Закончить работу')
+        print('2 - Создать задачу в проекте')
+        print('3 - Назначить задачу')
+        print('4 - Изменить статус задачи')
+        print('5 - Закончить работу')
         try:
             choice = int(input('Введите ваш выбор:'))
-            if choice not in (1, 2, 3):
+            if choice not in (1, 2, 3, 4, 5):
                 print()
                 print('Такого действия нет!')
             else:
@@ -202,10 +228,12 @@ def main():
                 case 1:
                     create_project(project_repo, user_now)
                 case 2:
-                    assign_task(task_repo, project_repo, user_repo, user_now)
+                    create_task()
                 case 3:
-                    change_status(project_repo, task_repo, user_now, user_repo)
+                    assign_task(task_repo, project_repo, user_repo, user_now)
                 case 4:
+                    change_status(project_repo, task_repo, user_now, user_repo)
+                case 5:
                     print()
                     print('Работа закочена!')
                     break
