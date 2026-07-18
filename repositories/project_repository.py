@@ -37,3 +37,14 @@ class ProjectRepository:
             return False
         else:
             return True
+
+    def create_project_with_admin(self, name, description, admin_id, role): # Создание проекта и добавление админа в проект
+        sql_create_project = 'INSERT INTO projects (project_name, project_description, \
+            admin_id)' \
+            'VALUES (%s, %s, %s)'
+        sql_add_user_to_project = 'INSERT INTO project_users (project_id, user_id, role_project)' \
+        'VALUES (LAST_INSERT_ID(), %s, %s)'
+        result = self.db_helper.execute_transactions(((sql_create_project,(name, description, admin_id)), \
+                                             (sql_add_user_to_project, (admin_id, role))))
+        return result
+

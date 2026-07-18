@@ -39,7 +39,7 @@ class DatabaseHelper:
                 return 
             connection.close()
 
-    def fetch_all(self, query, params=None): # Возратить все строки результата запроса (возращает кортеж)
+    def fetch_all(self, query, params=None): # Возратить все строки результата запроса (возращает словарь)
         result = None
         connection = self.connect()
         try:
@@ -57,7 +57,7 @@ class DatabaseHelper:
                 return
             connection.close()
         
-    def fetch_one(self, query, params=None): # Возратить одну строку результата запроса (возращает кортеж)
+    def fetch_one(self, query, params=None): # Возратить одну строку результата запроса (возращает словарь)
         result = None
         connection = self.connect()
         try:
@@ -74,3 +74,31 @@ class DatabaseHelper:
             if connection is None:
                 return 
             connection.close()
+
+    def execute_transactions(self, queries): # Транзакция для последовательных запроов
+        if len(queries) == 0:
+            return
+        else:
+            connection = self.connect()
+            try:
+                if connection is None:
+                    return
+                with connection.cursor() as cursor:
+                    connection.autocommit = False
+                    result = []
+                    for item in queries:
+                        cursor.execute(item[0], item[1])
+                        if item[0].strip().upper().startswith('INSERT'):
+                            result.append(cursor.lastrowid)
+                        else:
+                            result.append(cursor.rowcount)
+                    connection.commit()
+                    return result
+            except pymysql.MySQLError as error:
+                connection.rollback()
+                print(f'Ошибка с выводом результата {error}')
+                return
+            finally:
+                if connection is None:
+                    return 
+                connection.close()

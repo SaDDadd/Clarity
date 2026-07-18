@@ -26,8 +26,12 @@ def create_project(project_repo, user_now): # Создание проекта
     name = input('Название проекта:')
     description = input('Описание проекта:')
     admin_id = user_now.get_user_id()
-    project_id = project_repo.create_project(name, description, admin_id)
-    project_repo.add_user_to_project(project_id, user_now.get_user_id(), 'admin')
+    if project_repo.create_project_with_admin(name, description, admin_id, 'admin') is None:
+        print()
+        print('При создании проекта произошла ошибка!')
+    else:
+        print()
+        print('Проект создан!')
 
 def assign_task(task_repo, project_repo, user_repo, user_now): # Назначение задачи какому-то пользователю состоящему в проекте
     flag_stop = False
