@@ -39,7 +39,7 @@ class DatabaseHelper:
                 return 
             connection.close()
 
-    def fetch_all(self, query, params=None): # Забрать все строки результата запроса 
+    def fetch_all(self, query, params=None): # Возратить все строки результата запроса (возращает кортеж)
         result = None
         connection = self.connect()
         try:
@@ -57,7 +57,7 @@ class DatabaseHelper:
                 return
             connection.close()
         
-    def fetch_one(self, query, params=None): # Забрать одну строку результата запроса
+    def fetch_one(self, query, params=None): # Возратить одну строку результата запроса (возращает кортеж)
         result = None
         connection = self.connect()
         try:

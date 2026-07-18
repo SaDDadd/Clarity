@@ -26,7 +26,8 @@ def create_project(project_repo, user_now): # Создание проекта
     name = input('Название проекта:')
     description = input('Описание проекта:')
     admin_id = user_now.get_user_id()
-    project_repo.create_project(name, description, admin_id)
+    project_id = project_repo.create_project(name, description, admin_id)
+    project_repo.add_user_to_project(project_id, user_now.get_user_id(), 'admin')
 
 def assign_task(task_repo, project_repo, user_repo, user_now): # Назначение задачи какому-то пользователю состоящему в проекте
     flag_stop = False
@@ -66,6 +67,9 @@ def assign_task(task_repo, project_repo, user_repo, user_now): # Назначе�
             if user_repo.check_user_exists(assigned_to) is None:
                 print()
                 print(f'Пользователя с {assigned_to} ID не существует!')
+            elif project_repo.is_user_in_project(project_id, assigned_to) is False:
+                print()
+                print(f'Пользователя {assigned_to} не участвует в проекте!')
             else:
                 flag_stop = True
         except ValueError as error:
