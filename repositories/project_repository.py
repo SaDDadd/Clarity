@@ -36,3 +36,22 @@ class ProjectRepository:
         result = self.db_helper.execute_transactions(((sql_create_project,(name, description, admin_id)), \
                                              (sql_add_user_to_project, (admin_id, role))))
         return result
+
+    def get_project_by_user(self, user_id, project_id): # Вывод участника проекта
+        sql = 'SELECT * FROM project_members WHERE project_id = (%s) AND user_id = (%s)'
+        row = self.db_helper.fetch_one(sql, (project_id, user_id))
+        if not row:
+            return None
+        return self.get_project_by_id(project_id)
+
+    def get_user_role_in_project(self, project_id, user_id): # Вывод роли пользователя в проекте
+        sql = 'SELECT role_project FROM project_members WHERE project_id = (%s) AND user_id = (%s)'
+        row = self.db_helper.fetch_one(sql, (project_id, user_id))
+        if not row:
+            return None
+        return row['role_project']
+    
+    def get_project_by_id(self, project_id): # Вывод информации о проекте по ID проекта
+        sql = 'SELECT * FROM projects WHERE project_id = (%s)'
+        row = self.db_helper.fetch_one(sql, (project_id,))
+        return Project.from_dict_or_none(row)

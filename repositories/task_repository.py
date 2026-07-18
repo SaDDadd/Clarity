@@ -24,17 +24,27 @@ class TaskRepository:
         sql = 'UPDATE tasks SET assigned_to = (%s) WHERE task_id = (%s)'
         return self.db_helper.execute_query(sql, (user_id, task_id))
 
-    def update_task_status(self, status, task_id): # Обновление статуса задачи
-        sql = 'UPDATE tasks SET task_status = (%s) WHERE task_id = (%s)'
-        return self.db_helper.execute_query(sql, (status, task_id))
-
     def delete_task(self, task_id): # Удаление задачи
         sql = 'DELETE FROM tasks WHERE task_id = (%s)'
         return self.db_helper.execute_query(sql, (task_id,))
 
-    def get_task_by_id(self, task_id): # Поиск задачи по названию
-        sql = 'SELECT task_id FROM tasks WHERE task_id = (%s)'
-        return self.db_helper.fetch_one(sql, (task_id))
+    def update_task_all(self, task_id, title, description, status, \
+                        project_id, assigned_to): # Обновление задачи
+        sql = 'UPDATE tasks SET title = (%s), task_description = (%s), task_status = (%s),' \
+        'assigned_to = (%s)' \
+        'WHERE task_id = (%s)'
+        return self.db_helper.execute_query(sql, (title, description, status, assigned_to, \
+                                                  task_id))
+
+    def get_task_by_id(self, task_id): # Поиск задачи по id
+        sql = 'SELECT * FROM tasks WHERE task_id = (%s)'
+        row = self.db_helper.fetch_one(sql, (task_id,))
+        return Task.from_dict_or_none(row)
+
+    def get_task_by_title(self, title): # Посик задачи по имени
+        sql = 'SELECT * FROM tasks WHERE title = (%s)'
+        row = self.db_helper.fetch_one(sql, (title,))
+        return [Task.from_dict_or_none(row)]
 
     def update_task_by_id(self, task_id, status): # Обновление статуса задачи
         sql = 'UPDATE tasks SET task_status = (%s) WHERE task_id = (%s)'
