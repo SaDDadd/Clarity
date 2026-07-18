@@ -6,12 +6,6 @@ class ProjectRepository:
     def __init__(self):
         self.db_helper = DatabaseHelper()
 
-    def create_project(self, name, description, ad_id): # Создание нового проекта
-        sql = 'INSERT INTO projects (project_name, project_description, \
-            admin_id)' \
-        'VALUES (%s, %s, %s)'
-        return self.db_helper.execute_query(sql, (name, description, ad_id))
-
     def get_projects_by_admin(self, admin_id): # Вывод всех проектов прикрепленных к администратору
         sql = 'SELECT * FROM projects WHERE admin_id = (%s)'
         row = self.db_helper.fetch_all(sql, (admin_id,))
@@ -24,11 +18,6 @@ class ProjectRepository:
     def check_project_exists(self, project_id): # Проверка существования проекта
         sql = 'SELECT project_id FROM projects WHERE project_id = (%s)'
         return self.db_helper.fetch_one(sql, (project_id,))
-
-    def add_user_to_project(self, project_id, user_id, role): # Добавление пользователя в проект
-        sql = 'INSERT INTO project_users(project_id, user_id, role_project)' \
-        'VALUES(%s, %s, %s)'
-        return self.db_helper.execute_query(sql, (project_id, user_id, role))
 
     def is_user_in_project(self, project_id, user_id): # Проверка на существование пользователя в проекте (возращаем true/false)
         sql = 'SELECT user_id FROM project_users  WHERE project_id = (%s) AND user_id = (%s)'
