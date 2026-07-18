@@ -4,11 +4,27 @@ from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 
-def create_user(user_repo): # Создание ппрофиля
+def create_user(user_repo): # Создание профиля
     print()
     print('Введите информацию о пользователе!')
-    username = input('Имя пользователя:')
-    email = input('Email пользователя:')
+    flag_stop = False
+    while flag_stop == False:
+        username = input('Имя пользователя:')
+        if user_repo.check_user_exists_by_username(username) is not None:
+            print()
+            print('Ошибка ввода: такое имя занято!')
+        else:
+            flag_stop = True
+
+    flag_stop = False 
+
+    while flag_stop == False:
+        email = input('Email пользователя:')
+        if user_repo.check_user_exists_by_email(email) is not None:
+            print()
+            print('Ошибка ввода: такой email занят!')
+        else:
+            flag_stop = True
     password = input('Пароль пользователя:')
 
     # Хэширование пароля
@@ -97,6 +113,9 @@ def assign_task(task_repo, project_repo, user_repo, user_now): # Назначе�
     task_repo.create_task(title, description, status, project_id, \
                           assigned_to, deadline)
 
+def change_status(project_repo, task_repo, user_now, user_repo): # Изменить статус задачи
+
+
 def log_to_system(user_repo): # Вход в систему
     user_now = None
 
@@ -156,7 +175,8 @@ def menu():
         print('Выберите действие, которое хотите выполнить!')
         print('1 - Создать проект')
         print('2 - Назначить задачу')
-        print('3 - Закончить работу')
+        print('3 - Изменить статус задачи')
+        print('4 - Закончить работу')
         try:
             choice = int(input('Введите ваш выбор:'))
             if choice not in (1, 2, 3):
@@ -184,6 +204,8 @@ def main():
                 case 2:
                     assign_task(task_repo, project_repo, user_repo, user_now)
                 case 3:
+                    change_status(project_repo, task_repo, user_now, user_repo)
+                case 4:
                     print()
                     print('Работа закочена!')
                     break

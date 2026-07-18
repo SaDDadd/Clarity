@@ -11,7 +11,6 @@ class UserRepository:
         sql = 'INSERT INTO users (username, email, ' \
         'password_hash)' \
         'VALUES (%s, %s, %s);'
-
         return self.db_helper.execute_query(sql, (username, email, password))
     
     def get_by_id(self, user_id): # Возвращаем всю информацию про пользователя по id 
@@ -31,27 +30,22 @@ class UserRepository:
 
     def delete_user(self, user_id): # Удаление пользователя
         sql = 'DELETE FROM users WHERE user_id = (%s)'
-
         return self.db_helper.execute_query(sql, (user_id,))
 
     def check_user_exists(self, user_id): # Проверка существования пользователя
         sql = 'SELECT user_id FROM users WHERE user_id = (%s)'
-
         return self.db_helper.fetch_one(sql, (user_id,))
 
     def check_user_exists_by_username(self, username): # Проверка сущетвования пользователя по имени
         sql = 'SELECT user_id FROM users WHERE username = (%s)'
-
         return self.db_helper.fetch_one(sql, (username,))
 
     def check_user_exists_by_email(self, email): # Проверка существования пользователя по email
         sql = 'SELECT user_id FROM users WHERE email = (%s)'
-
         return self.db_helper.fetch_one(sql, (email,))
 
     def check_user_correct_password_by_email(self, email, password): # Проверка правильного пароля по email
         sql = 'SELECT password_hash FROM users WHERE email = (%s)'
-
         row = self.db_helper.fetch_one(sql, (email,))
         if row is None:
             return False

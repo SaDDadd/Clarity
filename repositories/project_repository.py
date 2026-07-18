@@ -36,4 +36,3 @@ class ProjectRepository:
         result = self.db_helper.execute_transactions(((sql_create_project,(name, description, admin_id)), \
                                              (sql_add_user_to_project, (admin_id, role))))
         return result
-

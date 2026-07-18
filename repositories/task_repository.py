@@ -10,7 +10,6 @@ class TaskRepository:
                     proj_id, assigned_to, deadline): # Создание задачи
         sql = 'INSERT INTO tasks(title, task_description, task_status, project_id, assigned_to, deadline)' \
         'VALUES (%s, %s, %s, %s, %s, %s)'
-
         return self.db_helper.execute_query(sql, (title, description,\
                                                   status, proj_id, assigned_to, \
                                                     deadline))
@@ -23,15 +22,12 @@ class TaskRepository:
 
     def assign_task(self, user_id, task_id): # Обновление выполняющего задачи
         sql = 'UPDATE tasks SET assigned_to = (%s) WHERE task_id = (%s)'
-
         return self.db_helper.execute_query(sql, (user_id, task_id))
 
     def update_task_status(self, status, task_id): # Обновление статуса задачи
         sql = 'UPDATE tasks SET task_status = (%s) WHERE task_id = (%s)'
-
         return self.db_helper.execute_query(sql, (status, task_id))
 
     def delete_task(self, task_id): # Удаление задачи
         sql = 'DELETE FROM tasks WHERE task_id = (%s)'
-
         return self.db_helper.execute_query(sql, (task_id,))
