@@ -1,7 +1,6 @@
 from functools import wraps
 from typing import Callable
 import time
-import inspect
 
 def log(func: Callable): # Возращает время работы функций и методов классов
     @wraps(func) # Для сохранения имени передаваемой функции func

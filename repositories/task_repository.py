@@ -1,10 +1,12 @@
 from db.connection_manager import DatabaseHelper 
 from models.task import Task
+from decorators.decorators import log
 
 class TaskRepository:
     def __init__(self):
         self.db_helper = DatabaseHelper()
 
+    @log
     def create_task(self, title, description, status, \
                     proj_id, assigned_to, deadline): # Создание задачи
         sql = 'INSERT INTO tasks(title, task_description, task_status, project_id, assigned_to, deadline)' \
@@ -13,12 +15,14 @@ class TaskRepository:
                                                   status, proj_id, assigned_to, \
                                                     deadline))
 
+    @log
     def get_tasks_by_user(self, assigned_to): # Выбрать все задачи пользователя вместе со статусом задачи
         sql = 'SELECT * FROM tasks ' \
         'WHERE assigned_to = (%s)'
         row = self.db_helper.fetch_all(sql, (assigned_to,))
         return [Task.from_dict(item) for item in row]
 
+    @log
     def assign_task(self, user_id, task_id): # Обновление выполняющего задачи
         sql = 'UPDATE tasks SET assigned_to = (%s) WHERE task_id = (%s)'
         return self.db_helper.execute_query(sql, (user_id, task_id))
@@ -27,11 +31,13 @@ class TaskRepository:
         sql = 'DELETE FROM tasks WHERE task_id = (%s)'
         return self.db_helper.execute_query(sql, (task_id,))
 
+    @log
     def get_task_by_id(self, task_id): # Поиск задачи по id
         sql = 'SELECT * FROM tasks WHERE task_id = (%s)'
         row = self.db_helper.fetch_one(sql, (task_id,))
         return Task.from_dict_or_none(row)
 
+    @log
     def update_task_by_id(self, task_id, status): # Обновление статуса задачи
         sql = 'UPDATE tasks SET task_status = (%s) WHERE task_id = (%s)'
         return self.db_helper.execute_query(sql, (status, task_id))

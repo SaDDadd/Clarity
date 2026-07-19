@@ -3,7 +3,9 @@ import bcrypt
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
+from decorators.decorators import log
 
+@log
 def create_user(user_repo): # Создание профиля
     print()
     print('Введите информацию о пользователе!')
@@ -36,6 +38,7 @@ def create_user(user_repo): # Создание профиля
     user_now = user_repo.get_by_username(username)
     return user_now 
 
+@log
 def create_project(project_repo, user_now): # Создание проекта 
     print()
     print('Введите информацию о проекте!')
@@ -49,6 +52,7 @@ def create_project(project_repo, user_now): # Создание проекта
         print()
         print('Проект создан!')
 
+@log
 def assign_task(task_repo, project_repo, user_repo, project_now, role_now): # Назначение задачи какому-то пользователю состоящему в проекте
     if role_now != 'admin':
         print('Только администратор проекта может назначать задачи.')
@@ -93,6 +97,7 @@ def assign_task(task_repo, project_repo, user_repo, project_now, role_now): # Н
     else:
         print('Ошибка при назначении задачи.')
 
+@log
 def change_status(task_repo, user_now, project_now, role_now): # Изменить статус задачи
     project_id = project_now.get_project_id()
     print(f'Изменение статуса задачи в проекте "{project_now.get_project_name()}"')
@@ -129,7 +134,7 @@ def change_status(task_repo, user_now, project_now, role_now): # Изменит�
         print('Статус обновлён.')
     else:
         print('Ошибка при обновлении статуса.')
-    
+ 
 def create_task(project_repo, task_repo, user_repo, project_now, role): # Создание задач
     if role != 'admin':
         print('Только администратор проекта может создавать задачи!')
@@ -186,7 +191,8 @@ def create_task(project_repo, task_repo, user_repo, project_now, role): # Соз
         print(f'Задача успешно создана (ID {task_id}).')
     else:
         print('Ошибка при создании задачи.')
-    
+
+@log  
 def log_to_system(user_repo): # Вход в систему
     user_now = None
 
@@ -240,6 +246,7 @@ def log_to_system(user_repo): # Вход в систему
 
     return user_now
 
+@log
 def log_to_project(project_repo, user_now): # Вход в проект
     user_id = user_now.get_user_id()
     while True:
