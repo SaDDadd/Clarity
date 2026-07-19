@@ -314,7 +314,7 @@ def main():
                 create_project(project_repo, user_now)
             case 2:
                 project_now, role_now = log_to_project(project_repo, user_now)
-                if project is None:
+                if project_now is None:
                     continue
                 while True:
                     action = menu_for_project()
