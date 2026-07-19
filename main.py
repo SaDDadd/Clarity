@@ -57,7 +57,9 @@ def create_project(project_repo: ProjectRepository, user_now: User) -> None: # �
 
 @log
 def assign_task(project_repo: ProjectRepository, task_repo: TaskRepository,
-                user_repo: UserRepository, project_now: Project, role_now: str) -> None: # Назначение задачи какому-то пользователю состоящему в проекте
+                user_repo: UserRepository, project_now: Project, 
+                role_now: str) -> None: # Назначение задачи какому-то пользователю 
+                                        # состоящему в проекте
     if role_now != 'admin':
         print('Только администратор проекта может назначать задачи.')
         return
@@ -192,12 +194,14 @@ def input_task_deadline() -> datetime.date | None: # Ввод дедлайна (
             print('Неверный формат даты. Используйте ГГГГ-ММ-ДД.')
 
 def create_task(project_repo: ProjectRepository, task_repo: TaskRepository,
-                user_repo: UserRepository, project_now: Project, role: str) -> None: # Создание задач
+                user_repo: UserRepository, project_now: Project, 
+                role: str) -> None: # Создание задач
     if role != 'admin':
         print('Только администратор проекта может создавать задачи!')
         return
 
-    print(f'Создание задачи в проекте "{project_now.get_project_name()}" (ID {project_now.get_project_id()})')
+    print(f'Создание задачи в проекте "{project_now.get_project_name()}" \
+          (ID {project_now.get_project_id()})')
 
     title = input_task_title()
     description = input_task_description()
@@ -260,7 +264,8 @@ def log_to_system(user_repo: UserRepository) -> User | None: # Вход в си�
         return log_to_system(user_repo)  # рекурсивно повторяем
 
 @log
-def log_to_project(project_repo: ProjectRepository, user_now: User) -> tuple[Project, str] | None: # Вход в проект
+def log_to_project(project_repo: ProjectRepository, 
+                   user_now: User) -> tuple[Project, str] | None: # Вход в проект
     user_id = user_now.get_user_id()
     while True:
         try:

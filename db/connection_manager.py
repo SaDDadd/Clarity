@@ -13,7 +13,8 @@ class DatabaseHelper:
             print(f'Ошибка подключения: {error}')
             return None
     
-    def execute_query(self, query: str, params: tuple | None = None) -> int | None: # Выполнить запрос (INSERT/UPDATE/DELETE) и вернуть количество затронутых строк или ID
+    def execute_query(self, query: str, params: tuple | None = None) -> int | None: # Выполнить 
+        # запрос (INSERT/UPDATE/DELETE) и вернуть количество затронутых строк или ID
         connection = self.connect()
         try:
             if connection is None:
@@ -34,7 +35,8 @@ class DatabaseHelper:
             if connection is not None:
                 connection.close()
 
-    def fetch_all(self, query: str, params: tuple | None = None) -> list[dict] | None: # Выполнить SELECT и вернуть все строки
+    def fetch_all(self, query: str, params: tuple | None = None) -> list[dict] | None: # Выполнить 
+        # SELECT и вернуть все строки
         connection = self.connect()
         try:
             if connection is None:
@@ -51,7 +53,8 @@ class DatabaseHelper:
             if connection is not None:
                 connection.close()
         
-    def fetch_one(self, query: str, params: tuple | None = None) -> dict | None: # Выполнить SELECT и вернуть одну строку
+    def fetch_one(self, query: str, params: tuple | None = None) -> dict | None: # Выполнить 
+        # SELECT и вернуть одну строку
         connection = self.connect()
         try:
             if connection is None:
@@ -68,7 +71,8 @@ class DatabaseHelper:
             if connection is not None:
                 connection.close()
 
-    def execute_transactions(self, queries: list[tuple[str, tuple]]) -> list[int] | None: # Выполнить несколько запросов в транзакции
+    def execute_transactions(self, queries: list[tuple[str, tuple]]) -> list[int] | None: # Выполнить 
+        # несколько запросов в транзакции
         if len(queries) == 0:
             return None
         connection = self.connect()

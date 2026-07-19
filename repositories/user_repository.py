@@ -8,7 +8,8 @@ class UserRepository:
         self.db_helper = DatabaseHelper()
 
     @log
-    def create_user(self, username: str, email: str, password: str) -> int | None: # Создать пользователя
+    def create_user(self, username: str, email: str, password: str) -> int | None: # Создать 
+        # пользователя
         sql = 'INSERT INTO users (username, email, ' \
         'password_hash)' \
         'VALUES (%s, %s, %s);'
@@ -36,19 +37,23 @@ class UserRepository:
         sql = 'DELETE FROM users WHERE user_id = (%s)'
         return self.db_helper.execute_query(sql, (user_id,))
 
-    def check_user_exists(self, user_id: int) -> dict | None: # Проверить существование пользователя по ID
+    def check_user_exists(self, user_id: int) -> dict | None: # Проверить существование 
+        # пользователя по ID
         sql = 'SELECT user_id FROM users WHERE user_id = (%s)'
         return self.db_helper.fetch_one(sql, (user_id,))
 
-    def check_user_exists_by_username(self, username: str) -> dict | None: # Проверить существование пользователя по имени
+    def check_user_exists_by_username(self, username: str) -> dict | None: # Проверить 
+        # существование пользователя по имени
         sql = 'SELECT user_id FROM users WHERE username = (%s)'
         return self.db_helper.fetch_one(sql, (username,))
 
-    def check_user_exists_by_email(self, email: str) -> dict | None: # Проверить существование пользователя по email
+    def check_user_exists_by_email(self, email: str) -> dict | None: # Проверить существование 
+        # пользователя по email
         sql = 'SELECT user_id FROM users WHERE email = (%s)'
         return self.db_helper.fetch_one(sql, (email,))
 
-    def check_user_correct_password_by_email(self, email: str, password: str) -> bool: # Проверить пароль по email
+    def check_user_correct_password_by_email(self, email: str, password: str) -> bool: # Проверить 
+        # пароль по email
         sql = 'SELECT password_hash FROM users WHERE email = (%s)'
         row = self.db_helper.fetch_one(sql, (email,))
         if row is None:
@@ -56,7 +61,8 @@ class UserRepository:
         stored_hash = row['password_hash'].encode('utf-8')
         return bcrypt.checkpw(password.encode('utf-8'), stored_hash)
 
-    def check_user_correct_password_by_username(self, username: str, password: str) -> bool: # Проверить пароль по имени
+    def check_user_correct_password_by_username(self, username: str, password: str) -> bool: 
+        # Проверить пароль по имени
         sql = 'SELECT password_hash FROM users WHERE username = (%s)'
         row = self.db_helper.fetch_one(sql, (username,))
         if row is None:

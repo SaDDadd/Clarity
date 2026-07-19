@@ -2,7 +2,7 @@ import os
 import pymysql 
 from dotenv import load_dotenv
 
-load_dotenv() #Загрузка переменных из .env
+load_dotenv() # Загрузка переменных из .env
 
 config = {'host':os.getenv('DB_HOST', 'localhost'), \
           'port':int(os.getenv('DB_PORT', 3306)), \

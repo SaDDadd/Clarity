@@ -9,10 +9,12 @@ class Project:
     @classmethod 
     def from_dict(cls, data: dict) -> "Project": # Создать объект из словаря
         return cls(project_id = data.get('project_id'), project_name = data.get('project_name'),
-                   project_description = data.get('project_description'), admin_id = data.get('admin_id'))
+                   project_description = data.get('project_description'), 
+                   admin_id = data.get('admin_id'))
 
     @classmethod 
-    def from_dict_or_none(cls, data: dict | None) -> "Project" | None: # Создать объект или вернуть None
+    def from_dict_or_none(cls, data: dict | None) -> "Project" | None: # Создать объект или 
+        # вернуть None
         return cls.from_dict(data) if data else None
 
     def set_project_id(self, project_id: int) -> None: # Установить ID проекта
@@ -21,7 +23,8 @@ class Project:
     def set_project_name(self, project_name: str) -> None: # Установить название проекта
         self._project_name = project_name
 
-    def set_project_description(self, project_description: str) -> None: # Установить описание проекта
+    def set_project_description(self, project_description: str) -> None: # Установить описание 
+        # проекта
         self._project_description = project_description
 
     def set_admin_id(self, admin_id: int) -> None: # Установить ID администратора

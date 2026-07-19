@@ -16,12 +16,14 @@ class Task:
     @classmethod
     def from_dict(cls, data: dict) -> "Task": # Создать объект из словаря
         return cls(task_id = data.get('task_id'), title = data.get('title'),
-                   task_description = data.get('task_description'), task_status = data.get('task_status'),
+                   task_description = data.get('task_description'), 
+                   task_status = data.get('task_status'),
                     project_id = data.get('project_id'), assigned_to = data.get('assigned_to'),
                         deadline = data.get('deadline'), created_date = data.get('created_date'))
 
     @classmethod
-    def from_dict_or_none(cls, data: dict | None) -> "Task" | None: # Создать объект или вернуть None
+    def from_dict_or_none(cls, data: dict | None) -> "Task" | None: # Создать объект или 
+        # вернуть None
         return cls.from_dict(data) if data else None
     
     def overdue(self) -> str: # Проверить, просрочена ли задача
@@ -36,7 +38,8 @@ class Task:
     def set_title(self, title: str) -> None: # Установить название задачи
         self._title = title
 
-    def set_task_description(self, task_description: str) -> None: # Установить описание задачи
+    def set_task_description(self, task_description: str) -> None: # Установить описание 
+        # задачи
         self._task_description = task_description
 
     def set_task_status(self, task_status: str) -> None: # Установить статус задачи
@@ -51,7 +54,8 @@ class Task:
     def set_deadline(self, deadline: datetime.date | None) -> None: # Установить дедлайн
         self._deadline = deadline
 
-    def set_created_date(self, created_date: datetime.datetime) -> None: # Установить дату создания
+    def set_created_date(self, created_date: datetime.datetime) -> None: # Установить дату 
+        # создания
         self._created_date = created_date
 
     def get_task_id(self) -> int: # Получить ID задачи

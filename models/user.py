@@ -16,7 +16,8 @@ class User:
                     created_date = data.get('created_date'))
 
     @classmethod
-    def from_dict_or_none(cls, data: dict | None) -> "User" | None: # Создать объект или вернуть None
+    def from_dict_or_none(cls, data: dict | None) -> "User" | None: # Создать объект или 
+        # вернуть None
         return cls.from_dict(data) if data else None
 
     def set_user_id(self, user_id: int) -> None: # Установить ID пользователя
@@ -31,7 +32,8 @@ class User:
     def set_password_hash(self, password_hash: str) -> None: # Установить хэш пароля
         self._password_hash = password_hash
 
-    def set_created_date(self, created_date: datetime.datetime) -> None: # Установить дату создания
+    def set_created_date(self, created_date: datetime.datetime) -> None: # Установить дату 
+        # создания
         self._created_date = created_date
 
     def get_user_id(self) -> int: # Получить ID пользователя
