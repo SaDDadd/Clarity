@@ -11,3 +11,5 @@ config = {'host':os.getenv('DB_HOST', 'localhost'), \
           'database':os.getenv('DB_NAME', 'task_to_do'), \
           'charset':os.getenv('DB_CHARSET', 'utf8mb4'), \
           'cursorclass':pymysql.cursors.DictCursor}
+
+# Переменными для JWT и БД

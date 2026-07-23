@@ -3,6 +3,8 @@ from db.connection_manager import DatabaseHelper
 from models.task import Task
 from decorators.decorators import log
 
+# Переписать под SQLAlchemy
+
 class TaskRepository:
     def __init__(self) -> None: # Инициализация с подключением к БД
         self.db_helper = DatabaseHelper()

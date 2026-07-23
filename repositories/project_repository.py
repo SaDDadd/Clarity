@@ -2,6 +2,8 @@ from db.connection_manager import DatabaseHelper
 from models.project import Project
 from decorators.decorators import log
 
+# Переписать под SQLAlchemy
+
 class ProjectRepository:
     def __init__(self) -> None: # Инициализация с подключением к БД
         self.db_helper = DatabaseHelper()

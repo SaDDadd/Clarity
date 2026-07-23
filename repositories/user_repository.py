@@ -3,6 +3,8 @@ from db.connection_manager import DatabaseHelper
 from models.user import User
 from decorators.decorators import log
 
+# Переписать под SQLAlchemy
+
 class UserRepository:
     def __init__(self) -> None: # Инициализация с подключением к БД
         self.db_helper = DatabaseHelper()
