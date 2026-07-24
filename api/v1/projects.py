@@ -26,5 +26,5 @@ async def delete_project():
                description='Удалить участника из проекта') # Удалить участника из проекта
 async def delete_project_user():
 
-@router.post('/projects/{project_id}/members', tags=('Задачи'), \
+@router.post('/projects/{project_id}/members', tags=('Проекты'), \
              description='Добавить участника в проект') # Добавление участника в проект (только админ)
