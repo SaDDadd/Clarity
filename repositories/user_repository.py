@@ -1,73 +1,87 @@
-import bcrypt
-from db.connection_manager import DatabaseHelper
-from models.user import User
-from decorators.decorators import log
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from models.user import UserModel
+from core.security import hash_password, verify_password
 
 # Переписать под SQLAlchemy
 
 class UserRepository:
-    def __init__(self) -> None: # Инициализация с подключением к БД
-        self.db_helper = DatabaseHelper()
+    def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
+        self.session = session
 
-    @log
-    def create_user(self, username: str, email: str, password: str) -> int | None: # Создать 
+    async def create_user(self, username: str, email: str, password: str) -> UserModel: # Создать 
         # пользователя
-        sql = 'INSERT INTO users (username, email, ' \
-        'password_hash)' \
-        'VALUES (%s, %s, %s);'
-        return self.db_helper.execute_query(sql, (username, email, password))
+        hashed_password = hash_password(password)
+        user = UserModel(username=username, email=email, password_hash=hashed_password)
+        self.session.add(user)
+        await self.session.commit()
+        return user
 
-    @log
-    def get_by_id(self, user_id: int) -> User | None: # Получить пользователя по ID
-        sql = 'SELECT * FROM users WHERE user_id = (%s)'
-        row = self.db_helper.fetch_one(sql, (user_id,))
-        return User.from_dict_or_none(row)
+    async def get_by_id(self, user_id: int) -> UserModel | None: # Получить пользователя по ID
+        result = await self.session.execute(select(UserModel).where(UserModel.user_id == user_id))
+        if result:
+            user = result.scalar_one_or_none()
+            return user
+        return None
 
-    @log
-    def get_by_username(self, username: str) -> User | None: # Получить пользователя по имени
-        sql = 'SELECT * FROM users WHERE  username = (%s)'
-        row = self.db_helper.fetch_one(sql, (username,))
-        return User.from_dict_or_none(row)
+    async def get_by_username(self, username: str) -> UserModel | None: # Получить пользователя по имени
+        result = await self.session.execute(select(UserModel).where(UserModel.username == username))
+        user = result.scalar_one_or_none()
+        return user
+       
 
-    @log
-    def get_by_email(self, email: str) -> User | None: # Получить пользователя по email
-        sql = 'SELECT * FROM users WHERE email = (%s)'
-        row = self.db_helper.fetch_one(sql, (email,))
-        return User.from_dict_or_none(row)
+    async def get_by_email(self, email: str) -> UserModel | None: # Получить пользователя по email
+        result = await self.session.execute(select(UserModel).where(UserModel.email == email))
+        user = result.scalar_one_or_none()
+        return user
 
-    def delete_user(self, user_id: int) -> int | None: # Удалить пользователя
-        sql = 'DELETE FROM users WHERE user_id = (%s)'
-        return self.db_helper.execute_query(sql, (user_id,))
-
-    def check_user_exists(self, user_id: int) -> dict | None: # Проверить существование 
-        # пользователя по ID
-        sql = 'SELECT user_id FROM users WHERE user_id = (%s)'
-        return self.db_helper.fetch_one(sql, (user_id,))
-
-    def check_user_exists_by_username(self, username: str) -> dict | None: # Проверить 
-        # существование пользователя по имени
-        sql = 'SELECT user_id FROM users WHERE username = (%s)'
-        return self.db_helper.fetch_one(sql, (username,))
-
-    def check_user_exists_by_email(self, email: str) -> dict | None: # Проверить существование 
-        # пользователя по email
-        sql = 'SELECT user_id FROM users WHERE email = (%s)'
-        return self.db_helper.fetch_one(sql, (email,))
-
-    def check_user_correct_password_by_email(self, email: str, password: str) -> bool: # Проверить 
-        # пароль по email
-        sql = 'SELECT password_hash FROM users WHERE email = (%s)'
-        row = self.db_helper.fetch_one(sql, (email,))
-        if row is None:
+    async def delete_user(self, user_id: int) -> bool: # Удалить пользователя
+        user = await self.get_by_id(user_id)
+        if user is None:
             return False
-        stored_hash = row['password_hash'].encode('utf-8')
-        return bcrypt.checkpw(password.encode('utf-8'), stored_hash)
+        await self.session.delete(user)
+        await self.session.commit()
+        return True
 
-    def check_user_correct_password_by_username(self, username: str, password: str) -> bool: 
+    async def check_user_exists(self, user_id: int) -> bool: # Проверить существование 
+        # пользователя по ID
+        result = await self.session.execute(select(UserModel).where(UserModel.user_id == user_id))
+        user = result.scalar_one_or_none()
+        if user is None:
+            return False
+        return True
+
+    async def check_user_exists_by_username(self, username: str) -> bool: # Проверить 
+        # существование пользователя по имени
+        result = await self.session.execute(select(UserModel).where(UserModel.username == username))
+        user = result.scalar_one_or_none()
+        if user is None:
+            return False
+        return True
+
+    async def check_user_exists_by_email(self, email: str) -> bool: # Проверить существование 
+        # пользователя по email
+        result = await self.session.execute(select(UserModel).where(UserModel.email == email))
+        user = result.scalar_one_or_none()
+        if user is None:
+            return False
+        return True
+
+    async def check_user_correct_password_by_email(self, email: str, password: str) -> bool: # Проверить 
+        # пароль по email
+        user = await self.get_by_email(email)
+        if user:
+            if verify_password(password, user.password_hash):
+                return True
+            return False
+        return False
+            
+    
+    async def check_user_correct_password_by_username(self, username: str, password: str) -> bool: 
         # Проверить пароль по имени
-        sql = 'SELECT password_hash FROM users WHERE username = (%s)'
-        row = self.db_helper.fetch_one(sql, (username,))
-        if row is None:
-            return False 
-        stored_hash = row['password_hash'].encode('utf-8')
-        return bcrypt.checkpw(password.encode('utf-8'), stored_hash)
+        user = await self.get_by_username(username)
+        if user:
+            if verify_password(password, user.password_hash):
+                return True
+            return False
+        return False
