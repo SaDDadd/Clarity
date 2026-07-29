@@ -6,7 +6,7 @@ from schemas.common import TaskStatus
 class TaskBase(BaseModel):
     title : str = Field(min_length=1, max_length=150)
     task_description : str | None
-    task_status : TaskStatus.PENDING
+    task_status : TaskStatus = Field(default=TaskStatus.PENDING)
     deadline : datetime.date | None = Field()
 
 class TaskCreate(TaskBase):

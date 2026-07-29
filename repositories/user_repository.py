@@ -29,7 +29,6 @@ class UserRepository:
         user = result.scalar_one_or_none()
         return user
        
-
     async def get_by_email(self, email: str) -> UserModel | None: # Получить пользователя по email
         result = await self.session.execute(select(UserModel).where(UserModel.email == email))
         user = result.scalar_one_or_none()
@@ -67,8 +66,8 @@ class UserRepository:
             return False
         return True
 
-    async def check_user_correct_password_by_email(self, email: str, password: str) -> bool: # Проверить 
-        # пароль по email
+    async def check_user_correct_password_by_email(self, email: str, password: str) -> bool: 
+        # Проверить пароль по email
         user = await self.get_by_email(email)
         if user:
             if verify_password(password, user.password_hash):
@@ -76,7 +75,6 @@ class UserRepository:
             return False
         return False
             
-    
     async def check_user_correct_password_by_username(self, username: str, password: str) -> bool: 
         # Проверить пароль по имени
         user = await self.get_by_username(username)

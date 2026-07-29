@@ -1,17 +1,19 @@
-from fastapi import APIRouter 
+from fastapi import APIRouter, Depends
 from core.security import hash_password
 from schemas.auth import UserRegister, UserLogin
 from core.dependencies import AsyncSession
 from core.dependencies import get_db
 from core.dependencies import current_user
 from core.exceptions import NotFoundException, ConflictException
+from repositories.user_repository import UserRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter()
 session = get_db()
 
 @router.post('/auth/register', tags=('Аутентификация'), \
              description='Принимает значения пользователя при регистрации') # Регистрация нового пользователя
-async def user_registration(user: UserRegister):
+async def user_registration(user: UserRegister, db: AsyncSession = Depends(get_db)):
 
 @router.post('/auth/login', tags=('Аутентификация'), \
              description='Регистрация пользователя') # Вход в систему
