@@ -3,8 +3,6 @@ from sqlalchemy import select
 from models.user import UserModel
 from core.security import hash_password, verify_password
 
-# Переписать под SQLAlchemy
-
 class UserRepository:
     def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
         self.session = session

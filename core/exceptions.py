@@ -1,4 +1,3 @@
-# кастомные ошибки и обработчики
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
