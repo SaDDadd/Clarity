@@ -14,7 +14,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]: # Генератор, 
     async with AsyncSessionLocal() as session:
         yield session
 
-async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User: # Зависимость, которая извлекает JWT-токен, декодирует его и возвращает объект текущего пользователя; выбрасывает 401 при ошибке.
+async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> UserModel: # Зависимость, которая извлекает JWT-токен, декодирует его и возвращает объект текущего пользователя; выбрасывает 401 при ошибке.
     try:
         payload = decode_access_token(token)
     except JWTError as error:
