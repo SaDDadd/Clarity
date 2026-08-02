@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, AsyncGenerator
 from core.database import AsyncSessionLocal
 from core.security import decode_access_token
 from models.user import User
-from repositories.user_repository import get_user_by_id
+from repositories.user_repository import get_by_id
 from jose import JWSError
 from fastapi.security import OAuth2PasswordBearer
 
@@ -21,7 +21,7 @@ async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = D
         raise HTTPException(status_code=401, detail='Недействительный или просроченный токен')
     user_id = payload.get('sub')
     if user_id is not None and type(user_id) is int:
-        user = await get_user_by_id(db, user_id)
+        user = await get_by_id(db, user_id)
         if user is None:
             raise HTTPException(status_code=401, detail='Недействительный или просроченный токен')
         else:
