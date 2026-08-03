@@ -32,6 +32,12 @@ class AuthenticationException(AppException): # Ошибка аутентифик
         self.status_code = 401
         self.detail = detail
         super().__init__(self.status_code, self.detail)
+
+class LackOfInformayionException(AppException): # Нехватка вводимой информации
+    def __init__(self, detail=None):
+        self.status_code = 422
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
         
 def register_exception_handlers(app: FastAPI): # Регистрирует глобальные обработчики для кастомных и стандартных исключений, 
                                         # возвращая JSON-ответы с соответствующими HTTP-статусами.

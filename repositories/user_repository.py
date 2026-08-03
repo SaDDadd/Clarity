@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.user import UserModel
-from core.security import hash_password, verify_password
+from core.security import verify_password
 
 class UserRepository:
     def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД

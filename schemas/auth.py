@@ -2,13 +2,13 @@
 from pydantic import BaseModel, EmailStr, Field
 
 class UserRegister(BaseModel):
-    username : str = Field(min_length=1, max_length=50)
+    username : str = Field(max_length=50)
     email : EmailStr = Field(max_length=100)
-    password : str = Field(min_length=8, max_length=255)
+    password : str = Field(min_length=8, max_length=1000)
 
 class UserLogin(BaseModel):
     username_or_email : str
-    password : str = Field(max_length=255)
+    password : str = Field(max_length=1000)
 
 class Token(BaseModel):
     access_token : str

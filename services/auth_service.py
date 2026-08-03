@@ -1,6 +1,6 @@
 # Регистрация, аутентификация, выдача токена
 from repositories.user_repository import UserRepository
-from core.exceptions import ConflictException, AuthenticationException
+from core.exceptions import ConflictException, AuthenticationException, LackOfInformayionException
 from core.security import hash_password, create_access_token, verify_password
 from schemas.auth import UserRegister, UserLogin
 from schemas.auth import Token
@@ -8,6 +8,8 @@ from core.config import settings
 
 async def register_user(db, user_date:UserRegister):
     repo = UserRepository(db)
+    if user_date.username is None or user_date.email is None or user_date.password is None:
+        raise LackOfInformayionException('Нехватка информации!')
     if await repo.check_user_exists_by_username(user_date.username):
         raise ConflictException('Имя пользователя уже существует!')
     elif await repo.check_user_exists_by_email(user_date.email):
