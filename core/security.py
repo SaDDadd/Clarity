@@ -9,7 +9,7 @@ def hash_password(password: str) -> str: # Хэширование пароля
     return hashed_password
 
 def verify_password(plain_password: str, hashed_password: str) -> bool: # Проверка пароля
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
      
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str: # генерация JWT-токена для авторизированного пользователя
     to_encode = data.copy()

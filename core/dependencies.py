@@ -20,7 +20,11 @@ async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = D
     except JWTError as error:
         raise HTTPException(status_code=401, detail='Недействительный или просроченный токен')
     user_id = payload.get('sub')
-    if user_id is not None and type(user_id) is int:
+    if user_id is not None:
+        try:
+            user_id = int(user_id)
+        except ValueError as error:
+            raise HTTPException(status_code=401, detail='Недействительный или просроченный токен')
         repo = UserRepository(db)
         user = await repo.get_by_id(user_id)
         if user is None:

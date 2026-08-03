@@ -7,10 +7,9 @@ class UserRepository:
     def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
         self.session = session
 
-    async def create_user(self, username: str, email: str, password: str) -> UserModel: # Создать 
+    async def create_user(self, username: str, email: str, password_hash: str) -> UserModel: # Создать 
         # пользователя
-        hashed_password = hash_password(password)
-        user = UserModel(username=username, email=email, password_hash=hashed_password)
+        user = UserModel(username=username, email=email, password_hash=password_hash)
         self.session.add(user)
         await self.session.commit()
         return user

@@ -5,7 +5,7 @@ import uvicorn
 
 app = FastAPI()
 
-app.include_router(router)
+app.include_router(router, prefix='/api/v1')
 register_exception_handlers(app)
 
 if __name__ == '__main__':
