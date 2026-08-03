@@ -8,7 +8,7 @@ from core.config import settings
 
 async def register_user(db, user_date:UserRegister):
     repo = UserRepository(db)
-    if len(user_date.username)==0 or len(user_date.email)==0 or len(user_date.password)==0:
+    if len(user_date.username)==0 or len(user_date.email)==0:
         raise LackOfInformayionException('Нехватка информации!')
     if await repo.check_user_exists_by_username(user_date.username):
         raise ConflictException('Имя пользователя уже существует!')
@@ -21,6 +21,8 @@ async def register_user(db, user_date:UserRegister):
 
 async def login_user(db, user_date:UserLogin):
     repo = UserRepository(db)
+    if len(user_date.username_or_email)==0 or len(user_date.password)==0:
+        raise LackOfInformayionException('Нехватка информации!')
     if '@' not in user_date.username_or_email:
         user = await repo.get_by_username(user_date.username_or_email)
         if user:

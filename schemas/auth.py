@@ -7,7 +7,7 @@ class UserRegister(BaseModel):
     password : str = Field(min_length=8, max_length=1000)
 
 class UserLogin(BaseModel):
-    username_or_email : str
+    username_or_email : str = Field(max_length=100)
     password : str = Field(max_length=1000)
 
 class Token(BaseModel):
