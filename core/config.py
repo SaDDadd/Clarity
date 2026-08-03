@@ -1,6 +1,6 @@
+from typing import List
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List
 
 class Settings(BaseSettings):
     DB_HOST: str = 'localhost'
@@ -8,28 +8,35 @@ class Settings(BaseSettings):
     DB_USER: str = 'root'
     DB_PASSWORD: str = '2007'
     DB_NAME: str = 'task_to_do'
-    DB_DRIVER: str = 'aiomysql' # Драйвер для SQLAlchemy
+    DB_DRIVER: str = 'aiomysql'
 
     @property
-    def DATABASE_URL(self) -> str: # Строка подключения к БД
+    def DATABASE_URL(self) -> str:
         return f"mysql+{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-    
-    JWT_SECRET_KEY: str = Field(..., env="JWT_SECRET_KEY")  # Секретный ключ для подписи JWT
-    JWT_ALGORITHM: str = 'HS256' # Алгоритм шифрования для JWT
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 # Время жизни токена в минутах, после истечения времени пользователь должен заново войти
-    CORS_ORIGINS: List[str] = [] # Список разрешенных источников для CORS
+
+    JWT_SECRET_KEY: str = Field(..., env="JWT_SECRET_KEY")
+    JWT_ALGORITHM: str = 'HS256'
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # ВАЖНО: используем default_factory=list, а не просто []
+    CORS_ORIGINS: List[str] = Field(default_factory=list)
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v): # Преобразует строку с источниками из .env 
-                                    # в список разрешённых адресов для CORS.
+    def parse_cors_origins(cls, v):
+        if v is None:
+            return []
         if isinstance(v, str):
+            # Убираем пробелы и пустые элементы
             return [item.strip() for item in v.split(",") if item.strip()]
-        return v
+        if isinstance(v, list):
+            return v
+        return []
 
     model_config = SettingsConfigDict(
-        env_file = '.env',
-        env_file_encoding = 'utf-8',
-        extra = 'ignore' # игнорирование лишних переменных в .env
+        env_file='.env',
+        env_file_encoding='utf-8',
+        extra='ignore'
     )
+
 settings = Settings()
