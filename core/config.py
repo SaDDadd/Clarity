@@ -19,19 +19,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # ВАЖНО: используем default_factory=list, а не просто []
-    CORS_ORIGINS: List[str] = Field(default_factory=list)
+    CORS_ORIGINS: str = ''
 
-    @field_validator("CORS_ORIGINS", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        if v is None:
+    @property
+    def cors_origins_list(self) -> List[str]:
+        if not self.CORS_ORIGINS:
             return []
-        if isinstance(v, str):
-            # Убираем пробелы и пустые элементы
-            return [item.strip() for item in v.split(",") if item.strip()]
-        if isinstance(v, list):
-            return v
-        return []
+        return [item.strip() for item in self.CORS_ORIGINS.split(',') if item.strip()]
 
     model_config = SettingsConfigDict(
         env_file='.env',
