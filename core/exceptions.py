@@ -51,6 +51,10 @@ def register_exception_handlers(app: FastAPI): # Регистрирует гло
     def er_not_found_exception(request, exc):
         return JSONResponse(status_code=exc.status_code, content={'detail':exc.detail})
 
+    @app.exception_handler(PermissionDeniedException)
+    def er_permission_denied_exception(request, exc):
+        return JSONResponse(status_code=exc.status_code, content={'detail':exc.detail})
+
     @app.exception_handler(ConflictException)
     def er_conflict_exception(request, exc):
         return JSONResponse(status_code=exc.status_code, content={'detail':exc.detail})

@@ -1,6 +1,6 @@
 # Создание, получение, обновление проектов, проверка прав
 from repositories.project_repository import ProjectRepository
-from schemas.project import ProjectBase, ProjectsGet, ProjectUpdate, ProjectMemberCheck
+from schemas.project import ProjectsGet, ProjectUpdate, ProjectMemberCheck, ProjectCreate
 from core.exceptions import NotFoundException, PermissionDeniedException
 
 async def create_project(db, project_date:ProjectCreate): # Создание проекта
@@ -11,20 +11,25 @@ async def create_project(db, project_date:ProjectCreate): # Создание п�
 async def get_admin_projects(db, project_date:ProjectsGet): # Получить все проекты админа
     repo = ProjectRepository(db)
     numb_projects = await repo.get_projects_by_admin(project_date.admin_id)
-    if numb_projects is None:
+    if not numb_projects:
         return {'message': 'У пользователя нет проектов!'}
     else:
         return numb_projects
 
-async def update_project(db, project_date:ProjectUpdate):
+async def update_project(db, project_id: int, user_id: int, project_date:ProjectUpdate):
     repo = ProjectRepository(db)
     result = await repo.get_project_by_id(project_date.project_id)
     if result:
-        if await repo.get_user_role_in_project(project_date.project_id, project_date.user_id) == 'admin':
+        if await repo.get_user_role_in_project(project_id, user_id) == 'admin':
+            if project_date.project_description is None and project_date.project_name is None:
+                return {'message': 'Ничего не изменилось!'}
             if project_date.project_description is None:
                 await repo.update_project_name(project_date.project_name, project_date.project_id)
+            elif project_date.project_name is None:
+                await repo.update_project_description(project_date.project_description, project_date.project_id)
             else:
                 await repo.update_project_description(project_date.project_description, project_date.project_id)
+                await repo.update_project_name(project_date.project_name, project_date.project_id)
             return {'message': 'Проект обновлен!'}
         else:
             raise PermissionDeniedException('Пользователь не может менять проект, он не админ!')

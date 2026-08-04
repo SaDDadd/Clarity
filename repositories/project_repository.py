@@ -49,7 +49,7 @@ class ProjectRepository:
         self.session.add(task)
         await self.session.flush()
         member = ProjectMemberModel(project_id=task.project_id, user_id=admin_id, role_project='admin')
-        self.sesion.add(member)
+        self.session.add(member)
         await self.session.commit()
         return task
 
