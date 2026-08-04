@@ -1,7 +1,7 @@
 from fastapi import APIRouter , Depends
 from services.project_service import create_project, update_project, get_admin_projects, get_project_info, \
     delete_project
-from schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
+from schemas.project import ProjectCreate, ProjectUpdate, AddMemberRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import get_db
 from core.dependencies import current_user
@@ -40,6 +40,6 @@ async def delete_project_user():
     pass
 
 @router.post('/projects/{project_id}/members', tags=['Проекты'], \
-             summary='Добавить участника в проект') # Добавление участника в проект (только админ)
-async def add_user(project_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await add_user(db, project_id, user.user_id)
+             summary='Добавить участника в проект', status_code=201) # Добавление участника в проект (только админ)
+async def add_user(project_id: int, request: AddMemberRequest, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await add_user(db, project_id, current_user.user_id, request.user_id)

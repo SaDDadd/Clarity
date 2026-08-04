@@ -62,15 +62,15 @@ async def delete_project(db, project_id: int, user_id: int):
     else:
         raise PermissionDeniedException('Вы не админ этого проекта!')
 
-async def add_user(db, project_id: int, user_id: int):
+async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: int):
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
-    if repo_user.check_user_exists(user_id) is False:
+    if await repo_user.check_user_exists(user_id_to_add) is False:
         raise NotFoundException('Нельзя добавить пользователя: его не существует!')
-    elif repo.is_user_admin(project_id, user_id):
+    if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ проекта!')
     else:
-        result = await repo.add_user(project_id, user_id)
+        result = await repo.add_user(project_id, user_id_to_add)
         if result:
             return {'message': 'Пользователь добавлен в проект!'}
         else:

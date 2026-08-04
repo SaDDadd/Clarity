@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete
 from models.project import ProjectModel
 from models.project_members import ProjectMemberModel
-from core.exceptions import NotFoundException, LackOfInformationException 
+from core.exceptions import NotFoundException, LackOfInformationException, ConflictException
 
 class ProjectRepository:
     def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
@@ -93,11 +93,14 @@ class ProjectRepository:
             return False
         return True
 
-    async def add_user(self, project_id, user_id) -> bool:
-        if project_id is None or user_id is None:
+    async def add_user(self, project_id, user_id_to_add) -> bool:
+        if project_id is None or user_id_to_add is None:
             raise LackOfInformationException('Нехватка вводимой информации!')
         else:
-            task = ProjectMemberModel(project_id=project_id, user_id=user_id, role_project='member')
-            self.session.add(task)
-            await self.session.commit()
-            return True
+            if await self.is_user_in_project(project_id, user_id_to_add):
+                raise ConflictException('Пользователь уже состоит в проекте')
+            else:
+                task = ProjectMemberModel(project_id=project_id, user_id=user_id_to_add, role_project='member')
+                self.session.add(task)
+                await self.session.commit()
+                return True
