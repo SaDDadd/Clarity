@@ -3,16 +3,16 @@ from repositories.project_repository import ProjectRepository
 from schemas.project import ProjectsGet, ProjectUpdate, ProjectMemberCheck, ProjectCreate
 from core.exceptions import NotFoundException, PermissionDeniedException
 
-async def create_project(db, project_date:ProjectCreate): # Создание проекта
+async def create_project(db, project_date:ProjectCreate, admin_id): # Создание проекта
     repo = ProjectRepository(db)
-    return await repo.create_project_with_admin(project_date.project_name, project_date.project_description, project_date.admin_id, role='admin')
+    return await repo.create_project_with_admin(project_date.project_name, project_date.project_description, admin_id, role='admin')
     # В будущем можно добавить проверку на уникальность имени проекта у одного админа
 
 async def get_admin_projects(db, project_date:ProjectsGet): # Получить все проекты админа
     repo = ProjectRepository(db)
     numb_projects = await repo.get_projects_by_admin(project_date.admin_id)
     if not numb_projects:
-        return {'message': 'У пользователя нет проектов!'}
+        return []
     else:
         return numb_projects
 
