@@ -33,7 +33,7 @@ class AuthenticationException(AppException): # Ошибка аутентифик
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class LackOfInformayionException(AppException): # Нехватка вводимой информации
+class LackOfInformationException(AppException): # Нехватка вводимой информации
     def __init__(self, detail=None):
         self.status_code = 422
         self.detail = detail

@@ -17,7 +17,7 @@ class ProjectRepository:
         # Обновить описание проекта
         result = await self.get_project_by_id(project_id)
         if result:
-            task = await self.session.execute(update(ProjectModel).values(project_description=new_description))
+            task = await self.session.execute(update(ProjectModel).values(project_description=new_description).where(ProjectModel.project_id == project_id))
             await self.session.commit()
             return True
         else:
@@ -26,7 +26,7 @@ class ProjectRepository:
         # Обновить имя проекта 
         result = await self.get_project_by_id(project_id)
         if result:
-            task = await self.session.execute(update(ProjectModel).values(project_name=new_name))
+            task = await self.session.execute(update(ProjectModel).values(project_name=new_name).where(ProjectModel.project_id == project_id))
             await self.session.commit()
             return True
         else:
@@ -34,7 +34,7 @@ class ProjectRepository:
         
     async def is_user_in_project(self, project_id: int, user_id: int) -> bool: # Проверить, состоит 
         # ли пользователь в проекте
-        result = await self.session.execute(select(ProjectModel).where(ProjectMemberModel.project_id == project_id and ProjectMemberModel.user_id == user_id))
+        result = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
         task = result.scalar_one_or_none()
         if task:
             return True
@@ -46,12 +46,14 @@ class ProjectRepository:
                                                                 # админа
         task = ProjectModel(project_name=name, project_description=description, admin_id=admin_id)
         self.session.add(task)
+        project_id = await self.session.execute(select(ProjectModel.project_id).where(ProjectModel.project_name == name, ProjectModel.project_description == description, ProjectModel.admin_id == admin_id)) 
+        task_2 = ProjectMemberModel(project_id=project_id, user_id=admin_id, role_project='admin')
         await self.session.commit()
         return task
 
     async def get_user_role_in_project(self, project_id: int, user_id: int) -> str | None: # Получить 
         # роль пользователя в проекте
-        result = await self.session.execute(select(ProjectMemberModel.role_project).where(ProjectMemberModel.project_id == project_id and ProjectMemberModel.user_id == user_id))
+        result = await self.session.execute(select(ProjectMemberModel.role_project).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
         task = result.scalar_one_or_none()
         return task
 

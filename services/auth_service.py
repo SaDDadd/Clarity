@@ -1,6 +1,6 @@
 # Регистрация, аутентификация, выдача токена
 from repositories.user_repository import UserRepository
-from core.exceptions import ConflictException, AuthenticationException, LackOfInformayionException
+from core.exceptions import ConflictException, AuthenticationException, LackOfInformationException
 from core.security import hash_password, create_access_token, verify_password
 from schemas.auth import UserRegister, UserLogin
 from schemas.auth import Token
@@ -9,7 +9,7 @@ from core.config import settings
 async def register_user(db, user_date:UserRegister):
     repo = UserRepository(db)
     if len(user_date.username)==0 or len(user_date.email)==0:
-        raise LackOfInformayionException('Нехватка информации!')
+        raise LackOfInformationException('Нехватка информации!')
     if await repo.check_user_exists_by_username(user_date.username):
         raise ConflictException('Имя пользователя уже существует!')
     elif await repo.check_user_exists_by_email(user_date.email):
@@ -22,7 +22,7 @@ async def register_user(db, user_date:UserRegister):
 async def login_user(db, user_date:UserLogin):
     repo = UserRepository(db)
     if len(user_date.username_or_email)==0 or len(user_date.password)==0:
-        raise LackOfInformayionException('Нехватка информации!')
+        raise LackOfInformationException('Нехватка информации!')
     if '@' not in user_date.username_or_email:
         user = await repo.get_by_username(user_date.username_or_email)
         if user:
