@@ -47,9 +47,9 @@ class ProjectRepository:
                                                                 # админа
         task = ProjectModel(project_name=name, project_description=description, admin_id=admin_id)
         self.session.add(task)
-        project_id = await self.session.execute(select(ProjectModel.project_id).where(ProjectModel.project_name == name, ProjectModel.project_description == description, ProjectModel.admin_id == admin_id)) 
         await self.session.flush()
-        task_2 = ProjectMemberModel(project_id=task.project_id, user_id=admin_id, role_project='admin')
+        member = ProjectMemberModel(project_id=task.project_id, user_id=admin_id, role_project='admin')
+        self.sesion.add(member)
         await self.session.commit()
         return task
 
