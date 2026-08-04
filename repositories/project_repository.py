@@ -12,7 +12,7 @@ class ProjectRepository:
         result = await self.session.execute(select(ProjectModel).where(ProjectModel.admin_id == admin_id))
         tasks = result.scalars().all()
         return tasks 
-
+ 
     async def update_project_description(self, new_description: str, project_id: int) -> bool: 
         # Обновить описание проекта
         result = await self.get_project_by_id(project_id)
@@ -22,6 +22,7 @@ class ProjectRepository:
             return True
         else:
             return False
+        
     async def update_project_name(self, new_name: str, project_id: int) -> bool:
         # Обновить имя проекта 
         result = await self.get_project_by_id(project_id)
@@ -47,7 +48,8 @@ class ProjectRepository:
         task = ProjectModel(project_name=name, project_description=description, admin_id=admin_id)
         self.session.add(task)
         project_id = await self.session.execute(select(ProjectModel.project_id).where(ProjectModel.project_name == name, ProjectModel.project_description == description, ProjectModel.admin_id == admin_id)) 
-        task_2 = ProjectMemberModel(project_id=project_id, user_id=admin_id, role_project='admin')
+        await self.session.flush()
+        task_2 = ProjectMemberModel(project_id=task.project_id, user_id=admin_id, role_project='admin')
         await self.session.commit()
         return task
 
