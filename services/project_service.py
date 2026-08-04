@@ -1,7 +1,8 @@
 # Создание, получение, обновление проектов, проверка прав
 from repositories.project_repository import ProjectRepository
-from schemas.project import ProjectsGet, ProjectUpdate, ProjectMemberCheck, ProjectCreate
+from schemas.project import ProjectUpdate, ProjectMemberCheck, ProjectCreate, ProjectResponse
 from core.exceptions import NotFoundException, PermissionDeniedException
+from repositories.project_repository import is_user_in_project
 
 async def create_project(db, project_date:ProjectCreate, admin_id): # Создание проекта
     repo = ProjectRepository(db)
@@ -44,4 +45,10 @@ async def checking_rights_project(db, project_date:ProjectMemberCheck):
         raise PermissionDeniedException('Пользователь не состоит в проекте!')
     else:
         return result
-    
+
+async def get_project_info(db, project_id: int, user_id: int):
+    repo = ProjectRepository(db)
+    if await is_user_in_project(project_id, user_id):
+        return await repo.get_project_all_info(project_id)
+    else:
+        raise 

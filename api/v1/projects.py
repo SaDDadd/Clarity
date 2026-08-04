@@ -1,6 +1,6 @@
 from fastapi import APIRouter , Depends
-from services.project_service import create_project, update_project, get_admin_projects
-from schemas.project import ProjectCreate, ProjectUpdate
+from services.project_service import create_project, update_project, get_admin_projects, get_project_info
+from schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import get_db
 from core.dependencies import current_user
@@ -9,7 +9,7 @@ from models.user import UserModel
 router = APIRouter()
 
 @router.get('/projects', tags=['Проекты'], \
-            summary='Вывод проектов, в которых участвует пользователь') # Получение проектов админа
+            summary='Вывод проектов пользователя, где он админ') # Получение проектов админа
 async def get_projects_admin(user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await get_admin_projects(db, user.user_id)
 
@@ -20,8 +20,8 @@ async def create_project(project: ProjectCreate, user: UserModel = Depends(curre
 
 @router.get('/projects/{projects_id}', tags=['Проекты'], \
             summary='Получить информацию о проекте') # Получить информацию о проекте 
-async def get_project_info():
-    pass
+async def get_project_info(project_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await get_project_info(db, project_id, user.user_id)
 
 @router.put('/projects/{projects_id}', tags=['Проекты'], \
             summary='Обновить описание проекта') # Обновить описание проекта

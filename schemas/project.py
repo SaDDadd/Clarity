@@ -24,4 +24,5 @@ class ProjectMemberCheck(BaseModel):
 
 class ProjectResponse(ProjectBase):
     project_id : int
+    admin_id : int
     members : list[UserResponse]
