@@ -1,5 +1,6 @@
 # Создание, получение, обновление проектов, проверка прав
 from repositories.project_repository import ProjectRepository
+from repositories.user_repository import UserRepository
 from schemas.project import ProjectUpdate, ProjectMemberCheck, ProjectCreate, ProjectResponse
 from core.exceptions import NotFoundException, PermissionDeniedException
 
@@ -63,8 +64,14 @@ async def delete_project(db, project_id: int, user_id: int):
 
 async def add_user(db, project_id: int, user_id: int):
     repo = ProjectRepository(db)
-    result = repo.add_user(project_id, user_id)
-    if result:
-        return {'message': 'Пользователь добавлен в проект!'}
+    repo_user = UserRepository(db)
+    if repo_user.check_user_exists(user_id) is False:
+        raise NotFoundException('Нельзя добавить пользователя: его не существует!')
+    elif repo.is_user_admin(project_id, user_id):
+        raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ проекта!')
     else:
-        raise
+        result = await repo.add_user(project_id, user_id)
+        if result:
+            return {'message': 'Пользователь добавлен в проект!'}
+        else:
+            raise
