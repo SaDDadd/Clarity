@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from models.project import ProjectModel
 from models.project_members import ProjectMemberModel
 from core.exceptions import NotFoundException 
@@ -75,3 +75,17 @@ class ProjectRepository:
             task_2 = result_2.scalars().all()
             return {'project': result, 
                     'members': task_2}
+
+    async def is_user_admin(self, project_id: int, user_id: int) -> bool:
+        result = await self.session.execute(select(ProjectModel).where(ProjectModel.project_id == project_id, ProjectModel.admin_id == user_id))
+        task = result.scalar_one_or_none()
+        if task is None:
+            return False
+        else:
+            return True
+
+    async def delete_project(self, project_id) -> bool:
+        result = self.session.execute(delete(ProjectModel).where(ProjectModel.project_id == project_id))
+        result_2 = self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
+        await self.session.commit()
+        return True

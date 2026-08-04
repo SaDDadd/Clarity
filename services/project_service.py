@@ -36,7 +36,6 @@ async def update_project(db, project_id: int, user_id: int, project_date:Project
     else:
         raise NotFoundException('Проект не найден!')
     
-
 async def checking_rights_project(db, project_date:ProjectMemberCheck):
     repo = ProjectRepository(db)
     result = await repo.get_user_role_in_project(project_date.project_id, project_date.user_id)
@@ -51,3 +50,13 @@ async def get_project_info(db, project_id: int, user_id: int):
         return await repo.get_project_all_info(project_id)
     else:
         raise PermissionDeniedException('Пользователь не является участником проекта!')
+
+async def delete_project(db, project_id: int, user_id: int):
+    repo = ProjectRepository(db)
+    if await repo.is_user_admin(project_id, user_id) is True:
+        if await repo.delete_project(project_id) is True:
+            return {'message': 'Проект успешно удален!'}
+        else:
+            raise 
+    else:
+        raise PermissionDeniedException('Вы не админ этого проекта!')

@@ -1,5 +1,6 @@
 from fastapi import APIRouter , Depends
-from services.project_service import create_project, update_project, get_admin_projects, get_project_info
+from services.project_service import create_project, update_project, get_admin_projects, get_project_info, \
+    delete_project
 from schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import get_db
@@ -25,13 +26,13 @@ async def get_project_info(projects_id: int, user: UserModel = Depends(current_u
 
 @router.put('/projects/{projects_id}', tags=['Проекты'], \
             summary='Обновить описание проекта') # Обновить описание проекта
-async def update_project_description(project_id, project: ProjectUpdate, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await update_project(db, project_id, user.user_id, project)
+async def update_project_description(projects_id: int, project: ProjectUpdate, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await update_project(db, projects_id, user.user_id, project)
 
 @router.delete('/projects/{project_id}', tags=['Проекты'], \
                summary='Удалить проект') # Удалить проект
-async def delete_project():
-    pass
+async def delete_project(project_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await delete_project(db, project_id, user.user_id)
 
 @router.delete('/projects/{project_id}/members/{user_id}', tags=['Проекты'], \
                summary='Удалить участника из проекта') # Удалить участника из проекта
