@@ -41,5 +41,5 @@ async def delete_project_user():
 
 @router.post('/projects/{project_id}/members', tags=['Проекты'], \
              summary='Добавить участника в проект') # Добавление участника в проект (только админ)
-async def add_user():
-    pass
+async def add_user(project_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await add_user(db, project_id, user.user_id)

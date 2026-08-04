@@ -92,3 +92,12 @@ class ProjectRepository:
         if deleted_count == 0:
             return False
         return True
+
+    async def add_user(self, project_id, user_id) -> bool:
+        if project_id is None or user_id is None:
+            raise 
+        else:
+            task = ProjectMemberModel(project_id=project_id, user_id=user_id, role_project='member')
+            self.session.add(task)
+            await self.session.commit()
+            return True

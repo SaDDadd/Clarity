@@ -60,3 +60,11 @@ async def delete_project(db, project_id: int, user_id: int):
             raise NotFoundException('Проект не найден!')
     else:
         raise PermissionDeniedException('Вы не админ этого проекта!')
+
+async def add_user(db, project_id: int, user_id: int):
+    repo = ProjectRepository(db)
+    result = repo.add_user(project_id, user_id)
+    if result:
+        return {'message': 'Пользователь добавлен в проект!'}
+    else:
+        raise
