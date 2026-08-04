@@ -1,8 +1,8 @@
 # Создание, получение, обновление проектов, проверка прав
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from schemas.project import ProjectUpdate, ProjectMemberCheck, ProjectCreate, ProjectResponse
-from core.exceptions import NotFoundException, PermissionDeniedException
+from schemas.project import ProjectUpdate, ProjectMemberCheck, ProjectCreate
+from core.exceptions import NotFoundException, PermissionDeniedException, AppException
 
 async def create_project(db, project_date:ProjectCreate, admin_id): # Создание проекта
     repo = ProjectRepository(db)
@@ -74,4 +74,4 @@ async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: in
         if result:
             return {'message': 'Пользователь добавлен в проект!'}
         else:
-            raise
+            raise AppException('Неизвестная ошибка при добавлении пользователя')
