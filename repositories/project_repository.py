@@ -85,7 +85,10 @@ class ProjectRepository:
             return True
 
     async def delete_project(self, project_id) -> bool:
-        result = self.session.execute(delete(ProjectModel).where(ProjectModel.project_id == project_id))
-        result_2 = self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
-        await self.session.commit()
+        async with self.session.begin():
+            _ = await self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
+            result = await self.session.execute(delete(ProjectModel).where(ProjectModel.project_id == project_id))
+            deleted_count = result.rowcount
+        if deleted_count == 0:
+            return False
         return True

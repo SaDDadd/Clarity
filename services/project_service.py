@@ -53,10 +53,10 @@ async def get_project_info(db, project_id: int, user_id: int):
 
 async def delete_project(db, project_id: int, user_id: int):
     repo = ProjectRepository(db)
-    if await repo.is_user_admin(project_id, user_id) is True:
-        if await repo.delete_project(project_id) is True:
+    if await repo.is_user_admin(project_id, user_id):
+        if await repo.delete_project(project_id):
             return {'message': 'Проект успешно удален!'}
         else:
-            raise 
+            raise NotFoundException('Проект не найден!')
     else:
         raise PermissionDeniedException('Вы не админ этого проекта!')
