@@ -8,9 +8,9 @@ async def create_project(db, project_date:ProjectCreate, admin_id): # Созда
     return await repo.create_project_with_admin(project_date.project_name, project_date.project_description, admin_id, role='admin')
     # В будущем можно добавить проверку на уникальность имени проекта у одного админа
 
-async def get_admin_projects(db, project_date:ProjectsGet): # Получить все проекты админа
+async def get_admin_projects(db, admin_id: int): # Получить все проекты админа
     repo = ProjectRepository(db)
-    numb_projects = await repo.get_projects_by_admin(project_date.admin_id)
+    numb_projects = await repo.get_projects_by_admin(admin_id)
     if not numb_projects:
         return []
     else:

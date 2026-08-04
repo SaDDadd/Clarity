@@ -8,7 +8,7 @@ class ProjectBase(BaseModel):
     project_description : str | None
 
 class ProjectCreate(ProjectBase):
-    admin_id : int
+    pass
     
 class ProjectUpdate(ProjectBase):
     project_name : str | None = None
