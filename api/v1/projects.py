@@ -20,8 +20,8 @@ async def create_project(project: ProjectCreate, user: UserModel = Depends(curre
 
 @router.get('/projects/{projects_id}', tags=['Проекты'], \
             summary='Получить информацию о проекте') # Получить информацию о проекте 
-async def get_project_info(project_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await get_project_info(db, project_id, user.user_id)
+async def get_project_info(projects_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await get_project_info(db, projects_id, user.user_id)
 
 @router.put('/projects/{projects_id}', tags=['Проекты'], \
             summary='Обновить описание проекта') # Обновить описание проекта

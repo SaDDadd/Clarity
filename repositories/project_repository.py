@@ -65,12 +65,13 @@ class ProjectRepository:
         task = result.scalar_one_or_none()
         return task
 
-    async def get_project_all_info(self, project_id: int) -> ProjectModel | None: # Получить 
+    async def get_project_all_info(self, project_id: int) -> dict | None: # Получить 
         # всю информацию о проекте
         result = await self.get_project_by_id(project_id)
         if result is None:
             raise NotFoundException('Запрашиваемого проекта нет!')
         else:
             result_2 = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
-            task_2 = result_2.scalar_one_or_none()
-            return result, task_2
+            task_2 = result_2.scalars().all()
+            return {'project': result, 
+                    'members': task_2}
