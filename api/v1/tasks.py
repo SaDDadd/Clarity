@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession 
-from services.task_service import get_tasks_by_id
+from services.task_service import get_project_tasks
 from schemas.task import TaskCreate
 from models.user import UserModel
 from core.dependencies import get_db, current_user
@@ -9,8 +9,8 @@ router = APIRouter()
 
 @router.get('/projects/{project_id}/tasks', tags=['Задачи'], \
             summary='Получить задачи проекта') # Получить задачи проекта
-async def get_tasks_project(project_id: int, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await get_tasks_by_id(db, project_id, current_user.user_id)
+async def get_project_tasks(project_id: int, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await get_project_tasks(db, project_id, current_user.user_id)
 
 @router.post('/projects/{project_id}/tasks', tags=['Задачи'], \
              summary='Создать задачу') # Создать задачу
