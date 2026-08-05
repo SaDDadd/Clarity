@@ -118,3 +118,11 @@ class ProjectRepository:
                     return True
             else:
                 raise ConflictException('Пользователя нет в проекте!')
+
+    async def get_user_projects(self, project_id, user_id) -> list[ProjectModel]:
+        result = await self.session.execute(select(ProjectModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
+        task = result.scalars().all()
+        if task:
+            return task
+        else:
+            return task

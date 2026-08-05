@@ -43,3 +43,8 @@ async def delete_project_member(project_id: int, request: DeleteMemeberRequest, 
              summary='Добавить участника в проект', status_code=201) # Добавление участника в проект (только админ)
 async def add_member(project_id: int, request: AddMemberRequest, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await add_user(db, project_id, current_user.user_id, request.user_id)
+
+@router.get('/projects', tags=['Проекты'], \
+            summary='Вывод проектов, где пользователь участвует(как админ и участник)')
+async def get_user_projects(project_id: int, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Вывод проектов, где пользователь участвует (как админ и участник)
+    return await get_user_projects(db, project_id, current_user.user_id)
