@@ -90,10 +90,7 @@ async def delete_project_user(db, project_id: int, current_user_id: int, user_id
         else:
             raise AppException('Неизвестная ошибка при удалении пользователя из проекта!')
 
-async def get_member_projects(db, project_id: int, current_user_id: int):
+async def get_user_projects(db, current_user_id: int):
     repo = ProjectRepository(db)
-    result = repo.get_user_projects(project_id, current_user_id)
-    if not result:
-        return {'message': 'У пользовател нет проектов!'}
-    else:
-        return result
+    result = await repo.get_user_projects(current_user_id)
+    return result

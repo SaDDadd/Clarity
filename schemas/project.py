@@ -30,5 +30,5 @@ class ProjectResponse(ProjectBase):
 class AddMemberRequest(BaseModel):
     user_id : int
 
-class DeleteMemeberRequest(BaseModel):
+class DeleteMemberRequest(BaseModel):
     user_id : int

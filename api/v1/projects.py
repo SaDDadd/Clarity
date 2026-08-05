@@ -1,7 +1,7 @@
 from fastapi import APIRouter , Depends
 from services.project_service import create_project, update_project, get_admin_projects, get_project_info, \
-    delete_project, add_user, delete_project_user
-from schemas.project import ProjectCreate, ProjectUpdate, AddMemberRequest, DeleteMemeberRequest
+    delete_project, add_user, delete_project_user, get_user_projects
+from schemas.project import ProjectCreate, ProjectUpdate, AddMemberRequest, DeleteMemberRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import get_db
 from core.dependencies import current_user
@@ -34,17 +34,17 @@ async def update_project_description(projects_id: int, project: ProjectUpdate, u
 async def delete_project(project_id: int, user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await delete_project(db, project_id, user.user_id)
 
-@router.delete('/projects/{project_id}/members/{user_id}', tags=['Проекты'], \
+@router.delete('/projects/{project_id}/members', tags=['Проекты'], \
                summary='Удалить участника из проекта') # Удалить участника из проекта
-async def delete_project_member(project_id: int, request: DeleteMemeberRequest, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+async def delete_project_member(project_id: int, request: DeleteMemberRequest, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await delete_project_user(db, project_id, current_user.user_id, request.user_id)
 
-@router.post('/projects/{project_id}/members/{user_id}', tags=['Проекты'], \
+@router.post('/projects/{project_id}/members', tags=['Проекты'], \
              summary='Добавить участника в проект', status_code=201) # Добавление участника в проект (только админ)
 async def add_member(project_id: int, request: AddMemberRequest, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await add_user(db, project_id, current_user.user_id, request.user_id)
 
-@router.get('/projects', tags=['Проекты'], \
+@router.get('/projects/all', tags=['Проекты'], \
             summary='Вывод проектов, где пользователь участвует(как админ и участник)')
-async def get_user_projects(project_id: int, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Вывод проектов, где пользователь участвует (как админ и участник)
-    return await get_user_projects(db, project_id, current_user.user_id)
+async def get_member_projects(current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Вывод проектов, где пользователь участвует (как админ и участник)
+    return await get_user_projects(db, current_user.user_id)
