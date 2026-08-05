@@ -74,4 +74,18 @@ async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: in
         if result:
             return {'message': 'Пользователь добавлен в проект!'}
         else:
-            raise AppException('Неизвестная ошибка при добавлении пользователя')
+            raise AppException('Неизвестная ошибка при добавлении пользователя в проект!')
+
+async def delete_project_user(db, project_id: int, current_user_id: int, user_id_to_del: int):
+    repo = ProjectRepository(db)
+    repo_user = UserRepository(db)
+    if await repo_user.check_user_exists(user_id_to_del) is False:
+        raise NotFoundException('Нельзя удалить пользователя: его не существует!')
+    if not await repo.is_user_admin(project_id, current_user_id):
+        raise PermissionDeniedException('Нельзя удалить пользователя: вы не админ проекта!')
+    else:
+        result = await repo.delete_user(project_id, user_id_to_del)
+        if result:
+            return {'message': 'Пользователь удален из проекта!'}
+        else:
+            raise AppException('Неизвестная ошибка при удалении пользователя из проекта!')

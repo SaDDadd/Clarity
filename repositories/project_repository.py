@@ -98,9 +98,23 @@ class ProjectRepository:
             raise LackOfInformationException('Нехватка вводимой информации!')
         else:
             if await self.is_user_in_project(project_id, user_id_to_add):
-                raise ConflictException('Пользователь уже состоит в проекте')
+                raise ConflictException('Пользователь уже состоит в проекте!')
             else:
                 task = ProjectMemberModel(project_id=project_id, user_id=user_id_to_add, role_project='member')
                 self.session.add(task)
                 await self.session.commit()
                 return True
+
+    async def delete_user(self, project_id, user_id_to_del) -> bool:
+        if project_id is None or user_id_to_del is None:
+            raise LackOfInformationException('Нехватка вводимой информации!')
+        else:
+            if await self.is_user_in_project(project_id, user_id_to_del):
+                result = await self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id_to_del))
+                delete_count = result.rowcount
+                if delete_count == 0:
+                    return False
+                else:
+                    return True
+            else:
+                raise ConflictException('Пользователя нет в проекте!')

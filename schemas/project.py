@@ -29,3 +29,6 @@ class ProjectResponse(ProjectBase):
 
 class AddMemberRequest(BaseModel):
     user_id : int
+
+class DeleteMemeberRequest(BaseModel):
+    user_id : int
