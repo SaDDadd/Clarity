@@ -12,7 +12,7 @@ app.add_middleware(
     allow_origins=['*'], # Хост фронтенда
     allow_methods=['*'], # Разрешить все методы
     allow_headers=['*'], #  Разрешить все заголовки
-    alow_credentials=True # Разрешить передачу учетных данных
+    allow_credentials=True # Разрешить передачу учетных данных
 )
 
 app.include_router(router_user, prefix='/api/v1')
