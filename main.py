@@ -2,9 +2,18 @@ from api.v1.auth import router as router_user
 from api.v1.projects import router as router_projects
 from fastapi import FastAPI
 from core.exceptions import register_exception_handlers
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'], # Хост фронтенда
+    allow_methods=['*'], # Разрешить все методы
+    allow_headers=['*'], #  Разрешить все заголовки
+    alow_credentials=True # Разрешить передачу учетных данных
+)
 
 app.include_router(router_user, prefix='/api/v1')
 app.include_router(router_projects, prefix='/api/v1')
