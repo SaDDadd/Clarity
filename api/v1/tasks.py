@@ -13,23 +13,29 @@ async def get_tasks_project(project_id: int, task_id: int, db: AsyncSession = De
 @router.post('/projects/{project_id}/tasks', tags=['Задачи'], \
              summary='Создать задачу') # Создать задачу
 async def create_task():
+    pass
 
 @router.get('/tasks/{task_id}', tags=['Задачи'], \
             summary='Получить инфорациюю о задаче') # Получить информацию о задаче
 async def get_task_info():
+    pass
 
 @router.put('/tasks/{task_id}', tags=['Задачи'], \
             summary='Обновить задачу') # Обновить задачу
 async def update_task():
+    pass
 
 @router.patch('/tasks/{task_id}/status', tags=['Задачи'], \
               summary='Изменить статус задачи') # Изменить статус задачи
 async def change_status():
+    pass
 
 @router.delete('/tasks/{task_id}', tags=['Задачи'], \
                summary='Удалить задачу') # Удалить задачу
 async def delete_task():
+    pass
 
 @router.get('/tasks', tags=['Задачи'], \
             summary='Получить задачи пользователя') # Получить задачи пользователя
 async def get_tasks_user():
+    pass
