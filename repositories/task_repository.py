@@ -42,8 +42,8 @@ class TaskRepository:
             return task
         return None
 
-    async def get_task_by_id(self, task_id: int) -> TaskModel | None: # Получить задачу по ID
-        result = await self.session.execute(select(TaskModel).where(TaskModel.task_id == task_id))
+    async def get_task_by_id(self, project_id: int, task_id: int) -> TaskModel | None: # Получить задачу по ID
+        result = await self.session.execute(select(TaskModel).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
         task = result.scalar_one_or_none()
         return task
 
