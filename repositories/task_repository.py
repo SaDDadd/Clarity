@@ -47,6 +47,11 @@ class TaskRepository:
         task = result.scalar_one_or_none()
         return task
 
+    async def get_tasks_by_id(self, project_id: int) -> TaskModel | None: # Получить все задачи по ID
+        result = await self.session.execute(select(TaskModel).where(TaskModel.project_id == project_id))
+        tasks = result.scalars().all()
+        return tasks
+
     async def update_task_by_id(self, task_id: int, status: str) -> TaskModel | None: # Обновить статус 
         # задачи
         result = await self.session.execute(select(TaskModel).where(TaskModel.task_id == task_id))

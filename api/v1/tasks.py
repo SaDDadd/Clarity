@@ -1,19 +1,21 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession 
-from services.task_service import get_task_by_id
-from core.dependencies import get_db
+from services.task_service import get_tasks_by_id
+from schemas.task import TaskCreate
+from models.user import UserModel
+from core.dependencies import get_db, current_user
 
 router = APIRouter()
 
 @router.get('/projects/{project_id}/tasks', tags=['Задачи'], \
             summary='Получить задачи проекта') # Получить задачи проекта
-async def get_tasks_project(project_id: int, task_id: int, db: AsyncSession = Depends(get_db)):
-    return await get_task_by_id(db, project_id, task_id)
+async def get_tasks_project(project_id: int, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await get_tasks_by_id(db, project_id, current_user.user_id)
 
 @router.post('/projects/{project_id}/tasks', tags=['Задачи'], \
              summary='Создать задачу') # Создать задачу
-async def create_task():
-    pass
+async def create_task(project_id: int, task: TaskCreate, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await create_task(db, project_id, current_user.user_id, task)
 
 @router.get('/tasks/{task_id}', tags=['Задачи'], \
             summary='Получить инфорациюю о задаче') # Получить информацию о задаче
