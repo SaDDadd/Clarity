@@ -114,6 +114,6 @@ class ProjectRepository:
             raise ConflictException('Пользователя нет в проекте!')
 
     async def get_user_projects(self, user_id) -> list[ProjectModel]:
-        result = await self.session.execute(select(ProjectModel).join(ProjectMemberModel, ProjectModel.project_id == ProjectMemberModel.project_id).where(ProjectMemberModel.user_id == user_id))        task = result.scalars().all()
+        result = await self.session.execute(select(ProjectModel).join(ProjectMemberModel, ProjectModel.project_id == ProjectMemberModel.project_id).where(ProjectMemberModel.user_id == user_id))
         task = result.scalars().all()
         return task
