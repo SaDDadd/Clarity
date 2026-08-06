@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from models.task import TaskModel
+from models.task import TaskModel, TaskStatusUpdate
 
 # Переписать под SQLAlchemy
 
@@ -30,13 +30,13 @@ class TaskRepository:
             return True
         return False
 
-    async def delete_task(self, task_id: int) -> TaskModel | None: # Удалить задачу
+    async def delete_task(self, task_id: int) -> bool: # Удалить задачу
         result = await self.get_task_by_id(task_id)
         if result:
             await self.session.delete(result)
             await self.session.commit()
-            return result
-        return None
+            return True
+        return False
 
     async def get_task_by_id(self, task_id: int) -> TaskModel | None: # Получить задачу по ID
         result = await self.session.execute(select(TaskModel).where(TaskModel.task_id == task_id))
@@ -65,3 +65,10 @@ class TaskRepository:
             return False
         else:
             return True
+
+    async def update_task_status(self, project_id: int, task_id: int, task_status: str) -> bool:
+        result = self.session.execute(update(TaskModel).values(task_status=task_status).where(TaskModel.task_id == task_id))
+        if result:
+            return True
+        else:
+            return False
