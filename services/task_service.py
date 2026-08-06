@@ -19,25 +19,24 @@ async def create_task(db, project_id: int, current_user_id: int, task):
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if task.assigned_to is not None:
-        if not repo_proj.is_user_in_project(project_id, task.assigned_to):
+        if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
-    else:
-        return await repo.create_task(project_id, task)
+    return await repo.create_task(project_id, task)
 
 async def update_task(db, project_id: int, task_id: int, current_user_id: int, task):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
+    slov = task.dict(exclude_unset=True)
+    if 'assigned_to' in slov and slov['assigned_to'] != None:
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
-            raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if task.assigned_to is not None:
-        if not repo_proj.is_user_in_project(project_id, task.assigned_to):
+        if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
+    if len(slov) == 0:
+        raise NotFoundException('Не были введены значения для обновления задачи!')
     else:
-        slov = task.dict(exclude_unset=True)
-        if len(slov) == 0:
-            raise NotFoundException('Не были введены значения для обновления задачи!')
+        if await repo.update_task_by_id(project_id, task_id, slov) is False:
+            raise NotFoundException('Задача не найдена!')
         else:
-            if await repo.update_task_by_id(project_id, task_id, slov) is False:
-                raise NotFoundException('Задача не найдена!')
-            else:
-                return {'message': 'Задача обновилась!'}                                                           
+            return {'message': 'Задача обновилась!'}                                                           
