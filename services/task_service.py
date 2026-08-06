@@ -16,7 +16,7 @@ async def get_project_tasks(db, project_id: int, current_user_id: int):
 async def create_task(db, project_id: int, current_user_id: int, task):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
-    if not await repo_proj.is_user_in_project(project_id, current_user_id) or not \
+    if task.assigned_to is not None and not await repo_proj.is_user_in_project(project_id, current_user_id) or not \
                         await repo_proj.is_user_in_project(project_id, task.assigned_to):
         raise PermissionDeniedException('Пользователя нет в проекте!')
     else:
@@ -25,11 +25,11 @@ async def create_task(db, project_id: int, current_user_id: int, task):
 async def update_task(db, project_id: int, task_id: int, current_user_id: int, task):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
-    if not await repo_proj.is_user_in_project(project_id, current_user_id) or not \
+    if await repo.is_task_in_project(project_id, task_id) is False:
+            raise NotFoundException('Задачи нет в проекте!')
+    if task.assigned_to is not None and not await repo_proj.is_user_in_project(project_id, current_user_id) or not \
                         await repo_proj.is_user_in_project(project_id, task.assigned_to):
         raise PermissionDeniedException('Пользователя нет в проекте!')
-    if await repo.is_task_in_project(project_id, task_id) is False:
-        raise NotFoundException('Задачи нет в проекте!')
     else:
         slov = task.dict(exclude_unset=True)
         if len(slov) == 0:
