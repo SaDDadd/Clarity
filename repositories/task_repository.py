@@ -68,8 +68,9 @@ class TaskRepository:
 
     async def update_task_status(self, project_id: int, task_id: int, task_status: str) -> bool:
         result = await self.session.execute(update(TaskModel).values(task_status=task_status).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
+        numb_result = result.rowcount
         await self.session.commit()
-        if result.rowcount == 0:
+        if numb_result == 0:
             return False
         else:
             return True
