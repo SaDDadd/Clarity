@@ -50,5 +50,14 @@ class TaskRepository:
         tasks = result.scalars().all()
         return tasks
 
-    async def update_task_by_id(self, task_id: int, task) -> TaskModel | None: # Обновить статус 
+    async def update_task_by_id(self, project_id: int, task_id: int, task) -> TaskModel | None: # Обновить статус 
         # задачи
+        result = await self.get_task_by_id(task_id)
+        if result:
+            result = await self.session.execute(update(TaskModel).values(title=task.title, \
+                    task_description=task.description, task_status=task.status, assign_task=task.assign_to, \
+                        deadline=task.deadline))
+            await self.session.commit()
+            return True
+        else:
+            return False
