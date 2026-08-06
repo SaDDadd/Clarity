@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from models.task import TaskModel
-import datetime
 
 # Переписать под SQLAlchemy
 
@@ -32,12 +31,11 @@ class TaskRepository:
         return False
 
     async def delete_task(self, task_id: int) -> TaskModel | None: # Удалить задачу
-        result = self.get_task_by_id(task_id)
-        task = result.scalar_one_or_none()
-        if task:
+        result = await self.get_task_by_id(task_id)
+        if result:
             await self.session.delete(task)
             await self.session.commit()
-            return task
+            return result
         return None
 
     async def get_task_by_id(self, task_id: int) -> TaskModel | None: # Получить задачу по ID
