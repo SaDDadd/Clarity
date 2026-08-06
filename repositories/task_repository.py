@@ -70,6 +70,6 @@ class TaskRepository:
         result = await self.session.execute(update(TaskModel).values(task_status=task_status).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
         await self.session.commit()
         if result.rowcount == 0:
-            return {'message': 'Статус уже установлен!'}
+            return False
         else:
             return True
