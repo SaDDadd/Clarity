@@ -13,9 +13,10 @@ class TaskCreate(TaskBase):
     assigned_to : int | None
 
 class TaskUpdate(BaseModel):
-    title : str | None
+    title : str
     task_description : str | None
     task_status : TaskStatus | None
+    assigned_to: int | None = None
     deadline : datetime.date | None
 
 class TaskStatusUpdate(BaseModel):
