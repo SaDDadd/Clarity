@@ -72,7 +72,7 @@ async def change_status(db, project_id: int, task_id: int, current_user_id: int,
     if await repo.update_task_status(project_id, task_id, task_status.task_status.value) is True:
         return {'message': 'Статус обновлен!'}
     else:
-        raise PermissionDeniedException('')
+        raise PermissionDeniedException('Не удалось обновить статус задачи!')
 
 async def delete_task(db, project_id: int, task_id: int, current_user_id: int):
     repo = TaskRepository(db)
@@ -84,7 +84,7 @@ async def delete_task(db, project_id: int, task_id: int, current_user_id: int):
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo.delete_task(task_id):
-        raise 
+        raise NotFoundException('Не удалось удалить задачу')
     else:
         return {'message': 'Задача удалена из проекта!'}
 
