@@ -48,7 +48,7 @@ class TaskRepository:
         tasks = result.scalars().all()
         return tasks
 
-    async def update_task_by_id(self, project_id: int, task_id: int, task) -> bool: # Обновить статус 
+    async def update_task_by_id(self, project_id: int, task_id: int, slov: dict) -> bool: # Обновить статус 
         # задачи
         result = await self.get_task_by_id(task_id)
         if result:

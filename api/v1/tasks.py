@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession 
-from services.task_service import get_project_tasks
-from schemas.task import TaskCreate
+from services.task_service import get_project_tasks, create_task, update_task
+from schemas.task import TaskCreate, TaskUpdate
 from models.user import UserModel
 from core.dependencies import get_db, current_user
 
@@ -24,8 +24,8 @@ async def get_task_info():
 
 @router.put('/tasks/{task_id}', tags=['Задачи'], \
             summary='Обновить задачу') # Обновить задачу
-async def update_task():
-    pass
+async def update_task(project_id: int, task_id: int, task: TaskUpdate, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await update_task(db, project_id, task_id, current_user, task)
 
 @router.patch('/tasks/{task_id}/status', tags=['Задачи'], \
               summary='Изменить статус задачи') # Изменить статус задачи

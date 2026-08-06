@@ -22,20 +22,18 @@ async def create_task(db, project_id: int, current_user_id: int, task):
     else:
         return await repo.create_task(project_id, task)
 
-async def update_task(db, project_id: int, current_user_id: int, task):
+async def update_task(db, project_id: int, task_id: int, current_user_id: int, task):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
-    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+    if not await repo_proj.is_user_in_project(project_id, current_user_id) or not \
+                        await repo_proj.is_user_in_project(project_id, task.assigned_to):
         raise PermissionDeniedException('Пользователя нет в проекте!')
     else:
-        slov = {}
-        for key, value in task.items():
-            if value != None:
-                slov[key] = value
+        slov = task.dict(excude_unset=True)
         if len(slov) == 0:
             raise NotFoundException('Не были введены значения для обновления задачи!')
         else:
-            if repo.update_task_by_id(project_id, task_id, task) is False:
-                raise 
+            if await repo.update_task_by_id(project_id, task_id, slov) is False:
+                raise NotFoundException('Задача не найдена!')
             else:
                 return {'message': 'Задача обновилась!'}                                                           
