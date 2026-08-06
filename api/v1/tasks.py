@@ -17,15 +17,15 @@ async def get_project_tasks(project_id: int, current_user: UserModel = Depends(c
 async def create_task(project_id: int, task: TaskCreate, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await create_task(db, project_id, current_user.user_id, task)
 
-@router.get('/tasks/{task_id}', tags=['Задачи'], \
+@router.get('/projects/{project_id}/tasks/{task_id}', tags=['Задачи'], \
             summary='Получить инфорациюю о задаче') # Получить информацию о задаче
 async def get_task_info():
     pass
 
-@router.put('/tasks/{task_id}', tags=['Задачи'], \
+@router.put('/projects/{project_id}/tasks/{task_id}', tags=['Задачи'], \
             summary='Обновить задачу') # Обновить задачу
 async def update_task(project_id: int, task_id: int, task: TaskUpdate, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await update_task(db, project_id, task_id, current_user, task)
+    return await update_task(db, project_id, task_id, current_user.user_id, task)
 
 @router.patch('/tasks/{task_id}/status', tags=['Задачи'], \
               summary='Изменить статус задачи') # Изменить статус задачи

@@ -33,7 +33,7 @@ class TaskRepository:
     async def delete_task(self, task_id: int) -> TaskModel | None: # Удалить задачу
         result = await self.get_task_by_id(task_id)
         if result:
-            await self.session.delete(task)
+            await self.session.delete(result)
             await self.session.commit()
             return result
         return None
@@ -52,10 +52,16 @@ class TaskRepository:
         # задачи
         result = await self.get_task_by_id(task_id)
         if result:
-            result = await self.session.execute(update(TaskModel).values(title=task.title, \
-                    task_description=task.task_description, task_status=task.task_status, assigned_to=task.assigned_to, \
-                        deadline=task.deadline).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
+            result = await self.session.execute(update(TaskModel).values(slov).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
             await self.session.commit()
             return True
         else:
             return False
+
+    async def is_task_in_project(self, project_id: int, task_id: int) -> bool:
+        result = await self.session.execute(select(TaskModel).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
+        task = result.scalar_one_or_none()
+        if task is None:
+            return False
+        else:
+            return True
