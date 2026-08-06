@@ -9,8 +9,8 @@ class TaskRepository:
     def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
         self.session = session
 
-    async def create_task(self, project_id: int, current_user_id: int, task) -> TaskModel: # Создать задачу
-        result = TaskModel(title=task.title, task_description=task.description, task_status=task.status, \
+    async def create_task(self, project_id: int, task) -> TaskModel: # Создать задачу
+        result = TaskModel(title=task.title, task_description=task.task_description, task_status=task.task_status, \
                          project_id=project_id, assigned_to=task.assigned_to, deadline=task.deadline)
         self.session.add(result)
         await self.session.commit()
@@ -32,7 +32,7 @@ class TaskRepository:
         return False
 
     async def delete_task(self, task_id: int) -> TaskModel | None: # Удалить задачу
-        result = await self.session.execute(select(TaskModel).where(TaskModel.task_id == task_id))
+        result = self.get_task_by_id(task_id)
         task = result.scalar_one_or_none()
         if task:
             await self.session.delete(task)
@@ -40,8 +40,8 @@ class TaskRepository:
             return task
         return None
 
-    async def get_task_by_id(self, project_id: int, task_id: int) -> TaskModel | None: # Получить задачу по ID
-        result = await self.session.execute(select(TaskModel).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
+    async def get_task_by_id(self, task_id: int) -> TaskModel | None: # Получить задачу по ID
+        result = await self.session.execute(select(TaskModel).where(TaskModel.task_id == task_id))
         task = result.scalar_one_or_none()
         return task
 
@@ -50,13 +50,13 @@ class TaskRepository:
         tasks = result.scalars().all()
         return tasks
 
-    async def update_task_by_id(self, project_id: int, task_id: int, task) -> TaskModel | None: # Обновить статус 
+    async def update_task_by_id(self, project_id: int, task_id: int, task) -> bool: # Обновить статус 
         # задачи
         result = await self.get_task_by_id(task_id)
         if result:
             result = await self.session.execute(update(TaskModel).values(title=task.title, \
-                    task_description=task.description, task_status=task.status, assign_task=task.assign_to, \
-                        deadline=task.deadline))
+                    task_description=task.task_description, task_status=task.task_status, assigned_to=task.assigned_to, \
+                        deadline=task.deadline).where(TaskModel.project_id == project_id, TaskModel.task_id == task_id))
             await self.session.commit()
             return True
         else:
