@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from models.task import TaskModel, TaskStatusUpdate
+from models.task import TaskModel
 
 # Переписать под SQLAlchemy
 
@@ -67,8 +67,9 @@ class TaskRepository:
             return True
 
     async def update_task_status(self, project_id: int, task_id: int, task_status: str) -> bool:
-        result = self.session.execute(update(TaskModel).values(task_status=task_status).where(TaskModel.task_id == task_id))
-        if result:
-            return True
-        else:
+        result = await self.session.execute(update(TaskModel).values(task_status=task_status).where(TaskModel.task_id == task_id))
+        task = await self.session.commit()
+        if task.rowcount == 0:
             return False
+        else:
+            return True

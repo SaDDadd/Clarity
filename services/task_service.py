@@ -63,27 +63,25 @@ async def get_task_info(db, project_id: int, current_user_id: int, task_id: int)
 async def change_status(db, project_id: int, task_id: int, current_user_id: int, task_status: TaskStatusUpdate):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
-    if task_status.task_status not in TaskStatus:
-        raise 
     if await repo_proj.get_project_by_id(project_id) is None:
         raise PermissionDeniedException('Данного проекта не существует!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    if await repo.update_task_status(project_id, task_id, task_status.task_status) is True:
+    if await repo.update_task_status(project_id, task_id, task_status.task_status.value) is True:
         return {'message': 'Статус обновлен!'}
     else:
-        raise 
+        raise PermissionDeniedException('')
 
 async def delete_task(db, project_id: int, task_id: int, current_user_id: int):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
-    if await repo_proj.get_project_by_id() is None:
+    if await repo_proj.get_project_by_id(project_id) is None:
         raise PermissionDeniedException('Данного проекта не существует!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользвателя нет в проекте!')
-    if await repo.is_task_in_project(project_id, task_id):
+    if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo.delete_task(task_id):
         raise 
@@ -92,4 +90,4 @@ async def delete_task(db, project_id: int, task_id: int, current_user_id: int):
 
 async def get_tasks_user(db, current_user_id: int):
     repo = TaskRepository(db)
-    return await {repo.get_tasks_by_user(current_user_id)}
+    return await repo.get_tasks_by_user(current_user_id)
