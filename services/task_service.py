@@ -29,19 +29,18 @@ async def update_task(db, project_id: int, task_id: int, current_user_id: int, t
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
     slov = task.dict(exclude_unset=True)
+    if len(slov) == 0:
+        return {'message': 'Нет данных для обновления!'}
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if await repo_user.get_by_id(task.assigned_to) is None:
-        raise PermissionDeniedException('Такого пользователя не существует!')
-    if 'assigned_to' in slov and slov['assigned_to'] != None:
-        if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
+    if 'assigned_to' in slov and slov['assigned_to'] is not None:
+        if not await repo_user.check_user_exists(slov['assigned_to']):
+            raise NotFoundException('Такого пользователя не существует!')
+        if not await repo_proj.is_user_in_project(project_id, slov['assigned_to']):
                 raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
-    if len(slov) == 0:
-        return {'message': 'Нет данных для обновления!'}
+    if await repo.update_task_by_id(project_id, task_id, slov) is False:
+        raise NotFoundException('Задача не найдена!')
     else:
-        if await repo.update_task_by_id(project_id, task_id, slov) is False:
-            raise NotFoundException('Задача не найдена!')
-        else:
-            return {'message': 'Задача обновилась!'}                                                           
+        return {'message': 'Задача обновилась!'}                                                           
