@@ -9,3 +9,8 @@ class TaskStatus(str, Enum):
 class ProjectRole(str, Enum):
     ADMIN = 'admin'
     MEMBER = 'member'
+
+class InvitationRole(str, Enum):
+    PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    DECLINED = 'declined'
