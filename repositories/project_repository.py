@@ -1,110 +1,179 @@
-from sqlalchemy.ext.asyncio import AsyncSession 
-from sqlalchemy import select, update, delete
+from sqlalchemy import delete, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from models.project import ProjectModel
 from models.project_members import ProjectMemberModel
-from core.exceptions import NotFoundException, LackOfInformationException, ConflictException
+
 
 class ProjectRepository:
-    def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_projects_by_admin(self, admin_id: int) -> list[ProjectModel]: # Получить все проекты 
-        # админа
-        result = await self.session.execute(select(ProjectModel).where(ProjectModel.admin_id == admin_id))
+    # Создать проект и добавить админа
+    async def create_project_with_admin(
+        self, name: str, description: str, admin_id: int, role: str
+    ) -> ProjectModel:
+        task = ProjectModel(
+            project_name=name,
+            project_description=description,
+            admin_id=admin_id
+        )
+        self.session.add(task)
+        await self.session.flush()
+        member = ProjectMemberModel(
+            project_id=task.project_id,
+            user_id=admin_id,
+            role_project='admin'
+        )
+        self.session.add(member)
+        await self.session.commit()
+        return task
+
+    # Добавить пользователя в проект
+    async def add_user(self, project_id, user_id_to_add) -> bool:
+        if await self.is_user_in_project(project_id, user_id_to_add):
+            raise ConflictException('Пользователь уже состоит в проекте!')
+        else:
+            task = ProjectMemberModel(
+                project_id=project_id,
+                user_id=user_id_to_add,
+                role_project='member'
+            )
+            self.session.add(task)
+            await self.session.commit()
+            return True
+
+    # Получить все проекты админа
+    async def get_projects_by_admin(self, admin_id: int) -> list[ProjectModel]:
+        result = await self.session.execute(
+            select(ProjectModel).where(ProjectModel.admin_id == admin_id)
+        )
         tasks = result.scalars().all()
-        return tasks 
- 
-    async def update_project_description(self, new_description: str, project_id: int) -> bool: 
-        # Обновить описание проекта
-        result = await self.get_project_by_id(project_id)
-        if result:
-            task = await self.session.execute(update(ProjectModel).values(project_description=new_description).where(ProjectModel.project_id == project_id))
-            await self.session.commit()
-            return True
-        else:
-            return False
-        
-    async def update_project_name(self, new_name: str, project_id: int) -> bool:
-        # Обновить имя проекта 
-        result = await self.get_project_by_id(project_id)
-        if result:
-            task = await self.session.execute(update(ProjectModel).values(project_name=new_name).where(ProjectModel.project_id == project_id))
-            await self.session.commit()
-            return True
-        else:
-            return False
-        
-    async def is_user_in_project(self, project_id: int, user_id: int) -> bool: # Проверить, состоит 
-        # ли пользователь в проекте
-        result = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
+        return tasks
+
+    # Проверить, состоит ли пользователь в проекте
+    async def is_user_in_project(self, project_id: int, user_id: int) -> bool:
+        result = await self.session.execute(
+            select(ProjectMemberModel).where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.user_id == user_id
+            )
+        )
         task = result.scalar_one_or_none()
         if task:
             return True
         else:
             return False
 
-    async def create_project_with_admin(self, name: str, description: str, admin_id: int, 
-                                  role: str) -> ProjectModel: # Создать проект и добавить 
-                                                                # админа
-        task = ProjectModel(project_name=name, project_description=description, admin_id=admin_id)
-        self.session.add(task)
-        await self.session.flush()
-        member = ProjectMemberModel(project_id=task.project_id, user_id=admin_id, role_project='admin')
-        self.session.add(member)
-        await self.session.commit()
-        return task
-
-    async def get_user_role_in_project(self, project_id: int, user_id: int) -> str | None: # Получить 
-        # роль пользователя в проекте
-        result = await self.session.execute(select(ProjectMemberModel.role_project).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
+    # Получить роль пользователя в проекте
+    async def get_user_role_in_project(self, project_id: int, user_id: int) -> str | None:
+        result = await self.session.execute(
+            select(ProjectMemberModel.role_project).where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.user_id == user_id
+            )
+        )
         task = result.scalar_one_or_none()
         return task
 
-    async def get_project_by_id(self, project_id: int) -> ProjectModel | None: # Получить проект по ID
-        result = await self.session.execute(select(ProjectModel).where(ProjectModel.project_id == project_id))
+    # Получить проект по ID
+    async def get_project_by_id(self, project_id: int) -> ProjectModel | None:
+        result = await self.session.execute(
+            select(ProjectModel).where(ProjectModel.project_id == project_id)
+        )
         task = result.scalar_one_or_none()
         return task
 
-    async def get_project_all_info(self, project_id: int) -> dict | None: # Получить 
-        # всю информацию о проекте
+    # Получить всю информацию о проекте
+    async def get_project_all_info(self, project_id: int) -> dict | None:
         result = await self.get_project_by_id(project_id)
         if result is None:
             raise NotFoundException('Запрашиваемого проекта нет!')
         else:
-            result_2 = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
+            result_2 = await self.session.execute(
+                select(ProjectMemberModel).where(
+                    ProjectMemberModel.project_id == project_id
+                )
+            )
             task_2 = result_2.scalars().all()
-            return {'project': result, 
-                    'members': task_2}
+            return {'project': result, 'members': task_2}
 
+    # Проверить, является ли пользователь администратором проекта
     async def is_user_admin(self, project_id: int, user_id: int) -> bool:
-        result = await self.session.execute(select(ProjectModel).where(ProjectModel.project_id == project_id, ProjectModel.admin_id == user_id))
+        result = await self.session.execute(
+            select(ProjectModel).where(
+                ProjectModel.project_id == project_id,
+                ProjectModel.admin_id == user_id
+            )
+        )
         task = result.scalar_one_or_none()
         if task is None:
             return False
         else:
             return True
 
+    # Получить все проекты пользователя
+    async def get_user_projects(self, user_id) -> list[ProjectModel]:
+        result = await self.session.execute(
+            select(ProjectModel)
+            .join(ProjectMemberModel, ProjectModel.project_id == ProjectMemberModel.project_id)
+            .where(ProjectMemberModel.user_id == user_id)
+        )
+        task = result.scalars().all()
+        return task
+
+    # Обновить описание проекта
+    async def update_project_description(self, new_description: str, project_id: int) -> bool:
+        result = await self.get_project_by_id(project_id)
+        if result:
+            await self.session.execute(
+                update(ProjectModel)
+                .values(project_description=new_description)
+                .where(ProjectModel.project_id == project_id)
+            )
+            await self.session.commit()
+            return True
+        else:
+            return False
+
+    # Обновить имя проекта
+    async def update_project_name(self, new_name: str, project_id: int) -> bool:
+        result = await self.get_project_by_id(project_id)
+        if result:
+            await self.session.execute(
+                update(ProjectModel)
+                .values(project_name=new_name)
+                .where(ProjectModel.project_id == project_id)
+            )
+            await self.session.commit()
+            return True
+        else:
+            return False
+
+    # Удалить проект
     async def delete_project(self, project_id) -> bool:
         async with self.session.begin():
-            _ = await self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
-            result = await self.session.execute(delete(ProjectModel).where(ProjectModel.project_id == project_id))
+            _ = await self.session.execute(
+                delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id)
+            )
+            result = await self.session.execute(
+                delete(ProjectModel).where(ProjectModel.project_id == project_id)
+            )
             deleted_count = result.rowcount
         if deleted_count == 0:
             return False
         return True
 
-    async def add_user(self, project_id, user_id_to_add) -> bool:
-        if await self.is_user_in_project(project_id, user_id_to_add):
-            raise ConflictException('Пользователь уже состоит в проекте!')
-        else:
-            task = ProjectMemberModel(project_id=project_id, user_id=user_id_to_add, role_project='member')
-            self.session.add(task)
-            await self.session.commit()
-            return True
-
+    # Удалить пользователя из проекта
     async def delete_user(self, project_id, user_id_to_del) -> bool:
         if await self.is_user_in_project(project_id, user_id_to_del):
-            result = await self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id_to_del))
+            result = await self.session.execute(
+                delete(ProjectMemberModel).where(
+                    ProjectMemberModel.project_id == project_id,
+                    ProjectMemberModel.user_id == user_id_to_del
+                )
+            )
             delete_count = result.rowcount
             if delete_count == 0:
                 return False
@@ -112,8 +181,3 @@ class ProjectRepository:
                 return True
         else:
             raise ConflictException('Пользователя нет в проекте!')
-
-    async def get_user_projects(self, user_id) -> list[ProjectModel]:
-        result = await self.session.execute(select(ProjectModel).join(ProjectMemberModel, ProjectModel.project_id == ProjectMemberModel.project_id).where(ProjectMemberModel.user_id == user_id))
-        task = result.scalars().all()
-        return task

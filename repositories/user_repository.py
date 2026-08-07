@@ -1,82 +1,88 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from models.user import UserModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.security import verify_password
+from models.user import UserModel
+
 
 class UserRepository:
-    def __init__(self, session: AsyncSession) -> None: # Инициализация с подключением к БД
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_user(self, username: str, email: str, password_hash: str) -> UserModel: # Создать 
-        # пользователя
+    # Создать пользователя
+    async def create_user(self, username: str, email: str, password_hash: str) -> UserModel:
         user = UserModel(username=username, email=email, password_hash=password_hash)
         self.session.add(user)
         await self.session.commit()
         return user
 
-    async def get_by_id(self, user_id: int) -> UserModel | None: # Получить пользователя по ID
+    # Получить пользователя по ID
+    async def get_by_id(self, user_id: int) -> UserModel | None:
         result = await self.session.execute(select(UserModel).where(UserModel.user_id == user_id))
         if result:
             user = result.scalar_one_or_none()
             return user
         return None
 
-    async def get_by_username(self, username: str) -> UserModel | None: # Получить пользователя по имени
+    # Получить пользователя по имени
+    async def get_by_username(self, username: str) -> UserModel | None:
         result = await self.session.execute(select(UserModel).where(UserModel.username == username))
         user = result.scalar_one_or_none()
         return user
-       
-    async def get_by_email(self, email: str) -> UserModel | None: # Получить пользователя по email
+
+    # Получить пользователя по email
+    async def get_by_email(self, email: str) -> UserModel | None:
         result = await self.session.execute(select(UserModel).where(UserModel.email == email))
         user = result.scalar_one_or_none()
         return user
 
-    async def delete_user(self, user_id: int) -> bool: # Удалить пользователя
-        user = await self.get_by_id(user_id)
-        if user is None:
-            return False
-        await self.session.delete(user)
-        await self.session.commit()
-        return True
-
-    async def check_user_exists(self, user_id: int) -> bool: # Проверить существование 
-        # пользователя по ID
+    # Проверить существование пользователя по ID
+    async def check_user_exists(self, user_id: int) -> bool:
         result = await self.session.execute(select(UserModel).where(UserModel.user_id == user_id))
         user = result.scalar_one_or_none()
         if user is None:
             return False
         return True
 
-    async def check_user_exists_by_username(self, username: str) -> bool: # Проверить 
-        # существование пользователя по имени
+    # Проверить существование пользователя по имени
+    async def check_user_exists_by_username(self, username: str) -> bool:
         result = await self.session.execute(select(UserModel).where(UserModel.username == username))
         user = result.scalar_one_or_none()
         if user is None:
             return False
         return True
 
-    async def check_user_exists_by_email(self, email: str) -> bool: # Проверить существование 
-        # пользователя по email
+    # Проверить существование пользователя по email
+    async def check_user_exists_by_email(self, email: str) -> bool:
         result = await self.session.execute(select(UserModel).where(UserModel.email == email))
         user = result.scalar_one_or_none()
         if user is None:
             return False
         return True
 
-    async def check_user_correct_password_by_email(self, email: str, password: str) -> bool: 
-        # Проверить пароль по email
+    # Проверить пароль по email
+    async def check_user_correct_password_by_email(self, email: str, password: str) -> bool:
         user = await self.get_by_email(email)
         if user:
             if verify_password(password, user.password_hash):
                 return True
             return False
         return False
-            
-    async def check_user_correct_password_by_username(self, username: str, password: str) -> bool: 
-        # Проверить пароль по имени
+
+    # Проверить пароль по имени
+    async def check_user_correct_password_by_username(self, username: str, password: str) -> bool:
         user = await self.get_by_username(username)
         if user:
             if verify_password(password, user.password_hash):
                 return True
             return False
         return False
+
+    # Удалить пользователя
+    async def delete_user(self, user_id: int) -> bool:
+        user = await self.get_by_id(user_id)
+        if user is None:
+            return False
+        await self.session.delete(user)
+        await self.session.commit()
+        return True

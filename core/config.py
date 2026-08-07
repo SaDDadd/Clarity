@@ -1,13 +1,12 @@
 from typing import List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from .env import DB_PASSWORD
 
 class Settings(BaseSettings):
     DB_HOST: str = 'localhost'
     DB_PORT: int = 3306
     DB_USER: str = 'root'
-    DB_PASSWORD: str = DB_PASSWORD
+    DB_PASSWORD: str = '2007'
     DB_NAME: str = 'task_to_do'
     DB_DRIVER: str = 'aiomysql'
 
