@@ -11,9 +11,7 @@ class ProjectRepository:
         self.session = session
 
     # Создать проект и добавить админа
-    async def create_project_with_admin(
-        self, name: str, description: str, admin_id: int, role: str
-    ) -> ProjectModel:
+    async def create_project_with_admin(self, name: str, description: str, admin_id: int, role: str) -> ProjectModel:
         task = ProjectModel(
             project_name=name,
             project_description=description,

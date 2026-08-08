@@ -1,27 +1,32 @@
 from fastapi import APIRouter
+from fastapi import Depends
+from core.dependencies import get_db, current_user
+from sqlalchemy.ext.asyncio import AsyncSession
+from models.user import UserModel
+from services.invitation_service import send_invitation, get_project_invitations, get_user_invitations, cancel_invitation
 
 router = APIRouter()
 
 # POST
-@router.post()
-async def sending_invitations(): # Отправка приглашений
-    return await 
+@router.post('/invitations', tags=['Приглашение в проект'], summary='Отправка приглашения в проект пользователю')
+async def sending_invitations(user_id: int, project_id: int, message: str, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Отправка приглашений
+    return await send_invitation(db, project_id, user_id, current_user.user_id, message)
 
 # PATCH
-@router.patch()
-async def response_to_invitation(): # Ответ на приглашение
-    return await 
+@router.patch('/invitations/{invitation_id}', tags=['Приглашение в проект'], summary='Ответ от пользователя на приглашение в проект')
+async def response_to_invitation(invitation_id: int, action: str, db: AsyncSession = Depends(get_db)): # Ответ на приглашение
+    return await response_to_invitation(db, invitation_id, action)
 
 # GET
-@router.get()
-async def user_invitations(): # Список приглашений для текущего пользователя
-    return await 
+@router.get('/invitations', tags=['Приглашение в проект'], summary='Список проектов, в которые приглашают пользователя')
+async def user_invitations(current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Список приглашений для текущего пользователя
+    return await get_user_invitations(db, current_user.user_id)
 
-@router.get()
-async def project_invitations(): # Список приглашений для текущего проекта (только админ) 
-    return await
+@router.get('/invitations/project/{project_id}', tags=['Приглашение в проект'], summary='Список приглашений в проект')
+async def project_invitations(project_id: int, db: AsyncSession = Depends(get_db)): # Список приглашений для текущего проекта
+    return await get_project_invitations(db, project_id)
 
 # DELETE
-@router.delete()
-async def delete_invitation(): # Удаление приглашения (только админ)
-    return await
+@router.delete('/invitations/{invitation_id}', tags=['Приглашение в проект'], summary='Удаление приглашения')
+async def delete_invitation(invitation_id: int, db: AsyncSession = Depends(get_db)): # Удаление приглашения (только админ)
+    return await cancel_invitation(db, invitation_id)
