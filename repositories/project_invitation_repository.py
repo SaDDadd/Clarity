@@ -8,7 +8,7 @@ class ProjectInvitationRepository:
 
     # Создать приглашение
     async def create_invitation(self, project_id: int, inviter_id: int, invitee_id: int, message: str) -> ProjectInvitationModel:
-        task = ProjectInvitationRepository(
+        task = ProjectInvitationModel(
             project_id=project_id, 
             inviter_id=inviter_id, 
             invitee_id=invitee_id, 
@@ -41,7 +41,7 @@ class ProjectInvitationRepository:
     async def update_invitation_status(self, invitation_id: int, status_invited: str) -> bool:
         task = await self.get_invitation_by_id(invitation_id)
         if task:
-            result = self.session.execute(update(ProjectInvitationModel).values(status_invited=status_invited).where(ProjectInvitationModel.invitation_id == invitation_id))
+            result = await self.session.execute(update(ProjectInvitationModel).values(status_invited=status_invited).where(ProjectInvitationModel.invitation_id == invitation_id))
             await self.session.commit()
             return True
         else:
@@ -49,10 +49,13 @@ class ProjectInvitationRepository:
         
     # Удаление приглашения
     async def delete_invitation(self, invitation_id) -> bool:
-        task = self.get_invitation_by_id(invitation_id)
+        task = await self.get_invitation_by_id(invitation_id)
         if task:
             result = await self.session.execute(delete(ProjectInvitationModel).where(ProjectInvitationModel.invitation_id == invitation_id))
             await self.session.commit()
             return True
         else:
             return False
+
+    # Проверка на существование приглашения 
+    async def get_pending_invitation(self, project_id, invitee_id) -> bool:

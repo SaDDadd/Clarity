@@ -3,7 +3,7 @@ from fastapi import Depends
 from core.dependencies import get_db, current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import UserModel
-from services.invitation_service import send_invitation, get_project_invitations, get_user_invitations, cancel_invitation
+from services.invitation_service import send_invitation, get_project_invitations, get_user_invitations, cancel_invitation, response_to_invitation
 
 router = APIRouter()
 
@@ -18,9 +18,9 @@ async def response_to_invitation(invitation_id: int, action: str, db: AsyncSessi
     return await response_to_invitation(db, invitation_id, action)
 
 # GET
-@router.get('/invitations', tags=['Приглашение в проект'], summary='Список проектов, в которые приглашают пользователя')
-async def user_invitations(current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Список приглашений для текущего пользователя
-    return await get_user_invitations(db, current_user.user_id)
+@router.get('/invitations/{invitation_id}', tags=['Приглашение в проект'], summary='Список проектов, в которые приглашают пользователя')
+async def user_invitations(invitation_id: int, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Список приглашений для текущего пользователя
+    return await get_user_invitations(db, current_user.user_id, invitation_id)
 
 @router.get('/invitations/project/{project_id}', tags=['Приглашение в проект'], summary='Список приглашений в проект')
 async def project_invitations(project_id: int, db: AsyncSession = Depends(get_db)): # Список приглашений для текущего проекта

@@ -1,7 +1,7 @@
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from core.exceptions import 
+from core.exceptions import NotFoundException, PermissionDeniedException, ConflictException
 
 async def send_invitation(db, project_id: int, user_id: int, current_user_id: int, message: str): # Отправка приглашения
     repo = ProjectInvitationRepository(db)
@@ -15,11 +15,12 @@ async def send_invitation(db, project_id: int, user_id: int, current_user_id: in
         raise 
     if await repo_proj.is_user_in_project(project_id, user_id):
         raise
+    if await repo.
     return await repo.create_invitation(project_id, current_user_id, user_id, message)
 
 async def get_user_invitations(db, current_user_id: int, invitation_id: int): # Возращаем список приглашений пользователя
     repo = ProjectInvitationRepository(db)
-    if await repo.get_invitation_by_id(db) is None:
+    if await repo.get_invitation_by_id(invitation_id) is None:
         raise
     return await repo.get_invitation_by_user(current_user_id)
 
@@ -30,7 +31,7 @@ async def get_project_invitations(db, project_id): # Возращает спис
         raise
     return await repo.get_invitation_for_project(project_id)
 
-async def respond_to_invitation(db, intitation_id, acrion): # Возращает информацию о принятии/отклонении приглашения в проект
+async def response_to_invitation(db, invitation_id, acrion): # Возращает информацию о принятии/отклонении приглашения в проект
     repo = ProjectInvitationRepository(db)
 
 async def cancel_invitation(db, invitation_id): # Удалить приглашение
