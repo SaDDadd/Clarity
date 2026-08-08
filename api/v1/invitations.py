@@ -16,7 +16,7 @@ async def sending_invitations(invitation_data: InvitationCreate, project_id: int
 # PATCH
 @router.patch('/invitations/{invitation_id}', tags=['Приглашение в проект'], summary='Ответ от пользователя на приглашение в проект')
 async def response_to_invitation(invitation_id: int, invitation_date: InvitationStatusUpdate, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Ответ на приглашение
-    return await response_to_invitation(db, invitation_id, invitation_date.action.value, current_user.user_id)
+    return await response_to_invitation(db, invitation_id, invitation_date.action, current_user.user_id)
 
 # GET
 @router.get('/invitations', tags=['Приглашение в проект'], summary='Список проектов, в которые приглашают пользователя')
