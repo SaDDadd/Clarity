@@ -38,7 +38,43 @@ class LackOfInformationException(AppException): # Нехватка вводим�
         self.status_code = 422
         self.detail = detail
         super().__init__(self.status_code, self.detail)
-        
+
+class InvitationAlreadyProcessedException(AppException): # Попытка ответить на приглашение, которое принято/отклонено
+    def __init__(self, detail=None):
+        self.status_code = 409
+        self.detail = detail 
+        super().__init__(self.status_code, self.detail)
+
+class InvalidInvitationStateException(AppException): # Приглашению самому себе, участнику проекта
+    def __init__(self, detail=None):
+        self.status_code = 400
+        self.detail = detail 
+        super().__init__(self.status_code, self.detail)
+
+class LastAdminDeletionException(AppException): # Удаление администратора проекта или выход единственного администратора
+    def __init__(self, detail=None):
+        self.status_code = 400
+        self.detail = detail 
+        super().__init__(self.status_code, self.detail)
+
+class MemberAlreadyInProjectException(AppException): # Добавление уже принадлежащего проекту пользователя 
+    def __init__(self, detail):
+        self.status_code = 409
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
+class InvalidDeadlineException(AppException): # Дата дедлайна, которая уже прошла
+    def __init__(self, detail=None):
+        self.status_code = 422
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
+class TaskAssignmentException(AppException): # Попытка дать задачу пользователю не в проекте 
+    def __init__(self, detail=None):
+        self.status_code = 403
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
 def register_exception_handlers(app: FastAPI): # Регистрирует глобальные обработчики для кастомных и стандартных исключений, 
                                         # возвращая JSON-ответы с соответствующими HTTP-статусами.
     @app.exception_handler(NotFoundException)
