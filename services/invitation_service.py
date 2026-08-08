@@ -7,16 +7,14 @@ async def send_invitation(db, project_id: int, user_id: int, current_user_id: in
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
-    if repo_proj.is_user_admin(project_id, current_user_id):
+    if not await repo_proj.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Только администратор может приглашать')
     if not await repo_user.get_by_id(user_id):
-        raise NotFoundException('')
+        raise NotFoundException('Пользователь не найден')
     if await repo_proj.is_user_in_project(project_id, user_id):
         raise MemberAlreadyInProjectException('')
     if not await repo_proj.get_project_by_id(project_id):
-        raise NotFoundException('')
-    if await repo_proj.is_user_in_project(project_id, current_user_id):
-        raise MemberAlreadyInProjectException('')
+        raise NotFoundException('Проект не найден')
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено')
     if current_user_id == user_id: 
