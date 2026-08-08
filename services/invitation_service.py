@@ -1,7 +1,8 @@
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from core.exceptions import NotFoundException, PermissionDeniedException, ConflictException, MemberAlreadyInProjectException, InvalidInvitationStateException, InvitationAlreadyProcessedException, AppException
+from core.exceptions import NotFoundException, PermissionDeniedException, ConflictException,\
+    MemberAlreadyInProjectException, InvalidInvitationStateException, InvitationAlreadyProcessedException, AppException
 from schemas.invitation import InvitationRole
 
 async def send_invitation(db, project_id: int, user_id: int, current_user_id: int, message: str): # Отправка приглашения
