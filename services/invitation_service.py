@@ -7,15 +7,20 @@ async def send_invitation(db, project_id: int, user_id: int, current_user_id: in
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
+    if repo_proj.is_user_admin(project_id, user_id):
+        raise
     if not await repo_user.get_by_id(user_id):
+        raise NotFoundException('')
+    if not await repo_proj.is_user_in_project(project_id, user_id):
         raise
     if not await repo_proj.get_project_by_id(project_id):
-        raise
+        raise NotFoundException('')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise 
     if await repo_proj.is_user_in_project(project_id, user_id):
         raise
-    if await repo.
+    if await repo.get_pending_invitation():
+        raise
     return await repo.create_invitation(project_id, current_user_id, user_id, message)
 
 async def get_user_invitations(db, current_user_id: int, invitation_id: int): # Возращаем список приглашений пользователя
@@ -24,16 +29,22 @@ async def get_user_invitations(db, current_user_id: int, invitation_id: int): # 
         raise
     return await repo.get_invitation_by_user(current_user_id)
 
-async def get_project_invitations(db, project_id): # Возращает список приглашений проекта 
+async def get_project_invitations(db, project_id: int): # Возращает список приглашений проекта 
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     if not await repo_proj.get_project_by_id(project_id):
         raise
     return await repo.get_invitation_for_project(project_id)
 
-async def response_to_invitation(db, invitation_id, acrion): # Возращает информацию о принятии/отклонении приглашения в проект
+async def response_to_invitation(db, invitation_id: int, action: str): # Возращает информацию о принятии/отклонении приглашения в проект
     repo = ProjectInvitationRepository(db)
+    if action != 'accepted':
+        raise
 
-async def cancel_invitation(db, invitation_id): # Удалить приглашение
+async def cancel_invitation(db, current_user_id: int, invitation_id: int): # Удалить приглашение
     repo = ProjectInvitationRepository(db)
+    repo_proj = ProjectRepository(db)
+    if not await repo_proj.is_user_admin(current_user_id):
+        if not await repo.(): # Проверка, что это приглашаемый пользователь
+            raise 
     return await repo.delete_invitation(invitation_id)

@@ -4,11 +4,12 @@ from core.dependencies import get_db, current_user
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import UserModel
 from services.invitation_service import send_invitation, get_project_invitations, get_user_invitations, cancel_invitation, response_to_invitation
+from schemas.invitation import 
 
 router = APIRouter()
 
 # POST
-@router.post('/invitations', tags=['Приглашение в проект'], summary='Отправка приглашения в проект пользователю')
+@router.post('/projects/{project_id}/invitations', tags=['Приглашение в проект'], summary='Отправка приглашения в проект пользователю')
 async def sending_invitations(user_id: int, project_id: int, message: str, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)): # Отправка приглашений
     return await send_invitation(db, project_id, user_id, current_user.user_id, message)
 

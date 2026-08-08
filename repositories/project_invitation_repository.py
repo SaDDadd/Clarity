@@ -48,7 +48,7 @@ class ProjectInvitationRepository:
             return False
         
     # Удаление приглашения
-    async def delete_invitation(self, invitation_id) -> bool:
+    async def delete_invitation(self, invitation_id: int) -> bool:
         task = await self.get_invitation_by_id(invitation_id)
         if task:
             result = await self.session.execute(delete(ProjectInvitationModel).where(ProjectInvitationModel.invitation_id == invitation_id))
@@ -58,4 +58,10 @@ class ProjectInvitationRepository:
             return False
 
     # Проверка на существование приглашения 
-    async def get_pending_invitation(self, project_id, invitee_id) -> bool:
+    async def get_pending_invitation(self, project_id: int, invitee_id: int) -> bool:
+        task = await self.session.execute(select(ProjectInvitationModel).where(ProjectInvitationModel.project_id == project_id, ProjectInvitationModel.invitee_id == invitee_id, ProjectInvitationModel.status_invited == 'pending'))
+        result = task.scalar_one_or_none()
+        if result:
+            return True
+        else:
+            return False

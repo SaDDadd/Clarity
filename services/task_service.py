@@ -52,7 +52,7 @@ async def update_task(db, project_id: int, task_id: int, current_user_id: int, t
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
-    slov = task.dict(exclude_unset=True)
+    slov = task.model_dump(exclude_unset=True)
     if len(slov) == 0:
         return {'message': 'Нет данных для обновления!'}
     if not await repo.is_task_in_project(project_id, task_id):
