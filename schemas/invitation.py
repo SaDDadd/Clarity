@@ -12,3 +12,7 @@ class InvitationResponse(InvitationBase):
     project_id : int
     inviter_id : int
     status_invited : InvitationRole
+
+class InvitationCreate(BaseModel):
+    user_id : int
+    message : str
