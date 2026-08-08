@@ -38,17 +38,17 @@ async def get_project_invitations(db, project_id: int, current_user_id: int): # 
 async def response_to_invitation(db, invitation_id: int, action: InvitationRole, current_user_id: int): # Возращает информацию о принятии/отклонении приглашения в проект
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
-    if action != 'accepted':
+    if action.value != 'accepted':
         raise
     if not await repo.get_invitation_by_id(invitation_id):
-        raise NotFoundException()
+        raise NotFoundException('Приглашение не найдено!')
     if current_user_id != invitee_id:
         raise PermissionDeniedException()
-    if
-        raise InvitationAlreadyProcessedException()
-    repo.update_invitation_status()
+    if status_invited != 'pending': 
+        raise InvitationAlreadyProcessedException('Приглашение уже обработано!')
+    await repo.update_invitation_status(invitation_id, status_invited)
     if action == InvitationRole.ACCEPTED:
-        repo_proj.add_user(project_id, invitee_id)
+        await repo_proj.add_user(project_id, invitee_id)
     return {'message': ''}
 
 async def cancel_invitation(db, invitation_id: int, current_user_id: int): # Удалить приглашение
@@ -58,6 +58,6 @@ async def cancel_invitation(db, invitation_id: int, current_user_id: int): # У�
         raise NotFoundException()
     project_id = 
     inviter_id = 
-    if not await repo_proj.is_user_admin(project_id, current_user_id) or inviter_id == current_user_id:
-        raise PermissionDeniedException()
+    if not (await repo_proj.is_user_admin() or inviter_id == current_user_id):
+        raise 
     return await repo.delete_invitation(invitation_id)
