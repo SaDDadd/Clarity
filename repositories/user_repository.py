@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, update 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.security import verify_password
@@ -78,6 +78,26 @@ class UserRepository:
             return False
         return False
 
+    # Обновить имя пользователя 
+    async def update_username(self, current_user_id: int, username: str) -> bool:
+        task = await self.session.execute(update(UserModel).values(username=username).where(UserModel.user_id == current_user_id))
+        numb_result = task.rowcount
+        await self.session.commit()
+        if numb_result == 0:
+            return False
+        else:
+            return True
+
+    # Обновить email пользователя
+    async def update_email(self, current_user_id: int, email: str) -> bool:
+        task = await self.session.execute(update(UserModel).values(email=email).where(UserModel.user_id == current_user_id))
+        numb_result = task.rowcount
+        await self.session.commit()
+        if numb_result == 0:
+            return False
+        else:
+            return True
+        
     # Удалить пользователя
     async def delete_user(self, user_id: int) -> bool:
         user = await self.get_by_id(user_id)
