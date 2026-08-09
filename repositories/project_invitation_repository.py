@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, func
 from models.project_invitations import ProjectInvitationModel
+import datetime
 
 class ProjectInvitationRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -41,7 +42,7 @@ class ProjectInvitationRepository:
     async def update_invitation_status(self, invitation_id: int, status_invited: str) -> bool:
         task = await self.get_invitation_by_id(invitation_id)
         if task:
-            result = await self.session.execute(update(ProjectInvitationModel).values(status_invited=status_invited).where(ProjectInvitationModel.invitation_id == invitation_id))
+            result = await self.session.execute(update(ProjectInvitationModel).values(status_invited=status_invited, update_date=func.now()).where(ProjectInvitationModel.invitation_id == invitation_id))
             await self.session.commit()
             return True
         else:

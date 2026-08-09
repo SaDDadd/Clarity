@@ -28,18 +28,15 @@ async def login_user(db, user_date: UserLogin):
     repo = UserRepository(db)
     if len(user_date.username_or_email) == 0 or len(user_date.password) == 0:
         raise LackOfInformationException('Нехватка информации!')
-    if '@' not in user_date.username_or_email:
-        user = await repo.get_by_username(user_date.username_or_email)
-        if user:
-            if verify_password(user_date.password, user.password_hash):
-                token = create_access_token({'sub': user.user_id})
-                return Token(
-                    access_token=token,
-                    token_type='bearer',
-                    expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-                )
-            else:
-                raise AuthenticationException('Неверные учётные данные!')
+    user = await repo.get_by_username(user_date.username_or_email)
+    if user:
+        if verify_password(user_date.password, user.password_hash):
+            token = create_access_token({'sub': user.user_id})
+            return Token(
+                access_token=token,
+                token_type='bearer',
+                expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            )
         else:
             raise AuthenticationException('Неверные учётные данные!')
     else:

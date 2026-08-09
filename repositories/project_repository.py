@@ -29,18 +29,32 @@ class ProjectRepository:
         return task
 
     # Добавить пользователя в проект
-    async def add_user(self, project_id, user_id_to_add) -> bool:
-        if await self.is_user_in_project(project_id, user_id_to_add):
-            raise ConflictException('Пользователь уже состоит в проекте!')
-        else:
-            task = ProjectMemberModel(
-                project_id=project_id,
-                user_id=user_id_to_add,
-                role_project='member'
-            )
-            self.session.add(task)
-            await self.session.commit()
+    async def add_user(self, project_id: int, user_id_to_add: int) -> bool:
+        task = ProjectMemberModel(
+            project_id=project_id,
+            user_id=user_id_to_add,
+            role_project='member'
+        )
+        self.session.add(task)
+        await self.session.commit()
+        if task:
             return True
+        else:
+            return False
+
+    # Обновить роль пользователя в проекте
+    async def add_user_role(self, project_id: int, user_id: int, role: str) -> bool:
+        task = ProjectMemberModel(
+            project_id=project_id,
+            user_id=user_id,
+            role_project=role
+        )
+        self.session.add(task)
+        await self.session.commit()
+        if task:
+            return True
+        else:
+            return False
 
     # Получить все проекты админа
     async def get_projects_by_admin(self, admin_id: int) -> list[ProjectModel]:
@@ -85,17 +99,13 @@ class ProjectRepository:
 
     # Получить всю информацию о проекте
     async def get_project_all_info(self, project_id: int) -> dict | None:
-        result = await self.get_project_by_id(project_id)
-        if result is None:
-            raise NotFoundException('Запрашиваемого проекта нет!')
-        else:
-            result_2 = await self.session.execute(
-                select(ProjectMemberModel).where(
-                    ProjectMemberModel.project_id == project_id
-                )
+        result = await self.session.execute(
+            select(ProjectMemberModel).where(
+                ProjectMemberModel.project_id == project_id
             )
-            task_2 = result_2.scalars().all()
-            return {'project': result, 'members': task_2}
+        )
+        task_2 = result.scalars().all()
+        return {'project': project_id, 'members': task_2}
 
     # Проверить, является ли пользователь администратором проекта
     async def is_user_admin(self, project_id: int, user_id: int) -> bool:
@@ -149,6 +159,15 @@ class ProjectRepository:
         else:
             return False
 
+    # Удалить пользователя из проекта
+    async def delete_project_member(self, project_id: int, user_id: int) -> bool:
+        result = await self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
+        delete_count = result.rowcount
+        if delete_count == 0:
+            return False
+        else:
+            return True
+
     # Удалить проект
     async def delete_project(self, project_id) -> bool:
         async with self.session.begin():
@@ -165,17 +184,14 @@ class ProjectRepository:
 
     # Удалить пользователя из проекта
     async def delete_user(self, project_id, user_id_to_del) -> bool:
-        if await self.is_user_in_project(project_id, user_id_to_del):
-            result = await self.session.execute(
-                delete(ProjectMemberModel).where(
-                    ProjectMemberModel.project_id == project_id,
-                    ProjectMemberModel.user_id == user_id_to_del
-                )
+        result = await self.session.execute(
+            delete(ProjectMemberModel).where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.user_id == user_id_to_del
             )
-            delete_count = result.rowcount
-            if delete_count == 0:
-                return False
-            else:
-                return True
+        )
+        delete_count = result.rowcount
+        if delete_count == 0:
+            return False
         else:
-            raise ConflictException('Пользователя нет в проекте!')
+            return True
