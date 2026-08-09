@@ -69,15 +69,20 @@ class UserRepository:
             return False
         return False
 
-    # Проверить пароль по имени
-    async def check_user_correct_password_by_username(self, username: str, password: str) -> bool:
-        user = await self.get_by_username(username)
-        if user:
-            if verify_password(password, user.password_hash):
-                return True
-            return False
-        return False
+    # Проверяет, существует ли другой пользователь с таким же именем
+    async def check_user_exists_by_username_excluding_current(self, username: str, user_id: int) -> bool:
+        result = await self.session.execute(select(UserModel).where(UserModel.username == username,
+                UserModel.user_id != user_id))
+        user = result.scalar_one_or_none()
+        return user is not None
 
+    # Проверяет, существует ли другой пользователь с таким же email
+    async def check_user_exists_by_email_excluding_current(self, email: str, user_id: int) -> bool:
+        result = await self.session.execute(select(UserModel).where(UserModel.email == email,
+                UserModel.user_id != user_id))
+        user = result.scalar_one_or_none()
+        return user is not None
+        
     # Обновить имя пользователя 
     async def update_username(self, current_user_id: int, username: str) -> bool:
         task = await self.session.execute(update(UserModel).values(username=username).where(UserModel.user_id == current_user_id))
