@@ -16,10 +16,7 @@ async def update_member_role(db, user_id: int, project_id: int, current_user_id:
         raise PermissionDeniedException('Пользователь не является администратором')
     if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Текущий пользователь не администратор проекта')
-    if await repo.delete_project_member(project_id, user_id):
-        if await repo.update_user_role(project_id, user_id, role_project):
-            return {'message': ''}
-        else:
-            raise AppException(500, 'Не удалось обновить роль')
+    if await repo.update_user_role(project_id, user_id, role_project):
+        return {'message': ''}
     else:
         raise AppException(500, 'Не удалось обновить роль')

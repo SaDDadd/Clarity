@@ -106,9 +106,7 @@ async def delete_project_user(db, project_id: int, current_user_id: int, user_id
         raise PermissionDeniedException('Нельзя удалить пользователя: вы не админ проекта!')
     else:
         if await repo.is_user_admin(project_id, user_id_to_del):
-            result = await repo.get_number_admins(project_id)
-            if result == 1:
-                raise LastAdminDeletionException('Нельзя удалить единственного администратора')
+            if await repo.reassign_admin():
         result = await repo.delete_user(project_id, user_id_to_del)
         if result:
             return {'message': 'Пользователь удален из проекта!'}

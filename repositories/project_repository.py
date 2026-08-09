@@ -94,11 +94,8 @@ class ProjectRepository:
         task_2 = result.scalars().all()
         return {'project': project_object, 'members': task_2}
 
-    # Получить количество админов в проекте
-    async def get_number_admins(self, project_id) -> int:
-        result = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.role_project == 'admin'))
-        task = result.scalars().all()
-        return len(task)
+    # Переназначить админа проекта 
+    async def reassign_admin(self, project_id: int, del_admin_id: int, new_admin_id: int) -> bool:
 
     # Проверить, является ли пользователь администратором проекта
     async def is_user_admin(self, project_id: int, user_id: int) -> bool:
