@@ -1,5 +1,6 @@
 # Создание, получение, обновление проектов, проверка прав
-from core.exceptions import AppException, NotFoundException, PermissionDeniedException
+from core.exceptions import AppException, NotFoundException, PermissionDeniedException,\
+            ConflictException, LastAdminDeletionException
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate
@@ -22,6 +23,8 @@ async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: in
         raise NotFoundException('Нельзя добавить пользователя: его не существует!')
     if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ проекта!')
+    if await repo.is_user_in_project(project_id, user_id_to_add):
+        raise ConflictException('Пользователь уже состоит в проекте')
     else:
         result = await repo.add_user(project_id, user_id_to_add)
         if result:
@@ -102,8 +105,12 @@ async def delete_project_user(db, project_id: int, current_user_id: int, user_id
     if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Нельзя удалить пользователя: вы не админ проекта!')
     else:
-        result = await repo.delete_user(project_id, user_id_to_del)
-        if result:
-            return {'message': 'Пользователь удален из проекта!'}
+        result = await repo.get_number_admins(project_id)
+        if len(result) < 1:
+            raise LastAdminDeletionException('Нельзя удалить единственного администратора')
         else:
-            raise AppException('Неизвестная ошибка при удалении пользователя из проекта!')
+            result = await repo.delete_user(project_id, user_id_to_del)
+            if result:
+                return {'message': 'Пользователь удален из проекта!'}
+            else:
+                raise AppException('Неизвестная ошибка при удалении пользователя из проекта!')
