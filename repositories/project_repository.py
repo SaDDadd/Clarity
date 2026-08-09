@@ -96,7 +96,15 @@ class ProjectRepository:
 
     # Переназначить админа проекта 
     async def reassign_admin(self, project_id: int, del_admin_id: int, new_admin_id: int) -> bool:
+        result = await self.session.execute(update(ProjectModel).where(ProjectModel.project_id == project_id).values(admin_id=new_admin_id))
+        await self.session.commit()
+        return result.rowcount > 0
 
+    # Получить всех администраторов проекта
+    async def get_admins_list(self, project_id: int) -> list[ProjectMemberModel]:
+        result = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id,ProjectMemberModel.role_project == 'admin'))
+        return result.scalars().all()
+    
     # Проверить, является ли пользователь администратором проекта
     async def is_user_admin(self, project_id: int, user_id: int) -> bool:
         result = await self.session.execute(

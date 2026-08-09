@@ -100,15 +100,25 @@ async def delete_project(db, project_id: int, user_id: int):
 async def delete_project_user(db, project_id: int, current_user_id: int, user_id_to_del: int):
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
-    if await repo_user.check_user_exists(user_id_to_del) is False:
+    if not await repo_user.check_user_exists(user_id_to_del):
         raise NotFoundException('Нельзя удалить пользователя: его не существует!')
     if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Нельзя удалить пользователя: вы не админ проекта!')
-    else:
-        if await repo.is_user_admin(project_id, user_id_to_del):
-            if await repo.reassign_admin():
-        result = await repo.delete_user(project_id, user_id_to_del)
-        if result:
-            return {'message': 'Пользователь удален из проекта!'}
-        else:
-            raise AppException('Неизвестная ошибка при удалении пользователя из проекта!')
+    if not await repo.is_user_in_project(project_id, user_id_to_del):
+        raise ConflictException('Пользователь не состоит в проекте!')
+    if await repo.is_user_admin(project_id, user_id_to_del):
+        admins_count = await repo.get_number_admins(project_id)
+        if admins_count == 1:
+            raise LastAdminDeletionException('Нельзя удалить единственного администратора проекта!')
+        project = await repo.get_project_by_id(project_id)
+        if project.admin_id == user_id_to_del:
+            admins = await repo.get_admins_list(project_id)
+            other_admin = next((a for a in admins if a.user_id != user_id_to_del), None)
+            if other_admin:
+                await repo.reassign_admin(project_id, other_admin.user_id)
+            else:
+                raise AppException(500, 'Не удалось переназначить администратора')
+    deleted = await repo.delete_user(project_id, user_id_to_del)
+    if not deleted:
+        raise AppException(500, 'Неизвестная ошибка при удалении пользователя из проекта!')
+    return {'message': 'Пользователь удален из проекта!'}
