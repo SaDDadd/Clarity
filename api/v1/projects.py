@@ -7,7 +7,7 @@ from schemas.project import AddMemberRequest, DeleteMemberRequest, ProjectCreate
 from services.project_service import add_user, create_project, delete_project, delete_project_user,\
     get_admin_projects, get_project_info, get_user_projects, update_project
 from services.project_members_service import update_member_role
-
+from schemas.common import ProjectRole 
 router = APIRouter()
 
 # POST
@@ -26,7 +26,7 @@ async def add_member(project_id: int, request: AddMemberRequest, current_user: U
 # PATCH
 @router.patch('/projects/{project_id}/members/{user_id}/role', tags=['Проекты'],\
               summary='Изменение роли участника')
-async def update_member_role(project_id: int, user_id: int, current_user: UserModel = Depends(current_user),\
+async def update_member_role(project_id: int, user_id: int, role: ProjectRole, current_user: UserModel = Depends(current_user),\
                              db: AsyncSession = Depends(get_db)):
     return await update_member_role(db, user_id, project_id, current_user.user_id, role)
 
