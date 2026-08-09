@@ -95,10 +95,10 @@ class ProjectRepository:
         return {'project': project_object, 'members': task_2}
 
     # Получить количество админов в проекте
-    async def get_number_admins(self, project_id) -> list:
+    async def get_number_admins(self, project_id) -> int:
         result = await self.session.execute(select(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.role_project == 'admin'))
         task = result.scalars().all()
-        return task
+        return len(task)
 
     # Проверить, является ли пользователь администратором проекта
     async def is_user_admin(self, project_id: int, user_id: int) -> bool:
@@ -155,12 +155,8 @@ class ProjectRepository:
     # Обновить роль пользователя в проекте
     async def update_user_role(self, project_id: int, user_id: int, role: str) -> bool:
         task = await self.session.execute(update(ProjectMemberModel).values(role_project=role).where(ProjectMemberModel.project_id == project_id, ProjectMemberModel.user_id == user_id))
-        result = task.scalar_one_or_none()
         await self.session.commit()
-        if result is not None:
-            return True
-        else:
-            return False
+        return task.rowcount > 0
 
     # Удалить пользователя из проекта
     async def delete_project_member(self, project_id: int, user_id: int) -> bool:
