@@ -95,7 +95,7 @@ class ProjectRepository:
         return {'project': project_object, 'members': task_2}
 
     # Переназначить админа проекта 
-    async def reassign_admin(self, project_id: int, del_admin_id: int, new_admin_id: int) -> bool:
+    async def reassign_admin(self, project_id: int, new_admin_id: int) -> bool:
         result = await self.session.execute(update(ProjectModel).where(ProjectModel.project_id == project_id).values(admin_id=new_admin_id))
         await self.session.commit()
         return result.rowcount > 0

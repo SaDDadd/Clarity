@@ -12,8 +12,6 @@ async def update_member_role(db, user_id: int, project_id: int, current_user_id:
         raise NotFoundException('Пользователь не найден')
     if not await repo.is_user_in_project(project_id, user_id):
         raise PermissionDeniedException('Пользователь не состоит в проекте')
-    if not await repo.is_user_admin(project_id, user_id):
-        raise PermissionDeniedException('Пользователь не является администратором')
     if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Текущий пользователь не администратор проекта')
     if current_user_id == user_id:
