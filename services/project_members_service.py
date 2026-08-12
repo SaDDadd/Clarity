@@ -20,7 +20,7 @@ async def update_member_role(db, user_id: int, project_id: int, current_user_id:
     current_role = await repo.get_user_role_in_project(project_id, user_id)
 
     if current_role == 'admin' and role_project != 'admin':
-        admins_count = await repo.get_number_admins(project_id)
+        admins_count = len(await repo.get_admins_list(project_id))
         if admins_count == 1:
             raise LastAdminDeletionException('Нельзя снять роль администратора с единственного администратора')
     updated = await repo.update_user_role(project_id, user_id, role_project)
