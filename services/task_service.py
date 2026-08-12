@@ -1,10 +1,11 @@
 # Создание, назначение, изменение статуса задач
-from core.exceptions import NotFoundException, PermissionDeniedException
+from core.exceptions import NotFoundException, PermissionDeniedException, InvalidDeadlineException
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 from schemas.common import TaskStatus
 from schemas.task import TaskStatusUpdate
+import datetime 
 
 # Создать задачу
 async def create_task(db, project_id: int, current_user_id: int, task):
@@ -12,6 +13,9 @@ async def create_task(db, project_id: int, current_user_id: int, task):
     repo_proj = ProjectRepository(db)
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if task.deadline is not None:
+        if task.deadline < datetime.today():
+            raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
     if task.assigned_to is not None:
         if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
@@ -59,6 +63,9 @@ async def update_task(db, project_id: int, task_id: int, current_user_id: int, t
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if 'deadline' in slov and slov['deadline'] is not None:
+        if slov['deadline'] < datetime.today():
+            raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
     if 'assigned_to' in slov and slov['assigned_to'] is not None:
         if not await repo_user.check_user_exists(slov['assigned_to']):
             raise NotFoundException('Такого пользователя не существует!')
