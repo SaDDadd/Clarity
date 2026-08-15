@@ -54,13 +54,13 @@ def generate_commit_message(diff, use_ollama=True):
             sys.exit(1)
     else:
         # Вариант с OpenAI API (раскомментируй при необходимости)
-        import openai
-        openai.api_key = OPENAI_API_KEY
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=50
-        )
+        # import openai
+        # openai.api_key = OPENAI_API_KEY
+        # response = openai.ChatCompletion.create(
+        #     model="gpt-3.5-turbo",
+        #     messages=[{"role": "user", "content": prompt}],
+        #     max_tokens=50
+        # )
         return response.choices[0].message.content.strip()
 
 def main():
