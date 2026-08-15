@@ -10,7 +10,7 @@ import argparse
 import json
 
 # Настройки: выбери модель из ollama
-MODEL = "codellama:7b-instruct"  # или "llama3.2", "mistral", "qwen2.5-coder"
+MODEL = "qwen2.5-coder:7b"  # или "llama3.2", "mistral", "qwen2.5-coder"
 # Если хочешь использовать OpenAI, раскомментируй и укажи ключ
 # USE_OPENAI = False
 # OPENAI_API_KEY = "sk-..."
