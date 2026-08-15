@@ -1,91 +1,86 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 AI Commit — автоматически генерирует сообщение коммита по изменениям в коде.
-Требует установленный и запущенный ollama (локально).
+Требует установленный и запущенный ollama (или можно заменить на API GPT).
 """
 
 import subprocess
 import sys
 import argparse
+import json
 
-# Модель по умолчанию (вы уже скачали qwen2.5-coder:7b)
-DEFAULT_MODEL = "qwen2.5-coder:7b"
-
+# Настройки: выбери модель из ollama
+MODEL = "codellama:7b-instruct"  # или "llama3.2", "mistral", "qwen2.5-coder"
+# Если хочешь использовать OpenAI, раскомментируй и укажи ключ
+# USE_OPENAI = False
+# OPENAI_API_KEY = "sk-..."
 
 def get_git_diff():
-    """Возвращает diff текущих изменений (сначала staged, потом unstaged)."""
+    """Возвращает diff текущих изменений"""
     try:
-        # Пытаемся получить diff для staged
         diff = subprocess.check_output(
             ["git", "diff", "--cached", "--no-color"],
             stderr=subprocess.DEVNULL,
-            text=True,
-            encoding="utf-8"
+            text=True
         )
         if not diff.strip():
-            # Если нет staged, берём unstaged
+            # Если нет изменений в staged, берём unstaged
             diff = subprocess.check_output(
                 ["git", "diff", "--no-color"],
                 stderr=subprocess.DEVNULL,
-                text=True,
-                encoding="utf-8"
+                text=True
             )
         return diff
-    except subprocess.CalledProcessError as e:
-        print("❌ Не удалось получить diff. Убедитесь, что вы в git-репозитории.")
+    except subprocess.CalledProcessError:
+        print("❌ Не удалось получить diff. Вы в git-репозитории?")
         sys.exit(1)
 
-
-def generate_commit_message(diff, model):
-    """Отправляет diff модели Ollama и получает сообщение коммита."""
+def generate_commit_message(diff, use_ollama=True):
+    """Отправляет diff модели и получает сообщение коммита"""
     prompt = (
         "Ты — эксперт по Git. Напиши краткое сообщение коммита (одной строкой) в стиле Conventional Commits, "
         "которое описывает следующие изменения в коде. Не добавляй лишних комментариев, только само сообщение.\n\n"
         f"Изменения:\n{diff}"
     )
 
-    try:
-        import ollama
-        response = ollama.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}]
+    if use_ollama:
+        try:
+            import ollama
+            response = ollama.chat(model=MODEL, messages=[{"role": "user", "content": prompt}])
+            return response['message']['content'].strip()
+        except Exception as e:
+            print(f"❌ Ошибка при обращении к ollama: {e}")
+            print("Убедитесь, что ollama запущен (ollama serve) и модель загружена.")
+            sys.exit(1)
+    else:
+        # Вариант с OpenAI API (раскомментируй при необходимости)
+        import openai
+        openai.api_key = OPENAI_API_KEY
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=50
         )
-        # Извлекаем текст ответа и убираем лишние пробелы/кавычки
-        msg = response['message']['content'].strip()
-        # Убираем возможные обрамляющие кавычки, которые иногда добавляет модель
-        if msg.startswith('"') and msg.endswith('"'):
-            msg = msg[1:-1]
-        return msg
-    except Exception as e:
-        print(f"❌ Ошибка при обращении к ollama: {e}")
-        print("Проверьте, что ollama запущен (команда 'ollama serve') и модель загружена.")
-        print("Если модель не скачана, выполните: ollama pull qwen2.5-coder:7b")
-        sys.exit(1)
-
+        return response.choices[0].message.content.strip()
 
 def main():
-    parser = argparse.ArgumentParser(description="Генератор сообщений коммита через AI (Ollama)")
-    parser.add_argument(
-        "-m", "--model",
-        default=DEFAULT_MODEL,
-        help=f"Модель Ollama (по умолчанию: {DEFAULT_MODEL})"
-    )
+    parser = argparse.ArgumentParser(description="Генератор сообщений коммита через AI")
+    parser.add_argument("-m", "--model", default=MODEL, help="Модель ollama")
+    parser.add_argument("--openai", action="store_true", help="Использовать OpenAI API вместо ollama")
     args = parser.parse_args()
 
     diff = get_git_diff()
     if not diff.strip():
-        print("⚠️ Нет изменений для коммита. Добавьте файлы через 'git add'.")
+        print("⚠️ Нет изменений для коммита. Добавьте файлы через git add.")
         return
 
-    print("🤖 Генерирую сообщение коммита (модель: {})...".format(args.model))
-    msg = generate_commit_message(diff, args.model)
+    print("🤖 Генерирую сообщение коммита...")
+    msg = generate_commit_message(diff, use_ollama=not args.openai)
     print("\n💡 Предлагаемое сообщение:\n")
     print(msg)
     print("\n✅ Если подходит, выполните:")
     print(f'   git commit -m "{msg}"')
     print("   Или скопируйте сообщение и отредактируйте.")
-
 
 if __name__ == "__main__":
     main()
