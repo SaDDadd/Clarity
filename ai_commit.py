@@ -79,7 +79,7 @@ def main():
     print("\n💡 Предлагаемое сообщение:\n")
     print(msg)
     print("\n✅ Если подходит, выполните:")
-    print(f'   git commit -m "{msg}"')
+    print(f'   git commit -am "{msg}"')
     print("   Или скопируйте сообщение и отредактируйте.")
 
 if __name__ == "__main__":
