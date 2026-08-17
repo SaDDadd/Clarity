@@ -57,6 +57,15 @@ async def test_user(db_session):
     return user
 
 @pytest_asyncio.fixture(scope='function')
+async def test_user_2(db_session):
+    repo = UserRepository(db_session)
+    hashed_password = hash_password('qwertyui')
+    timestamp = time.time_ns()
+    uui = uuid.uuid4()
+    user = await repo.create_user(f'testuser_<{timestamp}>', f'test_<{uui}>@mail.ru', hashed_password)
+    return user
+
+@pytest_asyncio.fixture(scope='function')
 async def auth_headers(test_user):
     token = create_access_token({'sub': test_user.user_id})
     return {'Authorization': f'Bearer {token}'}
