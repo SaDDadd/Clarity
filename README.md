@@ -4,33 +4,32 @@
 
 ---
 
-## 📋 Содержание
+## Содержание
 
-- [Основные возможности](#-основные-возможности)
-- [Используемые технологии](#-используемые-технологии)
-- [Архитектура проекта](#-архитектура-проекта)
-- [Установка и запуск](#-установка-и-запуск)
+- [Основные возможности](#основные-возможности)
+- [Используемые технологии](#используемые-технологии)
+- [Архитектура проекта](#архитектура-проекта)
+- [Установка и запуск](#установка-и-запуск)
   - [Локальный запуск (без Docker)](#локальный-запуск-без-docker)
   - [Запуск через Docker Compose](#запуск-через-docker-compose)
-- [Переменные окружения](#-переменные-окружения)
-- [Миграции базы данных](#-миграции-базы-данных)
-- [🗄️ Описание таблиц базы данных](#-описание-таблиц-базы-данных)
-- [API Документация](#-api-документация)
-- [📋 Детальное описание всех эндпоинтов](#-детальное-описание-всех-эндпоинтов)
+- [Переменные окружения](#переменные-окружения-файл-env)
+- [Миграции базы данных](#миграции-базы-данных)
+- [Описание таблиц базы данных](#описание-таблиц-базы-данных)
+- [API Документация](#api-документация)
   - [Аутентификация](#аутентификация)
   - [Проекты](#проекты)
   - [Задачи](#задачи)
   - [Приглашения](#приглашения)
   - [Профиль пользователя](#профиль-пользователя)
-- [Инструкция для фронтенда](#-инструкция-для-фронтенда)
-- [Структура проекта](#-структура-проекта)
-- [🤖 AI Commit – автоматическая генерация сообщений коммитов](#-ai-commit-автоматическая-генерация-сообщений-коммитов)
-- [Планы по доработке](#-планы-по-доработке)
-- [Лицензия](#-лицензия)
+- [Инструкция для фронтенда](#инструкция-для-фронтенда)
+- [Структура проекта](#структура-проекта)
+- [AI Commit – автоматическая генерация сообщений коммитов](#ai-commit-автоматическая-генерация-сообщений-коммитов)
+- [Планы по доработке](#планы-по-доработке)
+- [Лицензия](#лицензия)
 
 ---
 
-## 🚀 Основные возможности
+## Основные возможности
 
 - Регистрация и аутентификация пользователей с выдачей JWT-токена.
 - Создание, просмотр, обновление и удаление проектов (только администратор проекта может редактировать/удалять).
@@ -47,7 +46,7 @@
 
 ---
 
-## 🛠 Используемые технологии
+## Используемые технологии
 
 - **Python 3.11+**
 - **FastAPI** – веб-фреймворк
@@ -63,7 +62,7 @@
 
 ---
 
-## 🏛 Архитектура проекта
+## Архитектура проекта
 
 Проект построен на многослойной архитектуре:
 
@@ -83,46 +82,55 @@
 ### Локальный запуск (без Docker)
 
 #### 1. Клонируйте репозиторий
+
 ```bash
 git clone https://github.com/your-username/task-to-do-backend.git
 cd task-to-do-backend
 ```
 
 #### 2. Создайте и активируйте виртуальное окружение
+
 ```bash
 python -m venv venv
-source venv/bin/activate   # Linux/Mac
+source venv/bin/activate  # Linux/Mac
 # или
-venv\Scripts\activate      # Windows
+venv\Scripts\activate     # Windows
 ```
 
 #### 3. Установите зависимости
+
 ```bash
 pip install -r requirements.txt
 ```
 
 #### 4. Настройте базу данных MySQL
+
 - Убедитесь, что MySQL запущен.
 - Создайте базу данных, например:
+
 ```sql
 CREATE DATABASE task_to_do CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 #### 5. Настройте переменные окружения
-Создайте файл `.env` в корне проекта (см. [Переменные окружения](#-переменные-окружения)).
+
+Создайте файл `.env` в корне проекта (см. [Переменные окружения](#переменные-окружения-файл-env)).
 
 #### 6. Примените миграции
+
 ```bash
 alembic upgrade head
 ```
-> **Примечание:** если миграции ещё не созданы (пустая ревизия), таблицы можно создать вручную или сгенерировать миграцию автоматически (см. раздел [Миграции](#-миграции-базы-данных)).
+
+> **Примечание:** если миграции ещё не созданы (пустая ревизия), таблицы можно создать вручную или сгенерировать миграцию автоматически (см. раздел [Миграции](#миграции-базы-данных)).
 
 #### 7. Запустите сервер
+
 ```bash
 uvicorn main:app --reload
 ```
 
-Сервер будет доступен по адресу: `http://localhost:8000`  
+Сервер будет доступен по адресу: `http://localhost:8000`
 Документация API: `http://localhost:8000/docs`
 
 ---
@@ -136,6 +144,7 @@ uvicorn main:app --reload
 #### 2. Создайте файл `.env` в корне проекта (как описано в разделе переменных окружения).
 
 #### 3. Соберите и запустите контейнеры:
+
 ```bash
 docker-compose up --build
 ```
@@ -145,6 +154,7 @@ docker-compose up --build
 - При старте контейнера бэкенда автоматически выполняются миграции (скрипт `entrypoint.sh`).
 
 #### 4. Остановка:
+
 ```bash
 docker-compose down
 ```
@@ -153,14 +163,14 @@ docker-compose down
 
 ---
 
-## 🔐 Переменные окружения (файл `.env`)
+## Переменные окружения (файл `.env`)
 
 Пример содержимого `.env`:
 
 ```env
 # База данных
-DB_HOST=db                    # для Docker – имя сервиса db; для локального запуска – localhost
-DB_PORT=3306                  # порт внутри контейнера; при локальном запуске обычно 3306
+DB_HOST=db               # для Docker – имя сервиса db; для локального запуска – localhost
+DB_PORT=3306             # порт внутри контейнера; при локальном запуске обычно 3306
 DB_USER=root
 DB_PASSWORD=your_secure_password
 DB_NAME=task_to_do
@@ -175,10 +185,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 CORS_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
 ```
 
-Все настройки загружаются из класса `Settings` в `core/config.py`.  
-Значение `JWT_SECRET_KEY` **обязательно** должно быть задано в `.env`.
+Все настройки загружаются из класса `Settings` в `core/config.py`. Значение `JWT_SECRET_KEY` **обязательно** должно быть задано в `.env`.
 
 Для запуска тестов используется файл `.env.test` (пример содержимого):
+
 ```env
 DB_HOST=db
 DB_PORT=3306
@@ -188,127 +198,120 @@ DB_NAME=task_to_do_test
 JWT_SECRET_KEY=your_very_secret_key_here_32_chars_min
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
+
 Он подключается в `core/config.py` через `SettingsTEST`.
 
 ---
 
-## 🗄️ Миграции базы данных
+## Миграции базы данных
 
 Для управления схемой используется Alembic. В настоящее время первая ревизия пуста (таблицы созданы вручную или автоматически при первом запуске). Для будущих изменений:
 
 - **Создать новую миграцию** (после изменения моделей):
-```bash
-alembic revision --autogenerate -m "описание изменений"
-```
+  ```bash
+  alembic revision --autogenerate -m "описание изменений"
+  ```
 - **Применить миграции**:
-```bash
-alembic upgrade head
-```
+  ```bash
+  alembic upgrade head
+  ```
 - **Откатиться на предыдущую версию**:
-```bash
-alembic downgrade -1
-```
+  ```bash
+  alembic downgrade -1
+  ```
 
 **Важно:** перед созданием миграции убедитесь, что ваши модели импортированы в `env.py`, чтобы Alembic мог их обнаружить.
 
 ---
 
-## 🗄️ Описание таблиц базы данных
+## Описание таблиц базы данных
 
 Схема базы данных состоит из пяти таблиц, описанных ниже.
 
 ### Таблица `users` (пользователи)
 
-| Поле           | Тип           | Ограничения                           | Описание                       |
-|----------------|---------------|---------------------------------------|--------------------------------|
-| `user_id`      | `int`         | PRIMARY KEY, AUTO_INCREMENT           | Уникальный идентификатор       |
-| `username`     | `varchar(50)` | NOT NULL, UNIQUE                      | Имя пользователя               |
-| `email`        | `varchar(100)`| NOT NULL, UNIQUE                      | Электронная почта              |
-| `password_hash`| `varchar(255)`| NOT NULL                              | Хеш пароля                     |
-| `created_date` | `timestamp`   | NOT NULL, DEFAULT CURRENT_TIMESTAMP   | Дата регистрации               |
-
----
+| Поле | Тип | Ограничения | Описание |
+|------|-----|-------------|----------|
+| `user_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор |
+| `username` | `varchar(50)` | NOT NULL, UNIQUE | Имя пользователя |
+| `email` | `varchar(100)` | NOT NULL, UNIQUE | Электронная почта |
+| `password_hash` | `varchar(255)` | NOT NULL | Хеш пароля |
+| `created_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата регистрации |
 
 ### Таблица `projects` (проекты)
 
-| Поле                  | Тип           | Ограничения                           | Описание                         |
-|-----------------------|---------------|---------------------------------------|----------------------------------|
-| `project_id`          | `int`         | PRIMARY KEY, AUTO_INCREMENT           | Уникальный идентификатор проекта |
-| `project_name`        | `varchar(100)`| NOT NULL                              | Название проекта                 |
-| `project_description` | `text`        | NULLABLE                              | Описание проекта                 |
-| `admin_id`            | `int`         | NOT NULL, FOREIGN KEY (`users.user_id`)| Идентификатор создателя (админа) |
-
----
+| Поле | Тип | Ограничения | Описание |
+|------|-----|-------------|----------|
+| `project_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор проекта |
+| `project_name` | `varchar(100)` | NOT NULL | Название проекта |
+| `project_description` | `text` | NULLABLE | Описание проекта |
+| `admin_id` | `int` | NOT NULL, FOREIGN KEY (`users.user_id`) | Идентификатор создателя (админа) |
 
 ### Таблица `tasks` (задачи)
 
-| Поле               | Тип                                           | Ограничения                                   | Описание                       |
-|--------------------|-----------------------------------------------|-----------------------------------------------|--------------------------------|
-| `task_id`          | `int`                                         | PRIMARY KEY, AUTO_INCREMENT                   | Уникальный идентификатор задачи |
-| `title`            | `varchar(150)`                                | NOT NULL                                      | Заголовок задачи               |
-| `task_description` | `text`                                        | NULLABLE                                      | Подробное описание             |
-| `task_status`      | `enum('pending','in_progress','completed')`   | DEFAULT 'pending'                             | Текущий статус задачи          |
-| `project_id`       | `int`                                         | NOT NULL, FOREIGN KEY (`projects.project_id`) | Проект, к которому относится   |
-| `assigned_to`      | `int`                                         | FOREIGN KEY (`users.user_id`), NULLABLE       | Исполнитель задачи             |
-| `deadline`         | `date`                                        | NULLABLE                                      | Дедлайн (дата)                 |
-| `created_date`     | `timestamp`                                   | NOT NULL, DEFAULT CURRENT_TIMESTAMP           | Дата создания                  |
-
----
+| Поле | Тип | Ограничения | Описание |
+|------|-----|-------------|----------|
+| `task_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор задачи |
+| `title` | `varchar(150)` | NOT NULL | Заголовок задачи |
+| `task_description` | `text` | NULLABLE | Подробное описание |
+| `task_status` | `enum('pending','in_progress','completed')` | DEFAULT 'pending' | Текущий статус задачи |
+| `project_id` | `int` | NOT NULL, FOREIGN KEY (`projects.project_id`) | Проект, к которому относится |
+| `assigned_to` | `int` | FOREIGN KEY (`users.user_id`), NULLABLE | Исполнитель задачи |
+| `deadline` | `date` | NULLABLE | Дедлайн (дата) |
+| `created_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата создания |
 
 ### Таблица `project_members` (участники проектов)
 
 Составной первичный ключ: (`project_id`, `user_id`).
 
-| Поле           | Тип                           | Ограничения                                   | Описание                         |
-|----------------|-------------------------------|-----------------------------------------------|----------------------------------|
-| `project_id`   | `int`                         | NOT NULL, FOREIGN KEY (`projects.project_id`) | Идентификатор проекта            |
-| `user_id`      | `int`                         | NOT NULL, FOREIGN KEY (`users.user_id`)       | Идентификатор пользователя       |
-| `role_project` | `enum('admin','member')`      | DEFAULT 'member'                              | Роль участника в проекте         |
-| `joined_date`  | `timestamp`                   | NOT NULL, DEFAULT CURRENT_TIMESTAMP           | Дата加入 (дата присоединения)    |
-
----
+| Поле | Тип | Ограничения | Описание |
+|------|-----|-------------|----------|
+| `project_id` | `int` | NOT NULL, FOREIGN KEY (`projects.project_id`) | Идентификатор проекта |
+| `user_id` | `int` | NOT NULL, FOREIGN KEY (`users.user_id`) | Идентификатор пользователя |
+| `role_project` | `enum('admin','member')` | DEFAULT 'member' | Роль участника в проекте |
+| `joined_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата присоединения |
 
 ### Таблица `project_invitations` (приглашения в проекты)
 
-| Поле            | Тип                                       | Ограничения                                   | Описание                           |
-|-----------------|-------------------------------------------|-----------------------------------------------|------------------------------------|
-| `invitation_id` | `int`                                     | PRIMARY KEY, AUTO_INCREMENT                   | Уникальный идентификатор приглашения |
-| `project_id`    | `int`                                     | NOT NULL, FOREIGN KEY (`projects.project_id`) | Проект, куда приглашают            |
-| `inviter_id`    | `int`                                     | NOT NULL, FOREIGN KEY (`users.user_id`)       | Кто приглашает                     |
-| `invitee_id`    | `int`                                     | NOT NULL, FOREIGN KEY (`users.user_id`)       | Кого приглашают                    |
-| `status_invited`| `enum('pending','accepted','declined')`   | DEFAULT 'pending'                             | Статус приглашения                 |
-| `created_date`  | `timestamp`                               | DEFAULT CURRENT_TIMESTAMP                     | Дата отправки                      |
-| `update_date`   | `timestamp`                               | DEFAULT CURRENT_TIMESTAMP ON UPDATE           | Дата последнего обновления         |
-| `message`       | `text`                                    | NULLABLE                                      | Сообщение к приглашению            |
+| Поле | Тип | Ограничения | Описание |
+|------|-----|-------------|----------|
+| `invitation_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор приглашения |
+| `project_id` | `int` | NOT NULL, FOREIGN KEY (`projects.project_id`) | Проект, куда приглашают |
+| `inviter_id` | `int` | NOT NULL, FOREIGN KEY (`users.user_id`) | Кто приглашает |
+| `invitee_id` | `int` | NOT NULL, FOREIGN KEY (`users.user_id`) | Кого приглашают |
+| `status_invited` | `enum('pending','accepted','declined')` | DEFAULT 'pending' | Статус приглашения |
+| `created_date` | `timestamp` | DEFAULT CURRENT_TIMESTAMP | Дата отправки |
+| `update_date` | `timestamp` | DEFAULT CURRENT_TIMESTAMP ON UPDATE | Дата последнего обновления |
+| `message` | `text` | NULLABLE | Сообщение к приглашению |
 
 ---
 
-## 📚 API Документация
+## API Документация
 
-Все эндпоинты имеют префикс `/api/v1`.  
-Полная интерактивная документация доступна по адресу `/docs` (Swagger UI) или `/redoc`.
+Все эндпоинты имеют префикс `/api/v1`. Полная интерактивная документация доступна по адресу `/docs` (Swagger UI) или `/redoc`. Ниже приведён список основных эндпоинтов с примерами запросов/ответов.
 
-Ниже приведён список основных эндпоинтов с примерами запросов/ответов.
+### Аутентификация
 
-### 🔐 Аутентификация
-
-| Метод | Эндпоинт               | Описание                     |
-|-------|------------------------|------------------------------|
-| POST  | `/auth/register`       | Регистрация нового пользователя |
-| POST  | `/auth/login`          | Вход в систему (получение токена) |
-| GET   | `/auth/me`             | Получить информацию о текущем пользователе |
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| POST | `/auth/register` | Регистрация нового пользователя |
+| POST | `/auth/login` | Вход в систему (получение токена) |
+| GET | `/auth/me` | Получить информацию о текущем пользователе |
 
 #### Регистрация
-**Запрос:**
+
+**Запрос:** `POST /api/v1/auth/register`
+
 ```json
-POST /api/v1/auth/register
 {
   "username": "john_doe",
   "email": "john@example.com",
   "password": "secure_password"
 }
 ```
+
 **Ответ (201 Created):**
+
 ```json
 {
   "message": "Пользователь создан"
@@ -316,15 +319,18 @@ POST /api/v1/auth/register
 ```
 
 #### Логин
-**Запрос:**
+
+**Запрос:** `POST /api/v1/auth/login`
+
 ```json
-POST /api/v1/auth/login
 {
-  "username_or_email": "john_doe",  // или email
+  "username_or_email": "john_doe", // или email
   "password": "secure_password"
 }
 ```
+
 **Ответ (200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
@@ -334,10 +340,12 @@ POST /api/v1/auth/login
 ```
 
 #### Получение профиля
-**Запрос:** `GET /api/v1/auth/me`  
+
+**Запрос:** `GET /api/v1/auth/me`
 **Заголовок:** `Authorization: Bearer <token>`
 
 **Ответ (200 OK):**
+
 ```json
 {
   "user_id": 1,
@@ -349,37 +357,41 @@ POST /api/v1/auth/login
 
 ---
 
-### 📁 Проекты
+### Проекты
 
 Все эндпоинты проектов требуют аутентификации (токен в заголовке).
 
-| Метод   | Эндпоинт                                      | Описание                                      |
-|---------|-----------------------------------------------|-----------------------------------------------|
-| GET     | `/projects`                                   | Список проектов, где пользователь – админ      |
-| GET     | `/projects/all`                               | Список всех проектов, где пользователь участник (включая админа) |
-| POST    | `/projects`                                   | Создать новый проект                           |
-| GET     | `/projects/{project_id}`                      | Получить информацию о проекте (с участниками) |
-| PUT     | `/projects/{project_id}`                      | Обновить название/описание (только админ)      |
-| DELETE  | `/projects/{project_id}`                      | Удалить проект (только админ)                 |
-| POST    | `/projects/{project_id}/members`              | Добавить участника в проект (только админ)    |
-| DELETE  | `/projects/{project_id}/members`              | Удалить участника из проекта (только админ)   |
-| PATCH   | `/projects/{project_id}/members/{user_id}/role` | Изменить роль участника (только админ)    |
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/projects` | Список проектов, где пользователь – админ |
+| GET | `/projects/all` | Список всех проектов, где пользователь участник (включая админа) |
+| POST | `/projects` | Создать новый проект |
+| GET | `/projects/{project_id}` | Получить информацию о проекте (с участниками) |
+| PUT | `/projects/{project_id}` | Обновить название/описание (только админ) |
+| DELETE | `/projects/{project_id}` | Удалить проект (только админ) |
+| POST | `/projects/{project_id}/members` | Добавить участника в проект (только админ) |
+| DELETE | `/projects/{project_id}/members` | Удалить участника из проекта (только админ) |
+| PATCH | `/projects/{project_id}/members/{user_id}/role` | Изменить роль участника (только админ) |
 
 #### Создание проекта
-**Запрос:**
+
+**Запрос:** `POST /api/v1/projects`
+
 ```json
-POST /api/v1/projects
 {
   "project_name": "Новый проект",
   "project_description": "Описание проекта"
 }
 ```
+
 **Ответ (200 OK):** возвращает созданный объект проекта.
 
 #### Получение проекта
+
 **Запрос:** `GET /api/v1/projects/1`
 
 **Ответ:**
+
 ```json
 {
   "project_id": 1,
@@ -392,21 +404,23 @@ POST /api/v1/projects
       "username": "john_doe",
       "email": "john@example.com",
       "created_date": "..."
-    },
-    ...
+    }
   ]
 }
 ```
 
 #### Добавление участника
-**Запрос:**
+
+**Запрос:** `POST /api/v1/projects/1/members`
+
 ```json
-POST /api/v1/projects/1/members
 {
   "user_id": 2
 }
 ```
+
 **Ответ:**
+
 ```json
 {
   "message": "Пользователь добавлен в проект!"
@@ -414,11 +428,11 @@ POST /api/v1/projects/1/members
 ```
 
 #### Изменение роли участника
-**Запрос:**
-```json
-PATCH /api/v1/projects/1/members/2/role?role=admin
-```
+
+**Запрос:** `PATCH /api/v1/projects/1/members/2/role?role=admin`
+
 **Ответ:**
+
 ```json
 {
   "message": "Роль обновлена"
@@ -427,41 +441,46 @@ PATCH /api/v1/projects/1/members/2/role?role=admin
 
 ---
 
-### ✅ Задачи
+### Задачи
 
-| Метод   | Эндпоинт                                      | Описание                                   |
-|---------|-----------------------------------------------|--------------------------------------------|
-| GET     | `/projects/{project_id}/tasks`                | Получить все задачи проекта                 |
-| POST    | `/projects/{project_id}/tasks`                | Создать задачу в проекте                   |
-| GET     | `/projects/{project_id}/tasks/{task_id}`      | Получить детали задачи                     |
-| PUT     | `/projects/{project_id}/tasks/{task_id}`      | Обновить задачу (любой участник проекта)   |
-| PATCH   | `/projects/{project_id}/tasks/{task_id}/status` | Изменить статус задачи (любой участник)  |
-| DELETE  | `/projects/{project_id}/tasks/{task_id}`      | Удалить задачу (только админ проекта)      |
-| GET     | `/tasks`                                      | Получить задачи, назначенные текущему пользователю |
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/projects/{project_id}/tasks` | Получить все задачи проекта |
+| POST | `/projects/{project_id}/tasks` | Создать задачу в проекте |
+| GET | `/projects/{project_id}/tasks/{task_id}` | Получить детали задачи |
+| PUT | `/projects/{project_id}/tasks/{task_id}` | Обновить задачу (любой участник проекта) |
+| PATCH | `/projects/{project_id}/tasks/{task_id}/status` | Изменить статус задачи (любой участник) |
+| DELETE | `/projects/{project_id}/tasks/{task_id}` | Удалить задачу (только админ проекта) |
+| GET | `/tasks` | Получить задачи, назначенные текущему пользователю |
 
 #### Создание задачи
-**Запрос:**
+
+**Запрос:** `POST /api/v1/projects/1/tasks`
+
 ```json
-POST /api/v1/projects/1/tasks
 {
   "title": "Написать документацию",
   "task_description": "Описание задачи",
-  "task_status": "pending",       // или "in_progress", "completed"
-  "assigned_to": 2,               // ID пользователя (опционально)
-  "deadline": "2026-09-01"        // в формате YYYY-MM-DD
+  "task_status": "pending", // или "in_progress", "completed"
+  "assigned_to": 2, // ID пользователя (опционально)
+  "deadline": "2026-09-01" // в формате YYYY-MM-DD
 }
 ```
+
 **Ответ:** возвращает созданную задачу.
 
 #### Изменение статуса
-**Запрос:**
+
+**Запрос:** `PATCH /api/v1/projects/1/tasks/1/status`
+
 ```json
-PATCH /api/v1/projects/1/tasks/1/status
 {
   "task_status": "completed"
 }
 ```
+
 **Ответ:**
+
 ```json
 {
   "message": "Статус обновлен!"
@@ -470,49 +489,57 @@ PATCH /api/v1/projects/1/tasks/1/status
 
 ---
 
-### 📨 Приглашения
+### Приглашения
 
 Эндпоинты для приглашений полностью реализованы. Все требуют аутентификации.
 
-| Метод   | Эндпоинт                                 | Описание                                      |
-|---------|------------------------------------------|-----------------------------------------------|
-| POST    | `/projects/{project_id}/invitations`     | Отправить приглашение в проект (только админ) |
-| PATCH   | `/invitations/{invitation_id}`           | Принять/отклонить приглашение (только приглашённый) |
-| GET     | `/invitations`                           | Список приглашений для текущего пользователя (входящие) |
-| GET     | `/invitations/project/{project_id}`      | Список приглашений проекта (только админ)     |
-| DELETE  | `/invitations/{invitation_id}`           | Отменить приглашение (админ или отправитель)  |
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| POST | `/projects/{project_id}/invitations` | Отправить приглашение в проект (только админ) |
+| PATCH | `/invitations/{invitation_id}` | Принять/отклонить приглашение (только приглашённый) |
+| GET | `/invitations` | Список приглашений для текущего пользователя (входящие) |
+| GET | `/invitations/project/{project_id}` | Список приглашений проекта (только админ) |
+| DELETE | `/invitations/{invitation_id}` | Отменить приглашение (админ или отправитель) |
 
 #### Отправка приглашения
-**Запрос:**
+
+**Запрос:** `POST /api/v1/projects/1/invitations`
+
 ```json
-POST /api/v1/projects/1/invitations
 {
   "user_id": 3,
   "message": "Присоединяйся к нашему проекту!"
 }
 ```
+
 **Ответ (200 OK):** возвращает созданный объект приглашения.
 
 #### Ответ на приглашение
-**Запрос:**
+
+**Запрос:** `PATCH /api/v1/invitations/1`
+
 ```json
-PATCH /api/v1/invitations/1
 {
-  "action": "accepted"   // или "declined"
+  "action": "accepted" // или "declined"
 }
 ```
+
 **Ответ:**
+
 ```json
 {
   "message": "Приглашение accepted"
 }
 ```
+
 При успешном принятии пользователь автоматически добавляется в проект как участник.
 
 #### Получение списка приглашений пользователя
+
 **Запрос:** `GET /api/v1/invitations`
 
 **Ответ:**
+
 ```json
 [
   {
@@ -529,9 +556,11 @@ PATCH /api/v1/invitations/1
 ```
 
 #### Отмена приглашения
+
 **Запрос:** `DELETE /api/v1/invitations/1`
 
 **Ответ:**
+
 ```json
 {
   "message": "Приглашение отменено"
@@ -540,24 +569,27 @@ PATCH /api/v1/invitations/1
 
 ---
 
-### 👤 Профиль пользователя
+### Профиль пользователя
 
 Эндпоинты для изменения данных профиля.
 
-| Метод | Эндпоинт                | Описание                     |
-|-------|-------------------------|------------------------------|
-| PUT   | `/profile/username`     | Обновить имя пользователя    |
-| PUT   | `/profile/email`        | Обновить email пользователя  |
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| PUT | `/profile/username` | Обновить имя пользователя |
+| PUT | `/profile/email` | Обновить email пользователя |
 
 #### Обновление имени
-**Запрос:**
+
+**Запрос:** `PUT /api/v1/profile/username`
+
 ```json
-PUT /api/v1/profile/username
 {
   "username": "new_username"
 }
 ```
+
 **Ответ:**
+
 ```json
 {
   "message": "Имя пользователя обновлено!"
@@ -565,14 +597,17 @@ PUT /api/v1/profile/username
 ```
 
 #### Обновление email
-**Запрос:**
+
+**Запрос:** `PUT /api/v1/profile/email`
+
 ```json
-PUT /api/v1/profile/email
 {
   "email": "new_email@example.com"
 }
 ```
+
 **Ответ:**
+
 ```json
 {
   "message": "Email пользователя обновлено!"
@@ -581,86 +616,25 @@ PUT /api/v1/profile/email
 
 ---
 
-## 📋 Детальное описание всех эндпоинтов
-
-Ниже приведена полная спецификация всех доступных эндпоинтов с указанием метода, пути, тела запроса, ответа и требуемых прав.  
-Все эндпоинты, кроме регистрации и логина, требуют передачи токена в заголовке `Authorization: Bearer <token>`.
-
-### Аутентификация
-
-| Метод | Путь                  | Тело запроса                                     | Ответ (успех)                                   | Права |
-|-------|-----------------------|--------------------------------------------------|-------------------------------------------------|-------|
-| POST  | `/auth/register`      | `{"username": str, "email": str, "password": str}` | `{"message": "Пользователь создан"}` (201)      | Публичный |
-| POST  | `/auth/login`         | `{"username_or_email": str, "password": str}`      | `{"access_token": str, "token_type": "bearer", "expires_in": int}` | Публичный |
-| GET   | `/auth/me`            | –                                                | `{"user_id": int, "username": str, "email": str, "created_date": datetime}` | Токен |
-
----
-
-### Проекты
-
-| Метод | Путь                                      | Тело запроса                                                                 | Ответ (успех)                                                                               | Права |
-|-------|-------------------------------------------|------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|-------|
-| GET   | `/projects`                               | –                                                                            | Список проектов (где пользователь – админ)                                                  | Токен |
-| GET   | `/projects/all`                           | –                                                                            | Список всех проектов, где пользователь участник (включая админа)                            | Токен |
-| POST  | `/projects`                               | `{"project_name": str, "project_description": str}`                          | Созданный объект проекта (с `project_id`, `admin_id` и т.д.)                                | Токен |
-| GET   | `/projects/{project_id}`                  | –                                                                            | `{"project": {...}, "members": [...]}`                                                      | Токен, участник проекта |
-| PUT   | `/projects/{project_id}`                  | `{"project_name": str (opt), "project_description": str (opt)}`              | `{"message": "Проект обновлен!"}`                                                           | Токен, админ проекта |
-| DELETE| `/projects/{project_id}`                  | –                                                                            | `{"message": "Проект успешно удален!"}`                                                    | Токен, админ проекта |
-| POST  | `/projects/{project_id}/members`          | `{"user_id": int}`                                                           | `{"message": "Пользователь добавлен в проект!"}`                                            | Токен, админ проекта |
-| DELETE| `/projects/{project_id}/members`          | `{"user_id": int}`                                                           | `{"message": "Пользователь удален из проекта!"}`                                            | Токен, админ проекта |
-| PATCH | `/projects/{project_id}/members/{user_id}/role` | query param `role=admin` или `role=member`                                 | `{"message": "Роль обновлена"}`                                                             | Токен, админ проекта |
-
----
-
-### Задачи
-
-| Метод | Путь                                           | Тело запроса                                                                                                     | Ответ (успех)                                                                                | Права |
-|-------|------------------------------------------------|------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|-------|
-| GET   | `/tasks`                                       | –                                                                                                                | Список задач, назначенных текущему пользователю                                              | Токен |
-| GET   | `/projects/{project_id}/tasks`                 | –                                                                                                                | Список всех задач проекта                                                                    | Токен, участник проекта |
-| POST  | `/projects/{project_id}/tasks`                 | `{"title": str, "task_description": str (opt), "task_status": "pending"|"in_progress"|"completed" (opt), "assigned_to": int (opt), "deadline": "YYYY-MM-DD" (opt)}` | Созданная задача (с `task_id`, `created_date` и т.д.)                                       | Токен, участник проекта |
-| GET   | `/projects/{project_id}/tasks/{task_id}`       | –                                                                                                                | Детальная информация о задаче                                                                | Токен, участник проекта |
-| PUT   | `/projects/{project_id}/tasks/{task_id}`       | Любое поле из `{"title", "task_description", "task_status", "assigned_to", "deadline"}` (все опциональны)        | `{"message": "Задача обновилась!"}`                                                          | Токен, участник проекта |
-| PATCH | `/projects/{project_id}/tasks/{task_id}/status`| `{"task_status": "pending"|"in_progress"|"completed"}`                                                           | `{"message": "Статус обновлен!"}`                                                            | Токен, участник проекта |
-| DELETE| `/projects/{project_id}/tasks/{task_id}`       | –                                                                                                                | `{"message": "Задача удалена из проекта!"}`                                                  | Токен, админ проекта |
-
----
-
-### Приглашения
-
-| Метод | Путь                                        | Тело запроса                                                         | Ответ (успех)                                                                     | Права |
-|-------|---------------------------------------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------|-------|
-| POST  | `/projects/{project_id}/invitations`        | `{"user_id": int, "message": str (opt)}`                             | Созданный объект приглашения (`invitation_id`, `status_invited: "pending"` и т.д.)| Токен, админ проекта |
-| GET   | `/invitations`                              | –                                                                    | Список приглашений для текущего пользователя (со статусом `pending`)              | Токен |
-| GET   | `/invitations/project/{project_id}`         | –                                                                    | Список приглашений проекта (только `pending`)                                     | Токен, админ проекта |
-| PATCH | `/invitations/{invitation_id}`              | `{"action": "accepted" или "declined"}`                              | `{"message": "Приглашение accepted"}` или `{"message": "Приглашение declined"}`   | Токен, только приглашённый пользователь |
-| DELETE| `/invitations/{invitation_id}`              | –                                                                    | `{"message": "Приглашение отменено"}`                                             | Токен, админ проекта или отправитель |
-
----
-
-### Профиль пользователя
-
-| Метод | Путь                  | Тело запроса                             | Ответ (успех)                             | Права |
-|-------|-----------------------|------------------------------------------|-------------------------------------------|-------|
-| PUT   | `/profile/username`   | `{"username": str}`                      | `{"message": "Имя пользователя обновлено!"}` | Токен |
-| PUT   | `/profile/email`      | `{"email": str}`                         | `{"message": "Email пользователя обновлено!"}` | Токен |
-
----
-
-## 🖥️ Инструкция для фронтенда
+## Инструкция для фронтенда
 
 ### 1. Базовый URL
+
 Все запросы отправляются на `http://localhost:8000/api/v1` (в продакшене – ваш домен).
 
 ### 2. Аутентификация
+
 - После успешного логина сервер возвращает `access_token`.
 - Этот токен необходимо отправлять с каждым защищённым запросом в заголовке:
+
 ```
-Authorization: Bearer <access_token>
+Authorization: Bearer <token>
 ```
+
 - Токен действителен **30 минут** (настраивается в `.env`). По истечении срока пользователь должен повторно войти.
 
 ### 3. Форматы данных
+
 - Все даты передаются в формате ISO 8601 (`YYYY-MM-DD` для дат без времени, `YYYY-MM-DDTHH:MM:SS` для datetime).
 - Enum-поля (статусы задач, роли) передаются строками:
   - `task_status`: `"pending"`, `"in_progress"`, `"completed"`
@@ -668,13 +642,17 @@ Authorization: Bearer <access_token>
   - `status_invited`: `"pending"`, `"accepted"`, `"declined"`
 
 ### 4. Обработка ошибок
+
 Все ошибки приходят в формате:
+
 ```json
 {
   "detail": "Текст ошибки"
 }
 ```
+
 HTTP-статусы соответствуют стандартам:
+
 - `200` – успех
 - `201` – создано
 - `400` – плохой запрос
@@ -685,16 +663,23 @@ HTTP-статусы соответствуют стандартам:
 - `422` – ошибка валидации
 
 ### 5. CORS
+
 Настроен CORS для всех источников (в разработке). Для продакшена укажите конкретные домены через переменную `CORS_ORIGINS` в `.env` (через запятую).
 
 ### 6. Пример работы с API на фронтенде (JavaScript)
+
 ```javascript
 // Логин
 const login = async (usernameOrEmail, password) => {
   const res = await fetch('http://localhost:8000/api/v1/auth/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username_or_email: usernameOrEmail, password })
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      username_or_email: usernameOrEmail,
+      password
+    })
   });
   const data = await res.json();
   localStorage.setItem('token', data.access_token);
@@ -704,7 +689,9 @@ const login = async (usernameOrEmail, password) => {
 const getProjects = async () => {
   const token = localStorage.getItem('token');
   const res = await fetch('http://localhost:8000/api/v1/projects', {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
   return res.json();
 };
@@ -718,7 +705,10 @@ const sendInvitation = async (projectId, userId, message) => {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ user_id: userId, message })
+    body: JSON.stringify({
+      user_id: userId,
+      message
+    })
   });
   return res.json();
 };
@@ -726,53 +716,53 @@ const sendInvitation = async (projectId, userId, message) => {
 
 ---
 
-## 🧱 Структура проекта
+## Структура проекта
 
 ```
 task-to-do-backend/
-├── alembic/                       # Миграции Alembic
+├── alembic/                    # Миграции Alembic
 │   ├── versions/
-│   │   └── 5176abe5d497_.py       # Пустая ревизия (таблицы созданы вручную)
-│   ├── env.py                     # Конфигурация окружения Alembic
-│   └── script.py.mako             # Шаблон для генерации миграций
+│   │   └── 5176abe5d497_.py    # Пустая ревизия (таблицы созданы вручную)
+│   ├── env.py                  # Конфигурация окружения Alembic
+│   └── script.py.mako          # Шаблон для генерации миграций
 ├── api/
 │   └── v1/
 │       ├── __init__.py
-│       ├── auth.py                # Роутеры аутентификации
-│       ├── projects.py            # Роутеры проектов
-│       ├── tasks.py               # Роутеры задач
-│       ├── invitations.py         # Роутеры приглашений
-│       └── user.py                # Роутеры профиля пользователя
+│       ├── auth.py             # Роутеры аутентификации
+│       ├── projects.py         # Роутеры проектов
+│       ├── tasks.py            # Роутеры задач
+│       ├── invitations.py      # Роутеры приглашений
+│       └── user.py             # Роутеры профиля пользователя
 ├── core/
 │   ├── __init__.py
-│   ├── config.py                  # Настройки (pydantic-settings)
-│   ├── database.py                # Подключение к БД (async engine, session)
-│   ├── dependencies.py            # Зависимости (получение БД, текущий пользователь)
-│   ├── exceptions.py              # Кастомные исключения и обработчики
-│   └── security.py                # Хеширование, JWT
-├── models/                        # SQLAlchemy модели
+│   ├── config.py               # Настройки (pydantic-settings)
+│   ├── database.py             # Подключение к БД (async engine, session)
+│   ├── dependencies.py         # Зависимости (получение БД, текущий пользователь)
+│   ├── exceptions.py           # Кастомные исключения и обработчики
+│   └── security.py             # Хеширование, JWT
+├── models/                     # SQLAlchemy модели
 │   ├── __init__.py
 │   ├── user.py
 │   ├── project.py
 │   ├── task.py
 │   ├── project_members.py
 │   └── project_invitations.py
-├── repositories/                  # Слой доступа к данным
+├── repositories/               # Слой доступа к данным
 │   ├── __init__.py
-│   ├── base.py                    # Базовый репозиторий (CRUD)
+│   ├── base.py                 # Базовый репозиторий (CRUD)
 │   ├── user_repository.py
 │   ├── project_repository.py
 │   ├── task_repository.py
 │   └── project_invitation_repository.py
-├── schemas/                       # Pydantic схемы
+├── schemas/                    # Pydantic схемы
 │   ├── __init__.py
 │   ├── auth.py
 │   ├── user.py
 │   ├── project.py
 │   ├── task.py
-│   ├── common.py                  # Enum-ы (TaskStatus, ProjectRole, InvitationRole)
+│   ├── common.py               # Enum-ы (TaskStatus, ProjectRole, InvitationRole)
 │   └── invitation.py
-├── services/                      # Бизнес-логика
+├── services/                   # Бизнес-логика
 │   ├── __init__.py
 │   ├── auth_service.py
 │   ├── project_service.py
@@ -780,26 +770,31 @@ task-to-do-backend/
 │   ├── project_members_service.py
 │   ├── invitation_service.py
 │   └── user_service.py
-├── utils/                         # Вспомогательные утилиты
+├── tests/                      # Тесты
 │   ├── __init__.py
-│   ├── decorators.py              # Декоратор @log для логирования
-│   └── logger_setup.py            # (в будущем) настройка логирования
-├── tests/                         # (планируется) тесты
-├── .env                           # Переменные окружения (не в репозитории)
-├── .env.test                      # Переменные окружения для тестов
+│   ├── conftest.py             # Фикстуры и настройка pytest (полностью готова)
+│   ├── test_api/               # Тесты API (в разработке)
+│   ├── test_repositories/      # Тесты репозиториев (в разработке)
+│   └── test_services/          # Тесты сервисов (в разработке)
+├── utils/                      # Вспомогательные утилиты
+│   ├── __init__.py
+│   ├── decorators.py           # Декоратор @log для логирования
+│   └── logger_setup.py         # (в будущем) настройка логирования
+├── .env                        # Переменные окружения (не в репозитории)
+├── .env.test                   # Переменные окружения для тестов
 ├── .gitignore
-├── alembic.ini                    # Конфигурация Alembic
-├── docker-compose.yml             # Конфигурация Docker Compose
-├── Dockerfile                     # Dockerfile для сборки образа бэкенда
-├── entrypoint.sh                  # Скрипт входа (выполняет миграции и запускает приложение)
-├── main.py                        # Точка входа FastAPI
-├── README.md                      # Этот файл
-└── requirements.txt               # Зависимости Python
+├── alembic.ini                 # Конфигурация Alembic
+├── docker-compose.yml          # Конфигурация Docker Compose
+├── Dockerfile                  # Dockerfile для сборки образа бэкенда
+├── entrypoint.sh               # Скрипт входа (выполняет миграции и запускает приложение)
+├── main.py                     # Точка входа FastAPI
+├── README.md                   # Этот файл
+└── requirements.txt            # Зависимости Python
 ```
 
 ---
 
-## 🤖 AI Commit – автоматическая генерация сообщений коммитов
+## AI Commit – автоматическая генерация сообщений коммитов
 
 В репозитории присутствует скрипт `ai_commit.py`, который автоматически генерирует осмысленные сообщения для коммитов на основе изменений в коде с использованием языковых моделей (по умолчанию через [Ollama](https://ollama.com/)).
 
@@ -841,22 +836,22 @@ task-to-do-backend/
 
 ---
 
-## 📌 Планы по доработке
+## Планы по доработке
 
-- [ ] **Чат проекта** – обмен сообщениями между участниками.
-- [ ] **Уведомления** – оповещения о событиях (приглашения, изменения задач).
-- [ ] **Фильтрация задач** – по статусу, проекту, датам и т.д.
-- [ ] **Процент готовности проекта** – расчёт завершённости на основе выполненных задач.
-- [ ] **Юнит-тесты** – pytest + httpx.
-- [ ] **Логирование** – запись в файл/ELK (есть базовая реализация декоратора `log`).
-- [ ] **Документация** – более детальное описание всех эндпоинтов и примеров.
-- [ ] **Поддержка Refresh Token** – для продления сессии без повторного ввода пароля.
+- **Чат проекта** – обмен сообщениями между участниками.
+- **Уведомления** – оповещения о событиях (приглашения, изменения задач).
+- **Фильтрация задач** – по статусу, проекту, датам и т.д.
+- **Процент готовности проекта** – расчёт завершённости на основе выполненных задач.
+- **Юнит-тесты** – `pytest` + `httpx`. Базовая конфигурация (`conftest.py`) уже готова, тесты для API, репозиториев и сервисов в разработке.
+- **Логирование** – планируется переработать на асинхронное с интеграцией в **ELK** (Elasticsearch, Logstash, Kibana) для централизованного сбора и анализа логов.
+- **Документация** – более детальное описание всех эндпоинтов и примеров.
+- **Поддержка Refresh Token** – для продления сессии без повторного ввода пароля.
 
 Следите за обновлениями в репозитории!
 
 ---
 
-## 📄 Лицензия
+## Лицензия
 
 Этот проект является учебным и распространяется без лицензии (или укажите свою).
 
