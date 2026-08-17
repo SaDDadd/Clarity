@@ -1,7 +1,6 @@
 # клиент, база данных, тестовый пользователь, токен
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, \
-    AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from httpx import AsyncClient, ASGITransport
 from main import app
 from core.dependencies import get_db
@@ -9,7 +8,6 @@ from alembic import command
 from core.config import test_settings
 from pathlib import Path
 from alembic.config import Config
-from models.user import UserModel
 from core.security import hash_password, create_access_token
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
