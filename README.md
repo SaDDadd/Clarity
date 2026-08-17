@@ -782,7 +782,7 @@ task-to-do-backend/
 │   └── logger_setup.py         # (в будущем) настройка логирования
 ├── .env                        # Переменные окружения (не в репозитории)
 ├── .env.test                   # Переменные окружения для тестов
-├── .gitignore
+├── ai_commit.py
 ├── alembic.ini                 # Конфигурация Alembic
 ├── docker-compose.yml          # Конфигурация Docker Compose
 ├── Dockerfile                  # Dockerfile для сборки образа бэкенда
