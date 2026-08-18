@@ -54,7 +54,7 @@ async def test_user(db_session):
     timestamp = time.time_ns()
     uui = uuid.uuid4()
     user = await repo.create_user(f'testuser_<{timestamp}>', f'test_<{uui}>@mail.ru', hashed_password)
-    return user
+    return [user, 'qwertyui']
 
 @pytest_asyncio.fixture(scope='function')
 async def test_user_2(db_session):
@@ -85,3 +85,7 @@ async def test_task(db_session, test_project, test_user):
                         assigned_to=None, deadline=None)
     task = await repo.create_task(project_id=test_project.project_id, task=create)
     return task
+
+# слишком короткий пароль,
+
+# неверный формат email,
