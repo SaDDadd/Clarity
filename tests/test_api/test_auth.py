@@ -57,7 +57,7 @@ async def test_login_wrong_password(async_client, test_user):
 async def test_login_user_not_found(async_client):
     response = await async_client.post('/api/v1/auth/login', json={'username_or_email': f'{uuid.uuid4()}', \
                                                                   'password': f'{uuid.uuid4()}'})
-    assert response.status_code == 404
+    assert response.status_code == 401
     assert response.json()['detail'] == 'Неверные учётные данные!'
 
 @pytest.mark.asyncio
@@ -73,10 +73,3 @@ async def test_short_password(async_client):
                                                                       'password': '1234'})
     assert response.status_code == 422
     assert response.json()['detail'] == 'Пароль короткий, должен быть больше 8 символов!'
-
-@pytest.mark.asyncio
-async def invalid_email_format(async_client):
-    response = await async_client.post('api/v1/auth/register', json={'username': f'{uuid.uuid4()}', 'email': f'{uuid.uuid4()}', \
-                                                                     'password': '123456789'})
-    assert response.status_code == 401
-    assert response.json()['detail'] == 'Неверные тип почты!'

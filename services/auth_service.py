@@ -8,7 +8,6 @@ from core.exceptions import (
 from core.security import create_access_token, hash_password, verify_password
 from repositories.user_repository import UserRepository
 from schemas.auth import Token, UserLogin, UserRegister
-from pydantic import EmailStr
 
 # Регистрация нового пользователя
 async def register_user(db, user_date: UserRegister):
@@ -17,8 +16,6 @@ async def register_user(db, user_date: UserRegister):
         raise LackOfInformationException('Нехватка информации!')
     if await repo.check_user_exists_by_username(user_date.username):
         raise ConflictException('Имя пользователя уже существует!')
-    if isinstance(user_date.email, EmailStr):
-        raise AuthenticationException('Неверные тип почты!')
     elif await repo.check_user_exists_by_email(user_date.email):
         raise ConflictException('Email пользователя уже существует!')
     else:
