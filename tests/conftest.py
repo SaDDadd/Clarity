@@ -85,7 +85,3 @@ async def test_task(db_session, test_project, test_user):
                         assigned_to=None, deadline=None)
     task = await repo.create_task(project_id=test_project.project_id, task=create)
     return task
-
-# слишком короткий пароль,
-
-# неверный формат email,

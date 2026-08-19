@@ -66,3 +66,17 @@ async def test_login_empty_fields(async_client):
                                                                    'password': ''})
     assert response.status_code == 422
     assert response.json()['detail'] == 'Нехватка информации!'
+
+@pytest.mark.asyncio
+async def test_short_password(async_client):
+    response = await async_client.post('/api/v1/auth/register', json={'username': f'{uuid.uuid4()}', 'email': f'{uuid.uuid4()}@mail.ru', \
+                                                                      'password': '1234'})
+    assert response.status_code == 422
+    assert response.json()['detail'] == 'Пароль короткий, должен быть больше 8 символов!'
+
+@pytest.mark.asyncio
+async def invalid_email_format(async_client):
+    response = await async_client.post('api/v1/auth/register', json={'username': f'{uuid.uuid4()}', 'email': f'{uuid.uuid4()}', \
+                                                                     'password': '123456789'})
+    assert response.status_code == 401
+    assert response.json()['detail'] == 'Неверные тип почты!'
