@@ -58,19 +58,15 @@ async def create_test_user(db_session, password='qwertyui'):
     return user
 
 @pytest_asyncio.fixture(scope='function')
-async def test_user(db_session):
-    user = await create_test_user(db_session)
-    return [user, 'qwertyui']
-
-@pytest_asyncio.fixture(scope='function')
-async def test_user_2(db_session):
-    user = await create_test_user(db_session)
-    return [user, 'qwertyui']
-
-@pytest_asyncio.fixture(scope='function')
-async def test_user_3(db_session):
-    user = await create_test_user(db_session)
-    return [user, 'qwertyui']
+async def test_users(db_session):
+    user1 = await create_test_user(db_session)
+    user2 = await create_test_user(db_session)
+    user3 = await create_test_user(db_session)
+    return {
+        'admin': user1,
+        'member': user2,
+        'outsider': user3
+    }
 
 @pytest_asyncio.fixture(scope='function')
 async def auth_headers(test_user):
@@ -82,13 +78,13 @@ async def test_project(db_session, test_user):
     repo = ProjectRepository(db_session)
     uui = uuid.uuid4()
     project = await repo.create_project_with_admin(name=f'Test_project_<{uui}>', description=None, \
-                                                   admin_id=test_user.user_id, role='admin')
+                                                   admin_id=test_users[0].user_id, role='admin')
     return project
 
 @pytest_asyncio.fixture(scope='function')
-async def test_project_add_member(db_session, test_project, test_user_2):
+async def test_project_add_member(db_session, test_project, test_users):
     repo = ProjectRepository(db_session)
-    add_user = await repo.add_user(test_project.project_id, test_user_2.user_id)
+    add_user = await repo.add_user(test_project.project_id, test_users[0][0].user_id)
     return add_user
 
 @pytest_asyncio.fixture(scope='function')
