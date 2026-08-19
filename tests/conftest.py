@@ -48,31 +48,29 @@ async def async_client(db_session):
     app.dependency_overrides.clear() # После теста очищаем переопределение
 
 @pytest_asyncio.fixture(scope='function')
-async def test_user(db_session):
+async def create_test_user(db_session, password='qwertyui'):
     repo = UserRepository(db_session)
-    hashed_password = hash_password('qwertyui')
+    hashed_password = hash_password(password)
     timestamp = time.time_ns()
     uui = uuid.uuid4()
-    user = await repo.create_user(f'testuser_<{timestamp}>', f'test_<{uui}>@mail.ru', hashed_password)
+    user = await repo.create_user(f'testuser_{timestamp}',f'test_{uui}@mail.ru', \
+                                    hashed_password)
+    return user
+
+@pytest_asyncio.fixture(scope='function')
+async def test_user(db_session):
+    user = await create_test_user(db_session)
     return [user, 'qwertyui']
 
 @pytest_asyncio.fixture(scope='function')
 async def test_user_2(db_session):
-    repo = UserRepository(db_session)
-    hashed_password = hash_password('qwertyui')
-    timestamp = time.time_ns()
-    uui = uuid.uuid4()
-    user = await repo.create_user(f'testuser_<{timestamp}>', f'test_<{uui}>@mail.ru', hashed_password)
-    return user
+    user = await create_test_user(db_session)
+    return [user, 'qwertyui']
 
 @pytest_asyncio.fixture(scope='function')
 async def test_user_3(db_session):
-    repo = UserRepository(db_session)
-    hashed_password = hash_password('qwertyui')
-    timestamp = time.time_ns()
-    uui = uuid.uuid4()
-    user = await repo.creste_user(f'testuser_<{timestamp}>', f'test_<{uui}>@mail.ru', hashed_password)
-    return user
+    user = await create_test_user(db_session)
+    return [user, 'qwertyui']
 
 @pytest_asyncio.fixture(scope='function')
 async def auth_headers(test_user):
@@ -96,7 +94,7 @@ async def test_project_add_member(db_session, test_user, test_user_2):
     return add_user
 
 @pytest_asyncio.fixture(scope='function')
-async def test_task(db_session, test_project, test_user):
+async def test_task(db_session, test_project):
     repo = TaskRepository(db_session)
     create = TaskCreate(title='Test_task', task_description=None, task_status='pending', \
                         assigned_to=None, deadline=None)
