@@ -48,7 +48,7 @@ async def test_getting_project_lets_project_participant_see_details(async_client
     assert response.json()['project_name'] == test_project.project_name
 
 @pytest.mark.asyncio
-async def test_getting_project_lets_not_project_participant_see_details(async_client, test_project, test_user): # 403
+async def test_getting_project_lets_not_project_participant_see_details(async_client, test_project, test_users): # 403
 
 @pytest.mark.asyncio
 async def test_admin_update_project(): # 200
