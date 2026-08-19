@@ -131,8 +131,7 @@ async def test_admin_not_add_user_already_in_project(async_client, auth_headers,
     assert response.json()['detail'] == 'Пользователь уже состоит в проекте'
 
 @pytest.mark.asyncio
-async def test_admin_delete_anyone(async_client, member_auth_headers, auth_headers, test_project, test_users):
-    headers = await member_auth_headers
+async def test_admin_delete_anyone(async_client, auth_headers, test_project, test_users):
     admin_headers = await auth_headers
     outsider = test_users.get('outsider')
     await async_client.post(f'/api/v1/projects/{test_project.project_id}/members', json={'user_id': outsider.user_id}, \
@@ -231,3 +230,29 @@ async def test_add_user_to_non_existent_project(async_client, auth_headers, test
         headers=headers)
     assert response.status_code == 404
     assert response.json()['detail'] == 'Проект не найден!'
+
+@pytest.mark.asyncio
+async def test_update_project_with_no_changes(async_client, auth_headers, test_project):
+    headers = await auth_headers
+    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', \
+                                        json={}, headers=headers)
+    assert response.status_code == 200
+    assert response.json()['message'] == 'Ничего не изменилось!'
+
+@pytest.mark.asyncio
+async def test_update_project_user_not_member(async_client, test_project, test_users):
+    outsider = test_users.get('outsider')
+    token = create_access_token({'sub': outsider.user_id})
+    headers = {'Authorization': f'Bearer {token}'}
+    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', \
+        json={'project_name': 'New Name'}, headers=headers)
+    assert response.status_code == 403
+    assert response.json()['detail'] == 'Пользователь не является участником проекта!'
+
+@pytest.mark.asyncio
+async def test_admin_delete_self_from_project(async_client, auth_headers, test_project, test_users):
+    headers = await auth_headers
+    admin_user = test_users.get('admin')
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members', \
+        json={'user_id': admin_user.user_id}, headers=headers)
+    assert response.status_code == 400
