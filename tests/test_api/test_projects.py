@@ -38,7 +38,7 @@ async def test_attempt_get_non_existent_project(async_client, auth_headers): # 4
 @pytest.mark.asyncio
 async def test_attempt_get_project_that_user_not_part(async_client, auth_headers, test_project, test_users): # 403
     headers = await auth_headers
-    response = await async_client.get(f'/api/v1/projects/{test_project.project_id}', test_users['outsider'], headers=headers)
+    response = await async_client.get(f'/api/v1/projects/{test_project.project_id}', headers=headers)
     assert response.status_code == 403
 
 @pytest.mark.asyncio
@@ -56,36 +56,37 @@ async def test_getting_project_lets_project_participant_see_details(async_client
 
 @pytest.mark.asyncio
 async def test_admin_update_project(async_client, auth_headers, test_users, test_project): # 200
+    update_data = {'project_name': 'Update_name', 'project_description': 'Update_description'}
     headers = await auth_headers
-    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', test_users['admin'], headers=headers)
+    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', json=update_data, headers=headers)
     assert response.status_code == 200
-    assert response.json()['message'] == 'Ничего не изменилось!' | response.json()['message'] == 'Проект обновлен!'
+    assert response.json()['message'] == 'Ничего не изменилось!' or response.json()['message'] == 'Проект обновлен!'
 
 @pytest.mark.asyncio
 async def test_updating_not_existent_project(async_client, auth_headers, test_users): # 404
     headers = await auth_headers
-    response = await async_client.put(f'/api/v1/projects/{999}', test_users['admin'], headers=headers)
+    response = await async_client.put(f'/api/v1/projects/{999}', headers=headers)
     assert response.status_code == 404
     assert response.json()['detail'] == 'Проект не найден!'
 
 @pytest.mark.asyncio
 async def test_deleting_not_existent_project(async_client, auth_headers, test_users): # 404
     headers = await auth_headers
-    response = await async_client.put(f'/api/v1/projects/{999}', test_users['admin'], headers=headers)
+    response = await async_client.delete(f'/api/v1/projects/{999}', headers=headers)
     assert response.status_code == 404
     assert response.json()['detail'] == 'Проект не найден!'
 
 @pytest.mark.asyncio
 async def test_regular_participant_not_update_project(async_client, auth_headers, test_users, test_project): # 403
     headers = await auth_headers
-    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', test_users['member'], headers=headers)
+    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', headers=headers)
     assert response.status_code == 403
     assert response.json()['detail'] == 'Пользователь не может менять проект, он не админ!'
 
 @pytest.mark.asyncio
 async def test_admin_delete_project(async_client, auth_headers, test_users, test_project): # 200
     headers = await auth_headers
-    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}', test_users['admin'], headers=headers)
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}', headers=headers)
     assert response.status_code == 200
     assert response.json()['message'] == 'Проект успешно удален!'
     
