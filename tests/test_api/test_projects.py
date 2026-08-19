@@ -178,3 +178,30 @@ async def test_empty_projects_list_for_new_user(async_client, test_users):
     response = await async_client.get('/api/v1/projects/all', headers=headers)
     assert response.status_code == 200
     assert response.json() == []              
+
+@pytest.mark.asyncio
+async def test_regular_member_add_user_to_project(async_client, member_auth_headers, test_project_with_member, test_users):
+    headers = await member_auth_headers
+    project = test_project_with_member['project']
+    outsider = test_users.get('outsider')
+    response = await async_client.post(f'/api/v1/projects/{project.project_id}/members', \
+                                            json={'user_id': outsider.user_id}, headers=headers)
+    assert response.status_code == 403
+    assert response.json()['detail'] == 'Нельзя добавить пользователя: вы не админ проекта!'
+
+@pytest.mark.asyncio
+async def test_admin_add_non_existent_user(async_client, auth_headers, test_project):
+    headers = await auth_headers
+    response = await async_client.post(f'/api/v1/projects/{test_project.project_id}/members', \
+                                            json={'user_id': 99999}, headers=headers)
+    assert response.status_code == 404
+    assert response.json()['detail'] == 'Нельзя добавить пользователя: его не существует!'
+
+@pytest.mark.asyncio
+async def test_admin_delete_user_not_in_project(async_client, auth_headers, test_project, test_users):
+    headers = await auth_headers
+    outsider = test_users.get('outsider')
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members', \
+                                            json={'user_id': outsider.user_id}, headers=headers)
+    assert response.status_code == 409
+    assert response.json()['detail'] == 'Пользователь не состоит в проекте!'
