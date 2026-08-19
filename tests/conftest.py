@@ -91,6 +91,12 @@ async def test_project_add_member(db_session, test_project, test_users):
     return add_user
 
 @pytest_asyncio.fixture(scope='function')
+async def member_auth_headers(test_users):
+    user = test_users.get('member')
+    token = create_access_token({'sub': user.user_id})
+    return {'Authorization': f'Bearer {token}'}
+
+@pytest_asyncio.fixture(scope='function')
 async def test_task(db_session, test_project):
     repo = TaskRepository(db_session)
     create = TaskCreate(title='Test_task', task_description=None, task_status='pending', \
