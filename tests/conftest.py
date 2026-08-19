@@ -66,6 +66,15 @@ async def test_user_2(db_session):
     return user
 
 @pytest_asyncio.fixture(scope='function')
+async def test_user_3(db_session):
+    repo = UserRepository(db_session)
+    hashed_password = hash_password('qwertyui')
+    timestamp = time.time_ns()
+    uui = uuid.uuid4()
+    user = await repo.creste_user(f'testuser_<{timestamp}>', f'test_<{uui}>@mail.ru', hashed_password)
+    return user
+
+@pytest_asyncio.fixture(scope='function')
 async def auth_headers(test_user):
     token = create_access_token({'sub': test_user.user_id})
     return {'Authorization': f'Bearer {token}'}
@@ -77,6 +86,14 @@ async def test_project(db_session, test_user):
     project = await repo.create_project_with_admin(name=f'Test_project_<{uui}>', description=None, \
                                                    admin_id=test_user.user_id, role='admin')
     return project
+
+@pytest_asyncio.fixture(scope='function')
+async def test_project_add_member(db_session, test_user, test_user_2):
+    repo = ProjectRepository(db_session)
+    project = await repo.get_projects_by_admin(test_user.user_id)
+    project_id = project[0][0]
+    add_user = await repo.add_user(project_id, test_user_2.user_id)
+    return add_user
 
 @pytest_asyncio.fixture(scope='function')
 async def test_task(db_session, test_project, test_user):
