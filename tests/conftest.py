@@ -84,11 +84,11 @@ async def test_project(db_session, test_users):
     return project
 
 @pytest_asyncio.fixture(scope='function')
-async def test_project_add_member(db_session, test_project, test_users):
+async def test_project_with_member(db_session, test_project, test_users):
     repo = ProjectRepository(db_session)
-    user = test_users.get('member')
-    add_user = await repo.add_user(test_project.project_id, user.user_id)
-    return add_user
+    member = test_users.get('member')
+    await repo.add_user(test_project.project_id, member.user_id)
+    return {'project': test_project,'member': member}
 
 @pytest_asyncio.fixture(scope='function')
 async def member_auth_headers(test_users):
