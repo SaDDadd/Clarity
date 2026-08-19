@@ -69,22 +69,25 @@ async def test_users(db_session):
     }
 
 @pytest_asyncio.fixture(scope='function')
-async def auth_headers(test_user):
-    token = create_access_token({'sub': test_user[0].user_id})
+async def auth_headers(test_users):
+    user = test_users.get('admin')
+    token = create_access_token({'sub': user.user_id})
     return {'Authorization': f'Bearer {token}'}
 
 @pytest_asyncio.fixture(scope='function')
-async def test_project(db_session, test_user):
+async def test_project(db_session, test_users):
     repo = ProjectRepository(db_session)
+    user = test_users.get('admin')
     uui = uuid.uuid4()
     project = await repo.create_project_with_admin(name=f'Test_project_<{uui}>', description=None, \
-                                                   admin_id=test_users[0].user_id, role='admin')
+                                                   admin_id=user.user_id, role='admin')
     return project
 
 @pytest_asyncio.fixture(scope='function')
 async def test_project_add_member(db_session, test_project, test_users):
     repo = ProjectRepository(db_session)
-    add_user = await repo.add_user(test_project.project_id, test_users[0][0].user_id)
+    user = test_users.get('member')
+    add_user = await repo.add_user(test_project.project_id, user.user_id)
     return add_user
 
 @pytest_asyncio.fixture(scope='function')
