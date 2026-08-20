@@ -6,8 +6,8 @@ import uuid
 async def test_send_invitation_by_admin(async_client, test_project, test_users, auth_headers):
     """Проверяет, что администратор проекта может отправить приглашение."""
     headers = await auth_headers
-    project_id = await test_project.project_id
-    invitee_id = await test_users['outsider'].user_id
+    project_id = test_project.project_id
+    invitee_id = test_users['outsider'].user_id
 
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
@@ -26,8 +26,8 @@ async def test_send_invitation_by_admin(async_client, test_project, test_users, 
 async def test_send_invitation_by_non_admin(async_client, test_project, test_users, member_auth_headers):
     """Проверяет, что участник (не админ) не может отправить приглашение."""
     headers = await member_auth_headers
-    project_id = await test_project.project_id
-    invitee_id = await test_users['outsider'].user_id
+    project_id = test_project.project_id
+    invitee_id = test_users['outsider'].user_id
 
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
@@ -54,7 +54,7 @@ async def test_get_user_invitations(async_client, test_invitation, auth_headers)
 async def test_get_project_invitations_by_admin(async_client, test_project, test_invitation, auth_headers):
     """Проверяет, что администратор получает список приглашений проекта."""
     headers = await auth_headers
-    project_id = await test_project.project_id
+    project_id = test_project.project_id
 
     response = await async_client.get(
         f'/api/v1/invitations/project/{project_id}',
@@ -69,7 +69,7 @@ async def test_get_project_invitations_by_admin(async_client, test_project, test
 async def test_get_project_invitations_by_non_admin(async_client, test_project, member_auth_headers):
     """Проверяет, что участник (не админ) не может получить список приглашений проекта."""
     headers = await member_auth_headers
-    project_id = await test_project.project_id
+    project_id = test_project.project_id
 
     response = await async_client.get(
         f'/api/v1/invitations/project/{project_id}',
@@ -80,10 +80,10 @@ async def test_get_project_invitations_by_non_admin(async_client, test_project, 
 @pytest.mark.asyncio
 async def test_accept_invitation(async_client, test_invitation, test_users):
     """Проверяет, что пользователь может принять приглашение."""
-    invitee = await test_users['outsider']
+    invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    invitation_id = await test_invitation.invitation_id
+    invitation_id = test_invitation.invitation_id
 
     response = await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
@@ -96,10 +96,10 @@ async def test_accept_invitation(async_client, test_invitation, test_users):
 @pytest.mark.asyncio
 async def test_reject_invitation(async_client, test_invitation, test_users):
     """Проверяет, что пользователь может отклонить приглашение."""
-    invitee = await test_users['outsider']
+    invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    invitation_id = await test_invitation.invitation_id
+    invitation_id = test_invitation.invitation_id
 
     response = await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
@@ -114,7 +114,7 @@ async def test_reject_invitation(async_client, test_invitation, test_users):
 async def test_cancel_invitation_by_admin(async_client, test_invitation, auth_headers):
     """Проверяет, что администратор может отменить приглашение."""
     headers = await auth_headers
-    invitation_id = await test_invitation.invitation_id
+    invitation_id = test_invitation.invitation_id
 
     response = await async_client.delete(
         f'/api/v1/invitations/{invitation_id}',
@@ -128,7 +128,7 @@ async def test_cancel_invitation_by_admin(async_client, test_invitation, auth_he
 async def test_cancel_invitation_by_non_admin(async_client, test_invitation, member_auth_headers):
     """Проверяет, что участник (не админ и не пригласивший) не может отменить приглашение."""
     headers = await member_auth_headers
-    invitation_id = await test_invitation.invitation_id
+    invitation_id = test_invitation.invitation_id
 
     response = await async_client.delete(
         f'/api/v1/invitations/{invitation_id}',
@@ -139,10 +139,10 @@ async def test_cancel_invitation_by_non_admin(async_client, test_invitation, mem
 @pytest.mark.asyncio
 async def test_accept_already_processed_invitation(async_client, test_invitation, test_users):
     """Проверяет, что нельзя принять уже обработанное приглашение."""
-    invitee = await test_users['outsider']
+    invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    invitation_id = await test_invitation.invitation_id
+    invitation_id = test_invitation.invitation_id
 
     await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
@@ -173,10 +173,10 @@ async def test_cancel_invitation_by_outsider(async_client, test_invitation, test
 @pytest.mark.asyncio
 async def test_get_project_invitations_by_outsider(async_client, test_project, test_users):
     """Проверяет, что пользователь, не состоящий в проекте, не может получить список приглашений проекта."""
-    outsider = await test_users['outsider']
+    outsider = test_users['outsider']
     token = create_access_token({'sub': outsider.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    project_id = await test_project.project_id
+    project_id = test_project.project_id
 
     response = await async_client.get(
         f'/api/v1/invitations/project/{project_id}',
@@ -188,9 +188,9 @@ async def test_get_project_invitations_by_outsider(async_client, test_project, t
 async def test_send_invitation_to_existing_member(async_client, test_project, test_users, auth_headers):
     """Приглашение пользователя, уже состоящего в проекте."""
     headers = await auth_headers
-    project_id = await test_project.project_id
-    member_id = await test_users['member'].user_id
-    response = await async_client.post(
+    project_id = test_project.project_id
+    member_id = test_users['member'].user_id
+    response = async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
         json={'user_id': member_id},
         headers=headers
@@ -202,8 +202,8 @@ async def test_send_invitation_to_existing_member(async_client, test_project, te
 async def test_send_invitation_to_self(async_client, test_project, auth_headers, test_user):
     """Админ приглашает самого себя."""
     headers = await auth_headers
-    project_id = await test_project.project_id
-    admin_id = await test_user.user_id
+    project_id = test_project.project_id
+    admin_id = test_user.user_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
         json={'user_id': admin_id},
@@ -216,7 +216,7 @@ async def test_send_invitation_to_self(async_client, test_project, auth_headers,
 async def test_send_invitation_to_nonexistent_user(async_client, test_project, auth_headers):
     """Приглашение несуществующего пользователя."""
     headers = await auth_headers
-    project_id = await test_project.project_id
+    project_id = test_project.project_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
         json={'user_id': 99999},
@@ -228,10 +228,10 @@ async def test_send_invitation_to_nonexistent_user(async_client, test_project, a
 @pytest.mark.asyncio
 async def test_reject_invitation_already_processed(async_client, test_invitation, test_users):
     """Отклонение уже принятого приглашения."""
-    invitee = await test_users['outsider']
+    invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    inv_id = await test_invitation.invitation_id
+    inv_id = test_invitation.invitation_id
 
     # сначала принимаем
     await async_client.patch(
@@ -251,10 +251,10 @@ async def test_reject_invitation_already_processed(async_client, test_invitation
 @pytest.mark.asyncio
 async def test_accept_invitation_already_rejected(async_client, test_invitation, test_users):
     """Принятие уже отклонённого приглашения."""
-    invitee = await test_users['outsider']
+    invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    inv_id = await test_invitation.invitation_id
+    inv_id = test_invitation.invitation_id
 
     # сначала отклоняем
     await async_client.patch(
@@ -275,10 +275,10 @@ async def test_accept_invitation_already_rejected(async_client, test_invitation,
 async def test_cancel_invitation_already_processed(async_client, test_invitation, auth_headers, test_users):
     """Отмена уже принятого приглашения администратором."""
     headers = await auth_headers
-    inv_id = await test_invitation.invitation_id
+    inv_id = test_invitation.invitation_id
 
     # принимаем от имени приглашённого
-    invitee = await test_users['outsider']
+    invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     accept_headers = {'Authorization': f'Bearer {token}'}
     await async_client.patch(

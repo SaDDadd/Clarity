@@ -39,7 +39,7 @@ async def test_attempt_get_non_existent_project(async_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_attempt_get_project_that_user_not_part(async_client, test_project, test_users):
-    outsider = await test_users.get('outsider')
+    outsider = test_users.get('outsider')
     token = create_access_token({'sub': outsider.user_id})
     headers = {'Authorization': f'Bearer {token}'}
     response = await async_client.get(f'/api/v1/projects/{test_project.project_id}',headers=headers)
@@ -58,7 +58,7 @@ async def test_getting_project_lets_project_participant_see_details(async_client
     response = await async_client.get(f'/api/v1/projects/{test_project.project_id}', \
                                         headers=headers)
     assert response.status_code == 200
-    assert response.json()['project_name'] == await test_project.project_name
+    assert response.json()['project_name'] == test_project.project_name
 
 @pytest.mark.asyncio
 async def test_admin_update_project(async_client, auth_headers, test_users, test_project):
@@ -181,7 +181,7 @@ async def test_empty_projects_list_for_new_user(async_client, test_users):
 @pytest.mark.asyncio
 async def test_regular_member_add_user_to_project(async_client, member_auth_headers, test_project_with_member, test_users):
     headers = await member_auth_headers
-    project = await test_project_with_member['project']
+    project = test_project_with_member['project']
     outsider = await test_users.get('outsider')
     response = await async_client.post(f'/api/v1/projects/{project.project_id}/members', \
                                             json={'user_id': outsider.user_id}, headers=headers)
@@ -211,7 +211,7 @@ async def test_member_projects_list(async_client, member_auth_headers, test_proj
     response = await async_client.get('/api/v1/projects/all', headers=headers)
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]['project_id'] == await test_project_with_member['project'].project_id
+    assert response.json()[0]['project_id'] == test_project_with_member['project'].project_id
 
 @pytest.mark.asyncio
 async def test_regular_member_change_role(async_client, member_auth_headers, test_project, test_users):

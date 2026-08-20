@@ -10,7 +10,7 @@ async def test_register_success(async_client):
 
 @pytest.mark.asyncio
 async def test_register_duplicate_username(async_client, test_users):
-    admin = await test_users['admin']
+    admin = test_users['admin']
     response = await async_client.post('/api/v1/auth/register', json={'username': admin.username, 'email': f'{uuid.uuid4()}@mail.ru', \
                                                                       'password': '123456789'})
     assert response.status_code == 409
@@ -18,7 +18,7 @@ async def test_register_duplicate_username(async_client, test_users):
 
 @pytest.mark.asyncio
 async def test_register_duplicate_email(async_client, test_users):
-    admin = await test_users['admin']
+    admin = test_users['admin']
     response = await async_client.post('/api/v1/auth/register', json={'username': f'{uuid.uuid4()}', 'email': admin.email, \
                                                                       'password': '123456789'})
     assert response.status_code == 409
@@ -26,7 +26,7 @@ async def test_register_duplicate_email(async_client, test_users):
 
 @pytest.mark.asyncio
 async def test_login_success_username(async_client, test_users):
-    admin = await test_users['admin']
+    admin = test_users['admin']
     response = await async_client.post('/api/v1/auth/login', json={'username_or_email': admin.username, \
                                                                    'password': 'qwertyui'})
     data = response.json()
@@ -39,7 +39,7 @@ async def test_login_success_username(async_client, test_users):
 
 @pytest.mark.asyncio
 async def test_login_success_email(async_client, test_users):
-    admin = await test_users['admin']
+    admin = test_users['admin']
     response = await async_client.post('/api/v1/auth/login', json={'username_or_email': admin.email, \
                                                                    'password': 'qwertyui'})
     data = response.json()
@@ -52,7 +52,7 @@ async def test_login_success_email(async_client, test_users):
 
 @pytest.mark.asyncio
 async def test_login_wrong_password(async_client, test_users):
-    admin = await test_users['admin']
+    admin = test_users['admin']
     response = await async_client.post('/api/v1/auth/login', json={'username_or_email': admin.email, \
                                                                   'password': f'{uuid.uuid4()}'})
     assert response.status_code == 401
@@ -86,7 +86,7 @@ async def test_get_current_user_info(async_client, auth_headers, test_users):
     response = await async_client.get('/api/v1/auth/me', headers=headers)
     assert response.status_code == 200
     data = response.json()
-    admin = await test_users['admin']
+    admin = test_users['admin']
     assert data['user_id'] == admin.user_id
     assert data['username'] == admin.username
     assert data['email'] == admin.email
