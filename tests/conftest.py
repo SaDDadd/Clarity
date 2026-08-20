@@ -41,11 +41,11 @@ async def async_engine(sync_engine):
     await async_engine.dispose()
 
 @pytest_asyncio.fixture(scope='function')
-async def db_session(engine):
+async def db_session(async_engine):
     """Создаёт новую сессию БД для каждого теста, откатывает транзакцию после."""
     session = None
     try:
-        session_factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        session_factory = async_sessionmaker(bind=async_engine, expire_on_commit=False)
         session = session_factory()
         yield session
     finally:
