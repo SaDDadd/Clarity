@@ -31,6 +31,9 @@ if os.getenv("ENV") == "test":
 else:
     active_settings = settings
 
+print(f"ENV: {os.getenv('ENV')}")
+print(f"Active settings URL: {active_settings.DATABASE_URL}")
+
 # Переопределяем URL из настроек приложения
 config.set_main_option("sqlalchemy.url", active_settings.DATABASE_URL)
 
