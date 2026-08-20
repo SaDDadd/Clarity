@@ -76,8 +76,8 @@ async def create_test_user(db_session, password='qwertyui'):
     timestamp = time.time_ns()
     uui = uuid.uuid4()
     user = await repo.create_user(
-        f'testuser_{timestamp}',
-        f'test_{uui}@mail.ru',
+        f'test_{uui.hex[:8]}',
+        f'test_{uui.hex[:8]}@mail.ru',
         hashed_password
     )
     return user
@@ -90,18 +90,18 @@ async def test_users(db_session):
     hashed_password = hash_password('qwertyui')
     
     user1 = await repo.create_user(
-        f'testuser_{time.time_ns()}_{uuid.uuid4()}',
-        f'test_{uuid.uuid4()}@mail.ru',
+        f'test_{uuid.uuid4().hex[:8]}',
+        f'test_{uuid.uuid4().hex[:8]}@mail.ru',
         hashed_password
     )
     user2 = await repo.create_user(
-        f'testuser_{time.time_ns()}_{uuid.uuid4()}',
-        f'test_{uuid.uuid4()}@mail.ru',
+        f'test_{uuid.uuid4().hex[:8]}',
+        f'test_{uuid.uuid4().hex[:8]}@mail.ru',
         hashed_password
     )
     user3 = await repo.create_user(
-        f'testuser_{time.time_ns()}_{uuid.uuid4()}',
-        f'test_{uuid.uuid4()}@mail.ru',
+        f'test_{uuid.uuid4().hex[:8]}',
+        f'test_{uuid.uuid4().hex[:8]}@mail.ru',
         hashed_password
     )
     return {
