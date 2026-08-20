@@ -32,6 +32,7 @@ from dotenv import load_dotenv
 from core.database import Base
 
 # Явно устанавливаем ENV=test
+print("JWT_SECRET_KEY in tests:", settings.JWT_SECRET_KEY)
 
 @pytest.fixture(scope='session')
 def sync_engine():
