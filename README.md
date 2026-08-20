@@ -70,7 +70,7 @@
 - **Alembic** — миграции
 - **Pydantic** — валидация данных
 - **python-jose** — JWT
-- **passlib** — хеширование паролей
+- **bcrypt** — хеширование паролей
 - **pytest + httpx** — тестирование
 - **Docker / Docker Compose** — контейнеризация
 
