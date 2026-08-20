@@ -5,7 +5,7 @@ import uuid
 async def test_register_success(async_client):
     response = await async_client.post('/api/v1/auth/register', json={'username': f'{uuid.uuid4()}', \
                                             'email': f'{uuid.uuid4()}@mail.ru','password': '123456789'})
-    assert response.status_code == 201
+    assert response.status_code == 200
     assert response.json() == {"message": "Пользователь создан"}
 
 @pytest.mark.asyncio

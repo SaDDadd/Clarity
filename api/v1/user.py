@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import current_user, get_db
 from models.user import UserModel
 from services.user_service import update_user_username, update_user_email
-from schemas.user import UpdateEmailRequest, UpdateUsernameRequest
+from schemas.user import UpdateEmailRequest, UpdateUsernameRequest, UserResponse
 
 router = APIRouter()
 
@@ -15,3 +15,7 @@ async def update_username(request: UpdateUsernameRequest, current_user: UserMode
 @router.put('/profile/email', tags=['Изменения профиля'], summary='Обновить email пользователя') # Обновление email профиля
 async def update_email(request: UpdateEmailRequest, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await update_user_email(db, request.email, current_user.user_id)
+
+@router.get('/profile', tags=['Изменения профиля'], summary='Получить информацию о пользователе')
+async def get_profile(current_user: UserModel = Depends(current_user)):
+    return UserResponse.model_validate(current_user)
