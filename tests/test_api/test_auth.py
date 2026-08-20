@@ -82,7 +82,7 @@ async def test_short_password(async_client):
 @pytest.mark.asyncio
 async def test_get_current_user_info(async_client, auth_headers, test_users):
     """Проверяет, что аутентифицированный пользователь может получить свои данные через /auth/me."""
-    headers = await auth_headers
+    headers = auth_headers
     response = await async_client.get('/api/v1/auth/me', headers=headers)
     assert response.status_code == 200
     data = response.json()
