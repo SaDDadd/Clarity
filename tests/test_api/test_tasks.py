@@ -90,7 +90,7 @@ async def test_changing_task_status(async_client, test_project_with_member, memb
     """Проверяет изменение статуса задачи."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
-    response = await async_client.put(
+    response = await async_client.patch(
         f'/api/v1/projects/{project_id}/tasks/{test_task.task_id}/status',
         json={'task_status': 'in_progress'},
         headers=headers
@@ -266,7 +266,7 @@ async def test_change_status_to_valid(async_client, test_project_with_member, me
     """Проверяет изменение статуса на допустимое значение."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
-    response = await async_client.put(
+    response = await async_client.patch(
         f'/api/v1/projects/{project_id}/tasks/{test_task.task_id}/status',
         json={'task_status': 'completed'},
         headers=headers
@@ -279,7 +279,7 @@ async def test_change_status_to_invalid(async_client, test_project_with_member, 
     """Проверяет попытку установить недопустимый статус."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
-    response = await async_client.put(
+    response = await async_client.patch(
         f'/api/v1/projects/{project_id}/tasks/{test_task.task_id}/status',
         json={'task_status': 'invalid_status'},
         headers=headers
@@ -291,7 +291,7 @@ async def test_change_status_of_non_existent_task(async_client, test_project_wit
     """Проверяет изменение статуса у несуществующей задачи."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
-    response = await async_client.put(
+    response = await async_client.patch(
         f'/api/v1/projects/{project_id}/tasks/9999/status',
         json={'task_status': 'in_progress'},
         headers=headers
@@ -305,7 +305,7 @@ async def test_change_status_by_non_participant(async_client, test_project, test
     outsider = test_users['outsider']
     token = create_access_token({'sub': outsider.user_id})
     headers = {'Authorization': f'Bearer {token}'}
-    response = await async_client.put(
+    response = await async_client.patch(
         f'/api/v1/projects/{test_project.project_id}/tasks/{test_task.task_id}/status',
         json={'task_status': 'in_progress'},
         headers=headers

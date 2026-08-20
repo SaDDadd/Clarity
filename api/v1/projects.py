@@ -61,8 +61,7 @@ async def delete_project_endpoint(project_id: int, user: UserModel = Depends(cur
                                     db: AsyncSession = Depends(get_db) ):
     return await delete_project(db, project_id, user.user_id)
 
-@router.delete('/projects/{project_id}/members', tags=['Проекты'], \
-               summary='Удалить участника из проекта') # Удалить участника из проекта
-async def delete_project_member(project_id: int, request: DeleteMemberRequest,\
-                                    current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await delete_project_user(db, project_id, current_user.user_id, request.user_id)
+@router.delete('/projects/{project_id}/members/{user_id}', tags=['Проекты'], summary='Удалить участника из проекта')
+async def delete_project_member(project_id: int, user_id: int,
+                                current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await delete_project_user(db, project_id, current_user.user_id, user_id)

@@ -15,22 +15,18 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]: # Генератор, 
     async with AsyncSessionLocal() as session:
         yield session
 
-async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> UserModel: # Зависимость, которая извлекает JWT-токен, декодирует его и возвращает объект текущего пользователя; выбрасывает 401 при ошибке.
+async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     try:
-        payload = decode_access_token(token)
-    except JWTError as error:
-        raise AuthenticationException(detail='Недействительный или просроченный токен')
-    user_id = payload.get('sub')
-    if user_id is not None:
-        try:
-            user_id = int(user_id)
-        except ValueError as error:
-            raise AuthenticationException(detail='Недействительный или просроченный токен')
+        payload = decode_token(token)
+        user_id = payload.get('sub')
+        if user_id is None:
+            raise AuthenticationException('Недействительный токен')
+        # Приводим к int, если пришло строкой
+        user_id = int(user_id)
         repo = UserRepository(db)
         user = await repo.get_by_id(user_id)
         if user is None:
-            raise AuthenticationException(detail='Недействительный или просроченный токен')
-        else:
-            return user
-    else:
-        raise AuthenticationException(detail='Недействительный или просроченный токен')
+            raise AuthenticationException('Пользователь не найден')
+        return user
+    except (JWSError, ValueError):
+        raise AuthenticationException('Недействительный токен')

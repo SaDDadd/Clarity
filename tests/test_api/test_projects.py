@@ -136,8 +136,8 @@ async def test_admin_delete_anyone(async_client, auth_headers, test_project, tes
     outsider = test_users.get('outsider')
     await async_client.post(f'/api/v1/projects/{test_project.project_id}/members', json={'user_id': outsider.user_id}, \
                                 headers=admin_headers)
-    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members', \
-                                            json={'user_id': outsider.user_id}, headers=admin_headers)
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members/{outsider.user_id}', \
+                                            headers=admin_headers)
     assert response.status_code == 200
     assert response.json()['message'] == 'Пользователь удален из проекта!'
 
@@ -145,8 +145,8 @@ async def test_admin_delete_anyone(async_client, auth_headers, test_project, tes
 async def test_regular_member_not_delete_anyone(async_client, member_auth_headers, test_project, test_users):
     headers = member_auth_headers
     outsider = test_users.get('outsider')
-    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members', \
-                                            json={'user_id': outsider.user_id}, headers=headers)
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members/{outsider.user_id}', \
+                                            headers=headers)
     assert response.status_code == 403
     assert response.json()['detail'] == 'Нельзя удалить пользователя: вы не админ проекта!'
 
@@ -200,8 +200,8 @@ async def test_admin_add_non_existent_user(async_client, auth_headers, test_proj
 async def test_admin_delete_user_not_in_project(async_client, auth_headers, test_project, test_users):
     headers = auth_headers
     outsider = test_users.get('outsider')
-    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members', \
-                                            json={'user_id': outsider.user_id}, headers=headers)
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members/{outsider.user_id}', \
+                                            headers=headers)
     assert response.status_code == 409
     assert response.json()['detail'] == 'Пользователь не состоит в проекте!'
 
@@ -253,6 +253,6 @@ async def test_update_project_user_not_member(async_client, test_project, test_u
 async def test_admin_delete_self_from_project(async_client, auth_headers, test_project, test_users):
     headers = auth_headers
     admin_user = test_users.get('admin')
-    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members', \
-        json={'user_id': admin_user.user_id}, headers=headers)
+    response = await async_client.delete(f'/api/v1/projects/{test_project.project_id}/members/{admin_user.user_id}',
+                                            headers=headers)
     assert response.status_code == 400
