@@ -17,6 +17,13 @@ import time
 from schemas.task import TaskCreate
 import pytest
 from sqlalchemy import create_engine  # синхронный
+import os
+from dotenv import load_dotenv
+
+# Загружаем тестовые переменные окружения
+load_dotenv('.env.test')
+# Явно устанавливаем ENV=test
+os.environ["ENV"] = "test"
 
 @pytest.fixture(scope='session')
 def sync_engine():
