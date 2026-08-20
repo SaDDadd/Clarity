@@ -10,7 +10,7 @@ from services.auth_service import login_user, register_user
 router = APIRouter()
 
 @router.post('/auth/register', tags=['Аутентификация'], \
-             summary='Принимает значения пользователя при регистрации') # Регистрация нового пользователя
+             summary='Принимает значения пользователя при регистрации', status_code=201) # Регистрация нового пользователя
 async def user_registration(user: UserRegister, db: AsyncSession = Depends(get_db)):
     return await register_user(db, user)
     

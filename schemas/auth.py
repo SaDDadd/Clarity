@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, Field
 class UserRegister(BaseModel):
     username : str = Field(max_length=50)
     email : EmailStr = Field(max_length=100)
-    password : str = Field(min_length=8, max_length=1000)
+    password : str 
 
 class UserLogin(BaseModel):
     username_or_email : str = Field(max_length=100)

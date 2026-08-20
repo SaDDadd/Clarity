@@ -1,13 +1,12 @@
 import os
 from typing import List
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     DB_HOST: str = 'localhost'
     DB_PORT: int = 3306
     DB_USER: str = 'root'
-    DB_PASSWORD: str = '${DB_PASSWORD}'  # интерполируется из переменной или .env
+    DB_PASSWORD: str = '${DB_PASSWORD}'
     DB_NAME: str = 'task_to_do'
     DB_DRIVER: str = 'aiomysql'
 
@@ -15,8 +14,7 @@ class Settings(BaseSettings):
     def DATABASE_URL(self) -> str:
         return f"mysql+{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    # Используем validation_alias вместо устаревшего env=...
-    JWT_SECRET_KEY: str = Field(..., validation_alias="JWT_SECRET_KEY")
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = 'HS256'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -35,11 +33,10 @@ class Settings(BaseSettings):
     )
 
 class SettingsTEST(BaseSettings):
-    # Явные значения по умолчанию, но они будут переопределены переменными окружения
     DB_HOST: str = 'localhost'
     DB_PORT: int = 3306
     DB_USER: str = 'root'
-    DB_PASSWORD: str = '2007'          # явный пароль для тестов
+    DB_PASSWORD: str = '2007'
     DB_NAME: str = 'task_to_do_test'
     DB_DRIVER: str = 'aiomysql'
 
@@ -47,7 +44,7 @@ class SettingsTEST(BaseSettings):
     def DATABASE_URL(self) -> str:
         return f"mysql+{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    JWT_SECRET_KEY: str = Field(..., validation_alias="JWT_SECRET_KEY")
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = 'HS256'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
