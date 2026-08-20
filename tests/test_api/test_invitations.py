@@ -190,7 +190,7 @@ async def test_send_invitation_to_existing_member(async_client, test_project, te
     headers = auth_headers
     project_id = test_project.project_id
     member_id = test_users['member'].user_id
-    response = async_client.post(
+    response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
         json={'user_id': member_id},
         headers=headers
@@ -199,11 +199,11 @@ async def test_send_invitation_to_existing_member(async_client, test_project, te
     assert response.json()['detail'] == 'Пользователь уже состоит в проекте'
 
 @pytest.mark.asyncio
-async def test_send_invitation_to_self(async_client, test_project, auth_headers, test_user):
+async def test_send_invitation_to_self(async_client, test_project, auth_headers, test_users):
     """Админ приглашает самого себя."""
     headers = auth_headers
     project_id = test_project.project_id
-    admin_id = test_user.user_id
+    admin_id = test_users['admin'].user_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
         json={'user_id': admin_id},
