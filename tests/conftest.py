@@ -27,12 +27,14 @@ os.environ["ENV"] = "test"
 
 @pytest.fixture(scope='session')
 def sync_engine():
-    """Синхронный движок для применения миграций."""
-    # Убираем '+asyncpg' из URL, чтобы получить синхронный драйвер
-    sync_url = test_settings.DATABASE_URL.replace('+asyncpg', '')
-    engine = create_engine(sync_url)
+    # Берём оригинальный URL и заменяем асинхронный драйвер на синхронный
+    raw_url = test_settings.DATABASE_URL
+    # Заменяем 'aiomysql' на 'pymysql'
+    sync_url = raw_url.replace('+aiomysql', '+pymysql')
+    # Если используется '+asyncpg' — тоже заменяем
+    sync_url = sync_url.replace('+asyncpg', '+psycopg2')  # если PostgreSQL
     
-    # Применяем миграции синхронно
+    engine = create_engine(sync_url)
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
     command.upgrade(alembic_cfg, "head")
