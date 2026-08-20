@@ -27,17 +27,13 @@ os.environ["ENV"] = "test"
 
 @pytest.fixture(scope='session')
 def sync_engine():
-    # Берём оригинальный URL и заменяем асинхронный драйвер на синхронный
+    from core.database import Base
     raw_url = test_settings.DATABASE_URL
-    # Заменяем 'aiomysql' на 'pymysql'
     sync_url = raw_url.replace('+aiomysql', '+pymysql')
-    # Если используется '+asyncpg' — тоже заменяем
-    sync_url = sync_url.replace('+asyncpg', '+psycopg2')  # если PostgreSQL
-    
     engine = create_engine(sync_url)
-    alembic_cfg = Config("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
-    command.upgrade(alembic_cfg, "head")
+    
+    # Создаём все таблицы, если их нет
+    Base.metadata.create_all(engine)
     
     yield engine
     engine.dispose()
