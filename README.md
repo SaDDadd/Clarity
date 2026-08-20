@@ -926,21 +926,19 @@ Content-Type: application/json
 
 ## Тестирование
 
-Для тестирования API используется **pytest** с асинхронной поддержкой и **httpx**.
+Для тестирования API используется **pytest** с асинхронной поддержкой и **httpx**. Все тесты находятся в директории `tests/test_api/` и покрывают основные сценарии работы с эндпоинтами.
 
 ### Структура тестов
 
 ```
 tests/
 ├── conftest.py          # Фикстуры и настройка pytest
-├── test_api/
-│   ├── test_auth.py     # Тесты аутентификации
-│   ├── test_projects.py # Тесты проектов (включая добавленные тесты)
-│   ├── test_tasks.py    # Тесты задач
-│   ├── test_invitations.py # Тесты приглашений
-│   └── test_profile.py  # Тесты профиля
-├── test_repositories/   # (в разработке)
-└── test_services/       # (в разработке)
+└── test_api/
+    ├── test_auth.py     # Тесты аутентификации
+    ├── test_projects.py # Тесты проектов
+    ├── test_tasks.py    # Тесты задач
+    ├── test_invitations.py # Тесты приглашений
+    └── test_profile.py  # Тесты профиля
 ```
 
 ### Запуск тестов
@@ -950,6 +948,136 @@ tests/
    ```bash
    pytest -v
    ```
+
+### Описание тестов
+
+#### Тесты аутентификации (`test_auth.py`)
+
+| Название теста | Описание |
+|----------------|----------|
+| `test_register_success` | Успешная регистрация нового пользователя. |
+| `test_register_duplicate_username` | Попытка регистрации с уже существующим именем пользователя. |
+| `test_register_duplicate_email` | Попытка регистрации с уже существующим email. |
+| `test_login_success_username` | Успешный вход по имени пользователя. |
+| `test_login_success_email` | Успешный вход по email. |
+| `test_login_wrong_password` | Попытка входа с неверным паролем. |
+| `test_login_user_not_found` | Попытка входа с несуществующим пользователем. |
+| `test_login_empty_fields` | Попытка входа с пустыми полями. |
+| `test_short_password` | Попытка регистрации с паролем короче 8 символов. |
+| `test_get_current_user_info` | Получение информации о текущем пользователе через `/auth/me`. |
+| `test_register_invalid_email` | Регистрация с невалидным email. |
+| `test_register_empty_fields` | Регистрация с пустыми полями (username, email, password). |
+| `test_login_empty_username` | Логин с пустым `username_or_email`. |
+| `test_login_empty_password` | Логин с пустым `password`. |
+| `test_get_current_user_unauthorized` | Запрос `/auth/me` без токена. |
+| `test_get_current_user_invalid_token` | Запрос `/auth/me` с неверным токеном. |
+
+#### Тесты проектов (`test_projects.py`)
+
+| Название теста | Описание |
+|----------------|----------|
+| `test_successful_project_creation` | Успешное создание проекта. |
+| `test_attempt_create_project_without_authorization` | Создание проекта без токена. |
+| `test_attempt_create_project_with_incorrect_data` | Создание проекта с некорректными данными. |
+| `test_authorized_admin_projects_returned` | Получение списка проектов, где пользователь — админ. |
+| `test_attempt_get_non_existent_project` | Попытка получить несуществующий проект. |
+| `test_attempt_get_project_that_user_not_part` | Попытка получить проект, в котором пользователь не состоит. |
+| `test_authorized_user_projects_returned` | Получение всех проектов пользователя. |
+| `test_getting_project_lets_project_participant_see_details` | Участник проекта получает его детали. |
+| `test_admin_update_project` | Админ обновляет проект. |
+| `test_updating_not_existent_project` | Попытка обновить несуществующий проект. |
+| `test_deleting_not_existent_project` | Попытка удалить несуществующий проект. |
+| `test_regular_participant_not_update_project` | Обычный участник не может обновить проект. |
+| `test_admin_delete_project` | Админ удаляет проект. |
+| `test_regular_participant_not_delete_project` | Обычный участник не может удалить проект. |
+| `test_admin_add_existing_user` | Админ добавляет пользователя в проект. |
+| `test_adding_yourself` | Попытка добавить самого себя. |
+| `test_admin_not_add_user_already_in_project` | Попытка добавить уже существующего участника. |
+| `test_admin_delete_anyone` | Админ удаляет участника. |
+| `test_regular_member_not_delete_anyone` | Обычный участник не может удалить другого. |
+| `test_admin_raise_or_lower_role` | Админ повышает/понижает роль. |
+| `test_not_demote_only_admin` | Попытка понизить единственного админа. |
+| `test_empty_projects_list_for_new_user` | Новый пользователь получает пустой список проектов. |
+| `test_regular_member_add_user_to_project` | Обычный участник не может добавить пользователя. |
+| `test_admin_add_non_existent_user` | Попытка добавить несуществующего пользователя. |
+| `test_admin_delete_user_not_in_project` | Попытка удалить пользователя, не состоящего в проекте. |
+| `test_member_projects_list` | Участник видит проекты, в которых состоит. |
+| `test_regular_member_change_role` | Обычный участник не может изменить роль. |
+| `test_add_user_to_non_existent_project` | Попытка добавить пользователя в несуществующий проект. |
+| `test_update_project_with_no_changes` | Обновление проекта без изменений. |
+| `test_update_project_user_not_member` | Попытка обновить проект пользователем, не состоящим в нём. |
+| `test_admin_delete_self_from_project` | Попытка админа удалить самого себя (запрещено). |
+
+#### Тесты задач (`test_tasks.py`)
+
+| Название теста | Описание |
+|----------------|----------|
+| `test_creating_task_in_project_by_member` | Участник проекта создаёт задачу. |
+| `test_attempt_create_task_by_non_participant` | Пользователь, не состоящий в проекте, не может создать задачу. |
+| `test_getting_project_task_list` | Участник проекта получает список задач. |
+| `test_getting_task_by_ID` | Получение конкретной задачи по ID. |
+| `test_update_task` | Обновление задачи участником. |
+| `test_delete_task` | Удаление задачи участником. |
+| `test_changing_task_status` | Изменение статуса задачи. |
+| `test_attempt_get_non_existent_task` | Запрос несуществующей задачи. |
+| `test_create_task_with_deadline_in_past` | Создание задачи с дэдлайном в прошлом (ошибка). |
+| `test_create_task_with_assigned_to_not_in_project` | Назначение задачи пользователю вне проекта. |
+| `test_get_tasks_for_current_user` | Получение задач, назначенных на текущего пользователя. |
+| `test_get_task_info_by_participant` | Получение информации о задаче участником. |
+| `test_get_task_info_by_non_participant` | Не участник не может получить информацию о задаче. |
+| `test_get_task_info_for_non_existent_task` | Получение информации о несуществующей задаче. |
+| `test_update_task_by_admin` | Администратор обновляет задачу. |
+| `test_update_task_by_member` | Участник обновляет задачу. |
+| `test_update_task_with_invalid_deadline` | Обновление дэдлайна на прошедшую дату (ошибка). |
+| `test_update_task_set_assigned_to_not_in_project` | Назначение задачи на пользователя вне проекта при обновлении. |
+| `test_delete_task_by_admin` | Администратор удаляет задачу. |
+| `test_delete_task_by_member` | Участник удаляет задачу (разрешено). |
+| `test_change_status_to_valid` | Изменение статуса на допустимое значение. |
+| `test_change_status_to_invalid` | Попытка установить недопустимый статус. |
+| `test_change_status_of_non_existent_task` | Изменение статуса у несуществующей задачи. |
+| `test_change_status_by_non_participant` | Не участник не может изменить статус задачи. |
+
+#### Тесты приглашений (`test_invitations.py`)
+
+| Название теста | Описание |
+|----------------|----------|
+| `test_send_invitation_by_admin` | Администратор отправляет приглашение. |
+| `test_send_invitation_by_non_admin` | Участник (не админ) не может отправить приглашение. |
+| `test_get_user_invitations` | Получение списка входящих приглашений для пользователя. |
+| `test_get_project_invitations_by_admin` | Администратор получает список приглашений проекта. |
+| `test_get_project_invitations_by_non_admin` | Участник (не админ) не может получить список приглашений проекта. |
+| `test_accept_invitation` | Пользователь принимает приглашение. |
+| `test_reject_invitation` | Пользователь отклоняет приглашение. |
+| `test_cancel_invitation_by_admin` | Администратор отменяет приглашение. |
+| `test_cancel_invitation_by_non_admin` | Участник (не админ) не может отменить приглашение. |
+| `test_accept_already_processed_invitation` | Попытка принять уже обработанное приглашение. |
+| `test_cancel_invitation_by_outsider` | Посторонний пользователь не может отменить приглашение. |
+| `test_get_project_invitations_by_outsider` | Пользователь, не состоящий в проекте, не может получить список приглашений. |
+| `test_send_invitation_to_existing_member` | Приглашение пользователя, уже состоящего в проекте. |
+| `test_send_invitation_to_self` | Админ приглашает самого себя. |
+| `test_send_invitation_to_nonexistent_user` | Приглашение несуществующего пользователя. |
+| `test_reject_invitation_already_processed` | Отклонение уже принятого приглашения. |
+| `test_accept_invitation_already_rejected` | Принятие уже отклонённого приглашения. |
+| `test_cancel_invitation_already_processed` | Отмена уже принятого приглашения администратором. |
+| `test_get_user_invitations_empty` | Пользователь без приглашений получает пустой список. |
+| `test_get_project_invitations_empty` | Проект без приглашений возвращает пустой список. |
+
+#### Тесты профиля (`test_profile.py`)
+
+| Название теста | Описание |
+|----------------|----------|
+| `test_update_username_success` | Успешное обновление имени пользователя. |
+| `test_update_username_unauthorized` | Запрос без токена. |
+| `test_update_email_success` | Успешное обновление email. |
+| `test_update_email_unauthorized` | Запрос без токена. |
+| `test_get_profile_success` | Получение данных профиля. |
+| `test_update_username_conflict` | Обновление username на уже существующий. |
+| `test_update_email_conflict` | Обновление email на уже существующий. |
+| `test_update_username_empty` | Обновление username на пустую строку. |
+| `test_update_email_invalid` | Обновление email на невалидный. |
+| `test_update_username_too_long` | Обновление username на слишком длинное значение. |
+| `test_update_email_too_long` | Обновление email на слишком длинное значение. |
+| `test_get_profile_unauthorized` | Запрос `/profile` без токена. |
 
 ### Описание основных фикстур (`conftest.py`)
 
@@ -966,67 +1094,6 @@ tests/
 | `test_project_with_member` | Создаёт тестовый проект и добавляет в него пользователя `member`. |
 | `test_task` | Создаёт тестовую задачу в проекте. |
 | `test_invitation` | Создаёт тестовое приглашение в проект. |
-
-### Примеры тестов
-
-#### Тесты аутентификации (`test_auth.py`)
-
-- `test_register_success` — успешная регистрация.
-- `test_register_duplicate_username` — попытка регистрации с существующим именем.
-- `test_register_duplicate_email` — попытка регистрации с существующим email.
-- `test_login_success_username` — успешный вход по имени пользователя.
-- `test_login_success_email` — успешный вход по email.
-- `test_login_wrong_password` — попытка входа с неверным паролем.
-- `test_login_user_not_found` — попытка входа с несуществующим пользователем.
-- `test_login_empty_fields` — попытка входа с пустыми полями.
-- `test_short_password` — попытка регистрации с коротким паролем.
-
-#### Тесты проектов (`test_projects.py`)
-
-- `test_successful_project_creation` — успешное создание проекта.
-- `test_attempt_create_project_without_authorization` — создание проекта без токена.
-- `test_attempt_create_project_with_incorrect_data` — создание проекта с некорректными данными.
-- `test_authorized_admin_projects_returned` — получение списка проектов, где пользователь — админ.
-- `test_attempt_get_non_existent_project` — попытка получить несуществующий проект.
-- `test_attempt_get_project_that_user_not_part` — попытка получить проект, в котором пользователь не состоит.
-- `test_authorized_user_projects_returned` — получение всех проектов пользователя.
-- `test_getting_project_lets_project_participant_see_details` — участник проекта получает его детали.
-- `test_admin_update_project` — админ обновляет проект.
-- `test_regular_participant_not_update_project` — обычный участник не может обновить проект.
-- `test_admin_delete_project` — админ удаляет проект.
-- `test_regular_participant_not_delete_project` — обычный участник не может удалить проект.
-- `test_admin_add_existing_user` — админ добавляет пользователя в проект.
-- `test_adding_yourself` — попытка добавить самого себя.
-- `test_admin_not_add_user_already_in_project` — попытка добавить уже существующего участника.
-- `test_admin_delete_anyone` — админ удаляет участника.
-- `test_regular_member_not_delete_anyone` — обычный участник не может удалить другого.
-- `test_admin_raise_or_lower_role` — админ повышает/понижает роль.
-- `test_not_demote_only_admin` — попытка понизить единственного админа.
-- `test_empty_projects_list_for_new_user` — новый пользователь получает пустой список.
-- `test_regular_member_add_user_to_project` — обычный участник не может добавить пользователя.
-- `test_admin_add_non_existent_user` — попытка добавить несуществующего пользователя.
-- `test_admin_delete_user_not_in_project` — попытка удалить пользователя, не состоящего в проекте.
-- `test_member_projects_list` — участник видит проекты, в которых состоит.
-- `test_regular_member_change_role` — обычный участник не может изменить роль.
-- `test_add_user_to_non_existent_project` — попытка добавить пользователя в несуществующий проект.
-- `test_update_project_with_no_changes` — обновление проекта без изменений.
-- `test_update_project_user_not_member` — попытка обновить проект пользователем, не состоящим в нём.
-- `test_admin_delete_self_from_project` — попытка админа удалить самого себя (запрещено).
-
-#### Тесты задач (`test_tasks.py`)
-
-- `test_creating_task_in_project_by_member` — проверяет, что участник проекта может создать задачу в этом проекте.
-- `test_attempt_create_task_by_non_participant` — проверяет, что пользователь, не состоящий в проекте, не может создать задачу.
-- `test_getting_project_task_list` — проверяет, что участник проекта получает список задач проекта.
-- `test_getting_task_by_ID` — проверяет получение конкретной задачи по ID (участник проекта).
-- `test_update_task` — проверяет обновление задачи (участник).
-- `test_delete_task` — проверяет удаление задачи.
-- `test_changing_task_status` — проверяет изменение статуса задачи.
-- `test_attempt_get_non_existent_task` — проверяет запрос несуществующей задачи.
-- `test_create_task_with_deadline_in_past` — проверяет создание задачи с дэдлайном в прошлом – ошибка валидации.
-- `test_create_task_with_assigned_to_not_in_project` — проверяет назначение задачи пользователю, не входящему в проект.
-- `test_get_tasks_for_current_user` — проверяет получение списка задач, назначенных на текущего пользователя.
-- `test_get_task_info_by_participant` — проверяет получение информации о задаче участником проекта.
 
 ## Инструкция для фронтенда
 
