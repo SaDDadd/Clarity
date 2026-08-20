@@ -51,7 +51,7 @@ async def test_get_profile_success(async_client, auth_headers, test_users):
     response = await async_client.get('/api/v1/profile', headers=headers)
     assert response.status_code == 200
     data = response.json()
-    admin = test_users['admin']
+    admin = await test_users['admin']
     assert data['user_id'] == admin.user_id
     assert data['username'] == admin.username
     assert data['email'] == admin.email
@@ -60,7 +60,7 @@ async def test_get_profile_success(async_client, auth_headers, test_users):
 async def test_update_username_conflict(async_client, auth_headers, test_users):
     """Обновление username на уже существующий."""
     headers = await auth_headers
-    conflicting_username = test_users['member'].username
+    conflicting_username = await test_users['member'].username
     response = await async_client.put(
         '/api/v1/profile/username',
         json={'username': conflicting_username},
@@ -73,7 +73,7 @@ async def test_update_username_conflict(async_client, auth_headers, test_users):
 async def test_update_email_conflict(async_client, auth_headers, test_users):
     """Обновление email на уже существующий."""
     headers = await auth_headers
-    conflicting_email = test_users['member'].email
+    conflicting_email = await test_users['member'].email
     response = await async_client.put(
         '/api/v1/profile/email',
         json={'email': conflicting_email},
