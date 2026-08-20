@@ -4,7 +4,7 @@ from httpx import AsyncClient, ASGITransport
 from main import app
 from core.dependencies import get_db
 from alembic import command
-from core.config import test_settings
+from core.config import settings
 from pathlib import Path
 from alembic.config import Config
 from core.security import hash_password, create_access_token
@@ -19,29 +19,24 @@ import pytest
 from sqlalchemy import create_engine  # синхронный
 import os
 from dotenv import load_dotenv
+from core.database import Base
 
-# Загружаем тестовые переменные окружения
-load_dotenv('.env.test')
 # Явно устанавливаем ENV=test
 os.environ["ENV"] = "test"
 
 @pytest.fixture(scope='session')
 def sync_engine():
-    from core.database import Base
-    raw_url = test_settings.DATABASE_URL
+    # Теперь settings уже содержит тестовый URL
+    raw_url = settings.DATABASE_URL
     sync_url = raw_url.replace('+aiomysql', '+pymysql')
     engine = create_engine(sync_url)
-    
-    # Создаём все таблицы, если их нет
     Base.metadata.create_all(engine)
-    
     yield engine
     engine.dispose()
 
 @pytest_asyncio.fixture
 async def async_engine(sync_engine):
-    """Асинхронный движок для тестов."""
-    async_engine = create_async_engine(test_settings.DATABASE_URL)
+    async_engine = create_async_engine(settings.DATABASE_URL)
     yield async_engine
     await async_engine.dispose()
 
