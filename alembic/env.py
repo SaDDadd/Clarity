@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # Импортируем ваши настройки и базовый класс
-from core.config import settings
+import os
+from core.config import settings, test_settings
 from core.database import Base
 from models.user import UserModel
 from models.project import ProjectModel
@@ -25,8 +26,13 @@ if config.config_file_name is not None:
 # Устанавливаем метаданные
 target_metadata = Base.metadata
 
+if os.getenv("ENV") == "test":
+    active_settings = test_settings
+else:
+    active_settings = settings
+
 # Переопределяем URL из настроек приложения
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", active_settings.DATABASE_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
