@@ -23,6 +23,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+print("Tables in Base.metadata:", Base.metadata.tables.keys())
+
 # Устанавливаем метаданные
 target_metadata = Base.metadata
 
