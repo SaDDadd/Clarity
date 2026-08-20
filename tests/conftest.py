@@ -116,10 +116,27 @@ async def test_users(db_session):
     }
 
 @pytest_asyncio.fixture(scope='function')
-async def auth_headers(test_users):
-    """Возвращает заголовки авторизации для администратора проекта."""
-    user = test_users.get('admin')
-    token = create_access_token({'sub': user.user_id})
+async def auth_headers(async_client, test_users):
+    """Возвращает заголовки авторизации для администратора проекта (через логин)."""
+    admin = test_users['admin']
+    response = await async_client.post('/api/v1/auth/login', json={
+        'username_or_email': admin.username,
+        'password': 'qwertyui'
+    })
+    assert response.status_code == 200, f"Login failed: {response.text}"
+    token = response.json()['access_token']
+    return {'Authorization': f'Bearer {token}'}
+
+@pytest_asyncio.fixture(scope='function')
+async def member_auth_headers(async_client, test_users):
+    """Возвращает заголовки авторизации для участника проекта (через логин)."""
+    member = test_users['member']
+    response = await async_client.post('/api/v1/auth/login', json={
+        'username_or_email': member.username,
+        'password': 'qwertyui'
+    })
+    assert response.status_code == 200, f"Login failed: {response.text}"
+    token = response.json()['access_token']
     return {'Authorization': f'Bearer {token}'}
 
 @pytest_asyncio.fixture(scope='function')
@@ -143,13 +160,6 @@ async def test_project_with_member(db_session, test_project, test_users):
     member = test_users.get('member')
     await repo.add_user(test_project.project_id, member.user_id)
     return {'project': test_project, 'member': member}
-
-@pytest_asyncio.fixture(scope='function')
-async def member_auth_headers(test_users):
-    """Возвращает заголовки авторизации для участника проекта."""
-    user = test_users.get('member')
-    token = create_access_token({'sub': user.user_id})
-    return {'Authorization': f'Bearer {token}'}
 
 @pytest_asyncio.fixture(scope='function')
 async def test_task(db_session, test_project):

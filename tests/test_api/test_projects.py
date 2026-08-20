@@ -171,12 +171,18 @@ async def test_not_demote_only_admin(async_client, auth_headers, test_project, t
 
 @pytest.mark.asyncio
 async def test_empty_projects_list_for_new_user(async_client, test_users):
-    new_user = test_users.get('outsider')
-    token = create_access_token({'sub': new_user.user_id})
+    new_user = test_users['outsider']
+    # Логинимся как новый пользователь
+    login_resp = await async_client.post('/api/v1/auth/login', json={
+        'username_or_email': new_user.username,
+        'password': 'qwertyui'
+    })
+    assert login_resp.status_code == 200
+    token = login_resp.json()['access_token']
     headers = {'Authorization': f'Bearer {token}'}
     response = await async_client.get('/api/v1/projects/all', headers=headers)
     assert response.status_code == 200
-    assert response.json() == []              
+    assert response.json() == []            
 
 @pytest.mark.asyncio
 async def test_regular_member_add_user_to_project(async_client, member_auth_headers, test_project_with_member, test_users):
