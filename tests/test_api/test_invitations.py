@@ -134,3 +134,51 @@ async def test_cancel_invitation_by_non_admin(async_client, test_invitation, mem
         headers=headers
     )
     assert response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_accept_already_processed_invitation(async_client, test_invitation, test_users):
+    """Проверяет, что нельзя принять уже обработанное приглашение."""
+    invitee = test_users['outsider']
+    token = create_access_token({'sub': invitee.user_id})
+    headers = {'Authorization': f'Bearer {token}'}
+    invitation_id = test_invitation.invitation_id
+
+    await async_client.patch(
+        f'/api/v1/invitations/{invitation_id}',
+        json={'status': 'accepted'},
+        headers=headers
+    )
+    response = await async_client.patch(
+        f'/api/v1/invitations/{invitation_id}',
+        json={'status': 'accepted'},
+        headers=headers
+    )
+    assert response.status_code == 400
+
+@pytest.mark.asyncio
+async def test_cancel_invitation_by_outsider(async_client, test_invitation, test_users):
+    """Проверяет, что посторонний пользователь не может отменить приглашение."""
+    outsider = test_users['outsider']
+    token = create_access_token({'sub': outsider.user_id})
+    headers = {'Authorization': f'Bearer {token}'}
+    invitation_id = test_invitation.invitation_id
+
+    response = await async_client.delete(
+        f'/api/v1/invitations/{invitation_id}',
+        headers=headers
+    )
+    assert response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_get_project_invitations_by_outsider(async_client, test_project, test_users):
+    """Проверяет, что пользователь, не состоящий в проекте, не может получить список приглашений проекта."""
+    outsider = test_users['outsider']
+    token = create_access_token({'sub': outsider.user_id})
+    headers = {'Authorization': f'Bearer {token}'}
+    project_id = test_project.project_id
+
+    response = await async_client.get(
+        f'/api/v1/invitations/project/{project_id}',
+        headers=headers
+    )
+    assert response.status_code == 403
