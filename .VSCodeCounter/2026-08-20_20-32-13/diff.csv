@@ -1,0 +1,8 @@
+"filename", "language", "Markdown", "Python", "comment", "blank", "total"
+"c:\Users\Пользователь\Desktop\python\Clarity\README.md", "Markdown", 340, 0, 0, 3, 343
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\conftest.py", "Python", 0, 26, 10, 1, 37
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_auth.py", "Python", 0, 68, 10, 7, 85
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_invitations.py", "Python", 0, 269, 31, 41, 341
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_profile.py", "Python", 0, 111, 12, 11, 134
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_tasks.py", "Python", 0, 266, 24, 23, 313
+"Total", "-", 340, 740, 87, 86, 1253
