@@ -11,6 +11,7 @@ from core.security import hash_password, create_access_token
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
+from repositories.project_invitation_repository import ProjectInvitationRepository
 import uuid
 import time
 from schemas.task import TaskCreate
@@ -124,3 +125,18 @@ async def test_task(db_session, test_project):
     )
     task = await repo.create_task(project_id=test_project.project_id, task=create)
     return task
+
+@pytest_asyncio.fixture(scope='function')
+async def test_invitation(db_session, test_project, test_users):
+    """Создаёт приглашение в проект для пользователя outsider."""
+    repo = ProjectInvitationRepository(db_session)
+    project = test_project
+    inviter = test_users.get('admin')
+    invitee = test_users.get('outsider')
+    invitation = await repo.create_invitation(
+        project_id=project.project_id,
+        inviter_id=inviter.user_id,
+        invitee_id=invitee.user_id,
+        message="Приглашение для теста"
+    )
+    return invitation
