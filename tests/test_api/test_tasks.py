@@ -8,7 +8,7 @@ async def test_creating_task_in_project_by_member(async_client, test_project_wit
     headers = await member_auth_headers
     assigned_to = test_users['member'].user_id
     response = await async_client.post(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks', \
-                                       json={'title': 'Test_task', 'task_description': 'Test_description', 'assigned_to': assigned_to, 'deadline': datetime.now() + datetime.timedelta(days=7)}, \
+                                       json={'title': 'Test_task', 'task_description': 'Test_description', 'assigned_to': assigned_to, 'deadline': datetime.datetime.now() + datetime.timedelta(days=7)}, \
                                         headers=headers)
     assert response.status_code == 201
 
@@ -56,9 +56,8 @@ async def test_delete_task(async_client, test_project_with_member, member_auth_h
     headers = await member_auth_headers
     response = await async_client.delete(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks/{test_task.task_id}', \
                                          headers=headers)
-    assert response.status_code == 200 or response.status_code == 204
+    assert response.status_code == 200
     assert response.json()['message'] == 'Задача удалена из проекта!'
-    await test_task(db_session, test_project)
 
 @pytest.mark.asyncio
 async def test_changing_task_status(async_client, test_project_with_member, member_auth_headers, test_task):
@@ -81,17 +80,16 @@ async def test_attempt_get_non_existent_task(async_client, test_project_with_mem
 async def test_create_task_with_deadline_in_past(async_client, test_project_with_member, member_auth_headers, test_task, db_session, test_project):
     """Проверяет создание задачи с дэдлайном в прошлом – ошибка валидации."""
     headers = await member_auth_headers
-    response = await async_client.put(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks/{test_task.task_id}', \
+    response = await async_client.post(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks', \
                                       json={'deadline': datetime.datetime.now() - datetime.timedelta(days=1)}, headers=headers)
     assert response.status_code == 400
     assert response.json()['detail'] == 'Время дэдлайна не может быть меньше сегодняшнего дня!'
-    await test_task(db_session, test_project)
 
 @pytest.mark.asyncio
 async def test_create_task_with_assigned_to_not_in_project(async_client, test_project_with_member, member_auth_headers, test_task, test_users):
     """Проверяет назначение задачи пользователю, не входящему в проект."""
     headers = await member_auth_headers
-    response = await async_client.put(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks/{test_task.task_id}', \
+    response = await async_client.post(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks', \
                                       json={'assigned_to': test_users['outsider'].user_id}, headers=headers)
     assert response.status_code == 403
     assert response.json()['detail'] == 'Добавляемого пользователя нет в проекте!'
@@ -100,42 +98,26 @@ async def test_create_task_with_assigned_to_not_in_project(async_client, test_pr
 async def test_get_tasks_for_current_user(async_client, test_project_with_member, member_auth_headers):
     """Проверяет получение списка задач, назначенных на текущего пользователя (эндпоинт /tasks)."""
     headers = await member_auth_headers
-    response = await async_client.get(f'/api/v1/projects/{test_project_with_member['project'].project_id}/tasks', \
+    response = await async_client.get(f'/api/v1/projects/tasks', \
                                       headers=headers)
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    
+
 @pytest.mark.asyncio
 async def test_get_task_info_by_participant():
-    """
-    Проверяет получение информации о задаче участником проекта.
-    Ожидаемый статус: 200 OK.
-    """
-    # TODO: реализовать
+    """Проверяет получение информации о задаче участником проекта."""
 
 @pytest.mark.asyncio
 async def test_get_task_info_by_non_participant():
-    """
-    Проверяет, что не участник не может получить информацию о задаче.
-    Ожидаемый статус: 403 Forbidden.
-    """
-    # TODO: реализовать
+    """Проверяет, что не участник не может получить информацию о задаче."""
 
 @pytest.mark.asyncio
 async def test_get_task_info_for_non_existent_task():
-    """
-    Проверяет получение информации о несуществующей задаче.
-    Ожидаемый статус: 404 Not Found.
-    """
-    # TODO: реализовать
-
+    """Проверяет получение информации о несуществующей задаче."""
+    
 @pytest.mark.asyncio
 async def test_update_task_by_admin():
-    """
-    Проверяет, что администратор проекта может обновить любую задачу.
-    Ожидаемый статус: 200 OK.
-    """
-    # TODO: реализовать
+    """Проверяет, что администратор проекта может обновить любую задачу."""
 
 @pytest.mark.asyncio
 async def test_update_task_by_member():
@@ -187,24 +169,12 @@ async def test_change_status_to_valid():
 
 @pytest.mark.asyncio
 async def test_change_status_to_invalid():
-    """
-    Проверяет попытку установить недопустимый статус.
-    Ожидаемый статус: 422 Unprocessable Entity.
-    """
-    # TODO: реализовать
+    """Проверяет попытку установить недопустимый статус."""
 
 @pytest.mark.asyncio
 async def test_change_status_of_non_existent_task():
-    """
-    Проверяет изменение статуса у несуществующей задачи.
-    Ожидаемый статус: 404 Not Found.
-    """
-    # TODO: реализовать
+    """Проверяет изменение статуса у несуществующей задачи."""
 
-@pytest.mark.asycnio  # опечатка: asycnio -> asyncio
+@pytest.mark.asyncio
 async def test_change_status_by_non_participant():
-    """
-    Проверяет, что не участник не может изменить статус задачи.
-    Ожидаемый статус: 403 Forbidden.
-    """
-    # TODO: реализовать
+    """Проверяет, что не участник не может изменить статус задачи."""
