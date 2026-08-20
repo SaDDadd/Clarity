@@ -9,23 +9,26 @@ async def test_register_success(async_client):
     assert response.json() == {"message": "Пользователь создан"}
 
 @pytest.mark.asyncio
-async def test_register_duplicate_username(async_client, test_user):
-    response = await async_client.post('/api/v1/auth/register', json={'username': f'{test_user[0].username}', 'email': f'{uuid.uuid4()}@mail.ru', \
+async def test_register_duplicate_username(async_client, test_users):
+    admin = test_users['admin']
+    response = await async_client.post('/api/v1/auth/register', json={'username': admin.username, 'email': f'{uuid.uuid4()}@mail.ru', \
                                                                       'password': '123456789'})
     assert response.status_code == 409
     assert response.json()['detail'] == 'Имя пользователя уже существует!'
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(async_client, test_user):
-    response = await async_client.post('/api/v1/auth/register', json={'username': f'{uuid.uuid4()}', 'email': f'{test_user[0].email}', \
+async def test_register_duplicate_email(async_client, test_users):
+    admin = test_users['admin']
+    response = await async_client.post('/api/v1/auth/register', json={'username': f'{uuid.uuid4()}', 'email': admin.email, \
                                                                       'password': '123456789'})
     assert response.status_code == 409
     assert response.json()['detail'] == 'Email пользователя уже существует!'
 
 @pytest.mark.asyncio
-async def test_login_success_username(async_client, test_user):
-    response = await async_client.post('/api/v1/auth/login', json={'username_or_email': f'{test_user[0].username}', \
-                                                                   'password': f'{test_user[1].password}'})
+async def test_login_success_username(async_client, test_users):
+    admin = test_users['admin']
+    response = await async_client.post('/api/v1/auth/login', json={'username_or_email': admin.username, \
+                                                                   'password': 'qwertyui'})
     data = response.json()
     len_token = len(data['access_token'].split('.'))
     assert response.status_code == 200
@@ -35,9 +38,10 @@ async def test_login_success_username(async_client, test_user):
     assert len_token == 3
 
 @pytest.mark.asyncio
-async def test_login_success_email(async_client, test_user):
-    response = await async_client.post('/api/v1/auth/login', json={'username_or_email': f'{test_user[0].email}', \
-                                                                   'password': f'{test_user[1].password}'})
+async def test_login_success_email(async_client, test_users):
+    admin = test_users['admin']
+    response = await async_client.post('/api/v1/auth/login', json={'username_or_email': admin.email, \
+                                                                   'password': 'qwertyui'})
     data = response.json()
     len_token = len(data['access_token'].split('.'))
     assert response.status_code == 200
@@ -47,8 +51,9 @@ async def test_login_success_email(async_client, test_user):
     assert len_token == 3
 
 @pytest.mark.asyncio
-async def test_login_wrong_password(async_client, test_user):
-    response = await async_client.post('/api/v1/auth/login', json={'username_or_email': f'{test_user[0].email}', \
+async def test_login_wrong_password(async_client, test_users):
+    admin = test_users['admin']
+    response = await async_client.post('/api/v1/auth/login', json={'username_or_email': admin.email, \
                                                                   'password': f'{uuid.uuid4()}'})
     assert response.status_code == 401
     assert response.json()['detail'] == 'Неверные учётные данные!'
@@ -75,15 +80,16 @@ async def test_short_password(async_client):
     assert response.json()['detail'] == 'Пароль короткий, должен быть больше 8 символов!'
 
 @pytest.mark.asyncio
-async def test_get_current_user_info(async_client, auth_headers, test_user):
+async def test_get_current_user_info(async_client, auth_headers, test_users):
     """Проверяет, что аутентифицированный пользователь может получить свои данные через /auth/me."""
     headers = await auth_headers
     response = await async_client.get('/api/v1/auth/me', headers=headers)
     assert response.status_code == 200
     data = response.json()
-    assert data['user_id'] == test_user.user_id
-    assert data['username'] == test_user.username
-    assert data['email'] == test_user.email
+    admin = test_users['admin']
+    assert data['user_id'] == admin.user_id
+    assert data['username'] == admin.username
+    assert data['email'] == admin.email
 
 @pytest.mark.asyncio
 async def test_register_invalid_email(async_client):
