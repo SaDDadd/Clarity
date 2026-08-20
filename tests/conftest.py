@@ -15,17 +15,30 @@ from repositories.project_invitation_repository import ProjectInvitationReposito
 import uuid
 import time
 from schemas.task import TaskCreate
+import pytest
+from sqlalchemy import create_engine  # синхронный
 
-@pytest_asyncio.fixture(scope='session')
-async def engine():
-    """Создаёт движок БД, применяет миграции перед сессией тестов и откатывает после."""
-    AlembicConfig = Config(Path(__file__).parent.parent / 'alembic.ini')
-    AlembicConfig.set_main_option('sqlalchemy.url', test_settings.DATABASE_URL)
-    command.upgrade(AlembicConfig, 'head')
-    engine = create_async_engine(test_settings.DATABASE_URL)
+@pytest.fixture(scope='session')
+def sync_engine():
+    """Синхронный движок для применения миграций."""
+    # Убираем '+asyncpg' из URL, чтобы получить синхронный драйвер
+    sync_url = test_settings.DATABASE_URL.replace('+asyncpg', '')
+    engine = create_engine(sync_url)
+    
+    # Применяем миграции синхронно
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", sync_url)
+    command.upgrade(alembic_cfg, "head")
+    
     yield engine
-    await engine.dispose()
-    command.downgrade(AlembicConfig, 'base')
+    engine.dispose()
+
+@pytest_asyncio.fixture
+async def async_engine(sync_engine):
+    """Асинхронный движок для тестов."""
+    async_engine = create_async_engine(test_settings.DATABASE_URL)
+    yield async_engine
+    await async_engine.dispose()
 
 @pytest_asyncio.fixture(scope='function')
 async def db_session(engine):
