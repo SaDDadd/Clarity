@@ -1,3 +1,14 @@
+import os
+
+os.environ["ENV"] = "test"
+os.environ["DB_HOST"] = "localhost"
+os.environ["DB_PORT"] = "3306"
+os.environ["DB_USER"] = "root"
+os.environ["DB_PASSWORD"] = "2007"
+os.environ["DB_NAME"] = "task_to_do_test"
+os.environ["JWT_SECRET_KEY"] = "your_very_secret_key_here_32_chars_min"
+os.environ["CORS_ORIGINS"] = "http://localhost:3000,http://127.0.0.1:3000"
+
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from httpx import AsyncClient, ASGITransport
@@ -17,12 +28,10 @@ import time
 from schemas.task import TaskCreate
 import pytest
 from sqlalchemy import create_engine  # синхронный
-import os
 from dotenv import load_dotenv
 from core.database import Base
 
 # Явно устанавливаем ENV=test
-os.environ["ENV"] = "test"
 
 @pytest.fixture(scope='session')
 def sync_engine():
