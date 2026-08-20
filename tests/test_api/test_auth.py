@@ -84,3 +84,71 @@ async def test_get_current_user_info(async_client, auth_headers, test_user):
     assert data['user_id'] == test_user.user_id
     assert data['username'] == test_user.username
     assert data['email'] == test_user.email
+
+@pytest.mark.asyncio
+async def test_register_invalid_email(async_client):
+    """Регистрация с невалидным email."""
+    response = await async_client.post(
+        '/api/v1/auth/register',
+        json={
+            'username': str(uuid.uuid4()),
+            'email': 'invalid_email',
+            'password': '123456789'
+        }
+    )
+    assert response.status_code == 422
+
+@pytest.mark.asyncio
+async def test_register_empty_fields(async_client):
+    """Регистрация с пустым username, email или password."""
+    # пустой username
+    resp = await async_client.post(
+        '/api/v1/auth/register',
+        json={'username': '', 'email': f'{uuid.uuid4()}@mail.ru', 'password': '123456789'}
+    )
+    assert resp.status_code == 422
+    # пустой email
+    resp = await async_client.post(
+        '/api/v1/auth/register',
+        json={'username': str(uuid.uuid4()), 'email': '', 'password': '123456789'}
+    )
+    assert resp.status_code == 422
+    # пустой пароль
+    resp = await async_client.post(
+        '/api/v1/auth/register',
+        json={'username': str(uuid.uuid4()), 'email': f'{uuid.uuid4()}@mail.ru', 'password': ''}
+    )
+    assert resp.status_code == 422
+
+@pytest.mark.asyncio
+async def test_login_empty_username(async_client):
+    """Логин с пустым username_or_email."""
+    response = await async_client.post(
+        '/api/v1/auth/login',
+        json={'username_or_email': '', 'password': '123456789'}
+    )
+    assert response.status_code == 422
+    assert response.json()['detail'] == 'Нехватка информации!'
+
+@pytest.mark.asyncio
+async def test_login_empty_password(async_client):
+    """Логин с пустым password."""
+    response = await async_client.post(
+        '/api/v1/auth/login',
+        json={'username_or_email': 'someuser', 'password': ''}
+    )
+    assert response.status_code == 422
+    assert response.json()['detail'] == 'Нехватка информации!'
+
+@pytest.mark.asyncio
+async def test_get_current_user_unauthorized(async_client):
+    """Запрос /auth/me без токена."""
+    response = await async_client.get('/api/v1/auth/me')
+    assert response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_get_current_user_invalid_token(async_client):
+    """Запрос /auth/me с неверным токеном."""
+    headers = {'Authorization': 'Bearer invalid_token'}
+    response = await async_client.get('/api/v1/auth/me', headers=headers)
+    assert response.status_code == 401
