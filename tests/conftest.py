@@ -87,9 +87,25 @@ async def create_test_user(db_session, password='qwertyui'):
 @pytest_asyncio.fixture(scope='function')
 async def test_users(db_session):
     """Создаёт трёх пользователей: admin, member, outsider."""
-    user1 = await create_test_user(db_session)
-    user2 = await create_test_user(db_session)
-    user3 = await create_test_user(db_session)
+    # Создаём пользователей через репозиторий напрямую, а не через фикстуру
+    repo = UserRepository(db_session)
+    hashed_password = hash_password('qwertyui')
+    
+    user1 = await repo.create_user(
+        f'testuser_{time.time_ns()}_{uuid.uuid4()}',
+        f'test_{uuid.uuid4()}@mail.ru',
+        hashed_password
+    )
+    user2 = await repo.create_user(
+        f'testuser_{time.time_ns()}_{uuid.uuid4()}',
+        f'test_{uuid.uuid4()}@mail.ru',
+        hashed_password
+    )
+    user3 = await repo.create_user(
+        f'testuser_{time.time_ns()}_{uuid.uuid4()}',
+        f'test_{uuid.uuid4()}@mail.ru',
+        hashed_password
+    )
     return {
         'admin': user1,
         'member': user2,
