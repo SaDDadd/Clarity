@@ -1,10 +1,11 @@
 import pytest
+import uuid
 
 @pytest.mark.asyncio
 async def test_update_username_success(async_client, auth_headers):
     """Проверяет, что аутентифицированный пользователь может успешно обновить своё имя."""
     headers = auth_headers
-    new_username = "new_username_123"
+    new_username = f"new_username_{uuid.uuid4().hex[:8]}"
     response = await async_client.put(
         '/api/v1/profile/username',
         json={"username": new_username},
@@ -26,7 +27,7 @@ async def test_update_username_unauthorized(async_client):
 async def test_update_email_success(async_client, auth_headers):
     """Проверяет, что аутентифицированный пользователь может успешно обновить email."""
     headers = auth_headers
-    new_email = "new_email@example.com"
+    new_email = f"new_email_{uuid.uuid4().hex[:8]}@example.com"
     response = await async_client.put(
         '/api/v1/profile/email',
         json={"email": new_email},

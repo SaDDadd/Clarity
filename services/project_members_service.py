@@ -6,10 +6,9 @@ from core.exceptions import NotFoundException, PermissionDeniedException, AppExc
 async def update_member_role(db, user_id: int, project_id: int, current_user_id: int, role_project: str):
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
-    if await repo.get_project_by_id(project_id) is None:
+    project = await repo.get_project_by_id(project_id)
+    if not project:
         raise NotFoundException('Проект не найден')
-    if await repo_user.get_by_id(user_id) is None:
-        raise NotFoundException('Пользователь не найден')
     if not await repo.is_user_in_project(project_id, user_id):
         raise PermissionDeniedException('Пользователь не состоит в проекте')
     if not await repo.is_user_admin(project_id, current_user_id):

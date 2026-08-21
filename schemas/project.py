@@ -4,7 +4,7 @@ from schemas.common import ProjectRole
 from schemas.user import UserResponse
 
 class ProjectBase(BaseModel):
-    project_name : str = Field(max_length=100)
+    project_name : str = Field(min_length=1, max_length=100)
     project_description : str | None
 
 class ProjectCreate(ProjectBase):
@@ -32,3 +32,9 @@ class AddMemberRequest(BaseModel):
 
 class DeleteMemberRequest(BaseModel):
     user_id : int
+
+class UserProjectResponse(BaseModel):
+    project_id: int
+    project_name: str
+    project_description: str | None
+    role: str

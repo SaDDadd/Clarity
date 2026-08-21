@@ -7,7 +7,7 @@ class ProjectInvitationModel(Base):
     __tablename__ = 'project_invitations'
 
     invitation_id: Mapped[int] = mapped_column(primary_key=True)
-    project_id: Mapped[int] = mapped_column(ForeignKey('projects.project_id'), nullable=False)
+    project_id: Mapped[int] = mapped_column(ForeignKey('projects.project_id', ondelete='CASCADE'), nullable=False)
     inviter_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'), nullable=False)
     invitee_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'), nullable=False)
     status_invited: Mapped[str] = mapped_column(Enum('pending', 'accepted', 'declined'), nullable=True)

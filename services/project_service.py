@@ -61,7 +61,16 @@ async def get_project_info(db, project_id: int, user_id: int):
 # Получить все проекты пользователя
 async def get_user_projects(db, current_user_id: int):
     repo = ProjectRepository(db)
-    result = await repo.get_user_projects(current_user_id)
+    projects = await repo.get_user_projects(current_user_id)
+    result = []
+    for project in projects:
+        role = await repo.get_user_role_in_project(project.project_id, current_user_id)
+        result.append({
+            'project_id': project.project_id,
+            'project_name': project.project_name,
+            'project_description': project.project_description,
+            'role': role
+        })
     return result
 
 # Обновить проект
