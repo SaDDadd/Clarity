@@ -1,40 +1,42 @@
-# Схемы для проектов (создание, обновление, вывод)
-from pydantic import BaseModel, Field
+# schemas/project.py
+from pydantic import BaseModel, ConfigDict, Field
 from schemas.common import ProjectRole
 from schemas.user import UserResponse
 
 class ProjectBase(BaseModel):
-    project_name : str = Field(min_length=1, max_length=100)
-    project_description : str | None
+    project_name: str = Field(min_length=1, max_length=100)
+    project_description: str | None
 
 class ProjectCreate(ProjectBase):
     pass
-    
+
 class ProjectUpdate(ProjectBase):
-    project_name : str | None = None
-    project_description : str | None = None
+    project_name: str | None = None
+    project_description: str | None = None
 
 class ProjectMember(ProjectBase):
-    user_id : int
-    role : ProjectRole
+    user_id: int
+    role: ProjectRole
 
 class ProjectMemberCheck(BaseModel):
-    project_id : int
-    user_id : int
+    project_id: int
+    user_id: int
 
 class ProjectResponse(ProjectBase):
-    project_id : int
-    admin_id : int
-    members : list[UserResponse]
+    project_id: int
+    admin_id: int
+    members: list[UserResponse]
+    model_config = ConfigDict(from_attributes=True)
 
 class AddMemberRequest(BaseModel):
-    user_id : int
+    user_id: int
 
 class DeleteMemberRequest(BaseModel):
-    user_id : int
+    user_id: int
 
 class UserProjectResponse(BaseModel):
     project_id: int
     project_name: str
     project_description: str | None
     role: str
+    model_config = ConfigDict(from_attributes=True)

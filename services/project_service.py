@@ -60,7 +60,24 @@ async def get_project_info(db, project_id: int, user_id: int):
         raise NotFoundException('Проект не найден!')
     if not await repo.is_user_in_project(project_id, user_id):
         raise PermissionDeniedException('Пользователь не является участником проекта!')
-    return await repo.get_project_all_info(project_id)
+    
+    data = await repo.get_project_all_info(project_id)
+    members = data['members']
+    # Преобразуем в сериализуемый формат
+    return {
+        'project_id': project.project_id,
+        'project_name': project.project_name,
+        'project_description': project.project_description,
+        'admin_id': project.admin_id,
+        'members': [
+            {
+                'user_id': m.user_id,
+                'role': m.role_project,
+                'joined_date': m.joined_date.isoformat() if m.joined_date else None,
+            }
+            for m in members
+        ]
+    }
 
 # Получить все проекты пользователя
 async def get_user_projects(db, current_user_id: int):
@@ -80,23 +97,23 @@ async def get_user_projects(db, current_user_id: int):
 # Обновить проект
 async def update_project(db, project_id: int, user_id: int, project_date: ProjectUpdate):
     repo = ProjectRepository(db)
-    result = await repo.get_project_by_id(project_id)
-    if result:
-        if await repo.get_user_role_in_project(project_id, user_id) == 'admin':
-            if project_date.project_description is None and project_date.project_name is None:
-                return {'message': 'Ничего не изменилось!'}
-            if project_date.project_description is None:
-                await repo.update_project_name(project_date.project_name, project_id)
-            elif project_date.project_name is None:
-                await repo.update_project_description(project_date.project_description, project_id)
-            else:
-                await repo.update_project_description(project_date.project_description, project_id)
-                await repo.update_project_name(project_date.project_name, project_id)
-            return {'message': 'Проект обновлен!'}
-        else:
-            raise PermissionDeniedException('Пользователь не может менять проект, он не админ!')
-    else:
+    project = await repo.get_project_by_id(project_id)
+    if not project:
         raise NotFoundException('Проект не найден!')
+    if not await repo.is_user_in_project(project_id, user_id):
+        raise PermissionDeniedException('Пользователь не является участником проекта!')
+    if await repo.get_user_role_in_project(project_id, user_id) != 'admin':
+        raise PermissionDeniedException('Пользователь не может менять проект, он не админ!')
+    if project_date.project_description is None and project_date.project_name is None:
+        return {'message': 'Ничего не изменилось!'}
+    if project_date.project_description is None:
+        await repo.update_project_name(project_date.project_name, project_id)
+    elif project_date.project_name is None:
+        await repo.update_project_description(project_date.project_description, project_id)
+    else:
+        await repo.update_project_description(project_date.project_description, project_id)
+        await repo.update_project_name(project_date.project_name, project_id)
+    return {'message': 'Проект обновлен!'}
 
 # Удалить проект
 async def delete_project(db, project_id: int, user_id: int):

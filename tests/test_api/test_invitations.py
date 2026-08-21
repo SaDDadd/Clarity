@@ -37,14 +37,19 @@ async def test_send_invitation_by_non_admin(async_client, test_project, test_use
     assert response.status_code == 403
 
 @pytest.mark.asyncio
-async def test_get_user_invitations(async_client, test_invitation, auth_headers):
+@pytest.mark.asyncio
+async def test_get_user_invitations(async_client, test_invitation, test_users):
     """Проверяет получение списка входящих приглашений для пользователя."""
-    headers = auth_headers
+    outsider = test_users['outsider']
+    login_resp = await async_client.post('/api/v1/auth/login', json={
+        'username_or_email': outsider.username,
+        'password': 'qwertyui'
+    })
+    assert login_resp.status_code == 200
+    token = login_resp.json()['access_token']
+    headers = {'Authorization': f'Bearer {token}'}
 
-    response = await async_client.get(
-        '/api/v1/invitations',
-        headers=headers
-    )
+    response = await async_client.get('/api/v1/invitations', headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -79,7 +84,6 @@ async def test_get_project_invitations_by_non_admin(async_client, test_project, 
 
 @pytest.mark.asyncio
 async def test_accept_invitation(async_client, test_invitation, test_users):
-    """Проверяет, что пользователь может принять приглашение."""
     invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
@@ -91,11 +95,10 @@ async def test_accept_invitation(async_client, test_invitation, test_users):
         headers=headers
     )
     assert response.status_code == 200
-    assert response.json()['message'] == 'Приглашение принято'
+    assert response.json()['message'] == 'Приглашение accepted'
 
 @pytest.mark.asyncio
 async def test_reject_invitation(async_client, test_invitation, test_users):
-    """Проверяет, что пользователь может отклонить приглашение."""
     invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
@@ -103,11 +106,11 @@ async def test_reject_invitation(async_client, test_invitation, test_users):
 
     response = await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
-        json={'action': 'rejected'},
+        json={'action': 'declined'},
         headers=headers
     )
     assert response.status_code == 200
-    assert response.json()['message'] == 'Приглашение отклонено'
+    assert response.json()['message'] == 'Приглашение declined'
 
 
 @pytest.mark.asyncio
@@ -185,13 +188,12 @@ async def test_get_project_invitations_by_outsider(async_client, test_project, t
     assert response.status_code == 403
 
 @pytest.mark.asyncio
-async def test_send_invitation_to_existing_member(async_client, test_project, test_users, auth_headers):
-    """Приглашение пользователя, уже состоящего в проекте."""
+async def test_send_invitation_to_existing_member(async_client, test_project_with_member, test_users, auth_headers):
     headers = auth_headers
-    project_id = test_project.project_id
+    project = test_project_with_member['project']
     member_id = test_users['member'].user_id
     response = await async_client.post(
-        f'/api/v1/projects/{project_id}/invitations',
+        f'/api/v1/projects/{project.project_id}/invitations',
         json={'user_id': member_id, 'message': 'test'},
         headers=headers
     )
@@ -214,7 +216,6 @@ async def test_send_invitation_to_self(async_client, test_project, auth_headers,
 
 @pytest.mark.asyncio
 async def test_send_invitation_to_nonexistent_user(async_client, test_project, auth_headers):
-    """Приглашение несуществующего пользователя."""
     headers = auth_headers
     project_id = test_project.project_id
     response = await async_client.post(
@@ -223,11 +224,10 @@ async def test_send_invitation_to_nonexistent_user(async_client, test_project, a
         headers=headers
     )
     assert response.status_code == 404
-    assert response.json()['detail'] == 'Пользователь не найден'
+    assert response.json()['detail'] == 'Пользователь не найден!'
 
 @pytest.mark.asyncio
 async def test_reject_invitation_already_processed(async_client, test_invitation, test_users):
-    """Отклонение уже принятого приглашения."""
     invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
@@ -242,15 +242,14 @@ async def test_reject_invitation_already_processed(async_client, test_invitation
     # теперь пытаемся отклонить
     response = await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'action': 'rejected'},
+        json={'action': 'declined'},
         headers=headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json()['detail'] == 'Приглашение уже обработано'
 
 @pytest.mark.asyncio
 async def test_accept_invitation_already_rejected(async_client, test_invitation, test_users):
-    """Принятие уже отклонённого приглашения."""
     invitee = test_users['outsider']
     token = create_access_token({'sub': invitee.user_id})
     headers = {'Authorization': f'Bearer {token}'}
@@ -259,7 +258,7 @@ async def test_accept_invitation_already_rejected(async_client, test_invitation,
     # сначала отклоняем
     await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'action': 'rejected'},
+        json={'action': 'declined'},
         headers=headers
     )
     # теперь пытаемся принять
@@ -268,12 +267,11 @@ async def test_accept_invitation_already_rejected(async_client, test_invitation,
         json={'action': 'accepted'},
         headers=headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json()['detail'] == 'Приглашение уже обработано'
 
 @pytest.mark.asyncio
 async def test_cancel_invitation_already_processed(async_client, test_invitation, auth_headers, test_users):
-    """Отмена уже принятого приглашения администратором."""
     headers = auth_headers
     inv_id = test_invitation.invitation_id
 
