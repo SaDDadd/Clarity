@@ -4,6 +4,7 @@ from core.exceptions import AppException, NotFoundException, PermissionDeniedExc
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate
+from schemas.project import UserProjectResponse
 
 # Создание проекта
 async def create_project(db, project_date: ProjectCreate, admin_id):
@@ -88,12 +89,13 @@ async def get_user_projects(db, current_user_id: int):
         role = await repo.get_user_role_in_project(project.project_id, current_user_id)
         if role is None:
             role = 'member'
-        result.append({
-            'project_id': project.project_id,
-            'project_name': project.project_name,
-            'project_description': project.project_description or '',
-            'role': role
-        })
+        # Создаём объект схемы, чтобы гарантировать сериализацию
+        result.append(UserProjectResponse(
+            project_id=project.project_id,
+            project_name=project.project_name,
+            project_description=project.project_description or '',
+            role=role
+        ))
     return result
 
 # Обновить проект
