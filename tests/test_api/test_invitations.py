@@ -198,7 +198,7 @@ async def test_send_invitation_to_existing_member(async_client, test_project_wit
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Пользователь уже состоит в проекте'
+    assert response.json()['detail'] == 'Пользователь уже является участником проекта!'
 
 @pytest.mark.asyncio
 async def test_send_invitation_to_self(async_client, test_project, auth_headers, test_users):
@@ -246,7 +246,7 @@ async def test_reject_invitation_already_processed(async_client, test_invitation
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Приглашение уже обработано'
+    assert response.json()['detail'] == 'Приглашение уже было принято или отклонено'
 
 @pytest.mark.asyncio
 async def test_accept_invitation_already_rejected(async_client, test_invitation, test_users):
@@ -268,7 +268,7 @@ async def test_accept_invitation_already_rejected(async_client, test_invitation,
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Приглашение уже обработано'
+    assert response.json()['detail'] == 'Приглашение уже было принято или отклонено'
 
 @pytest.mark.asyncio
 async def test_cancel_invitation_already_processed(async_client, test_invitation, auth_headers, test_users):

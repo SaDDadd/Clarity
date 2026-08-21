@@ -247,7 +247,7 @@ async def test_regular_member_change_role(async_client, member_auth_headers, tes
         headers=headers
     )
     assert response.status_code == 403
-    assert response.json()['detail'] == 'Нельзя изменить роль: вы не админ проекта!'
+    assert response.json()['detail'] == 'Текущий пользователь не администратор проекта'
 
 @pytest.mark.asyncio
 async def test_add_user_to_non_existent_project(async_client, auth_headers, test_users):

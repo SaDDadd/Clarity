@@ -14,7 +14,7 @@ async def test_creating_task_in_project_by_member(async_client, test_project_wit
             'title': 'Test_task',
             'task_description': 'Test_description',
             'assigned_to': assigned_to,
-            'deadline': deadline.isoformat()
+            'deadline': deadline
         }, headers=headers)
     assert response.status_code == 201
 
@@ -26,7 +26,7 @@ async def test_attempt_create_task_by_non_participant(async_client, test_project
     headers = {'Authorization': f'Bearer {token}'}
     response = await async_client.post(
         f'/api/v1/projects/{test_project.project_id}/tasks',
-        json={'title': 'Test'},
+        json={'title': 'Test', 'task_status': 'pending'},
         headers=headers
     )
     assert response.status_code == 403
@@ -115,7 +115,7 @@ async def test_create_task_with_deadline_in_past(async_client, test_project_with
     """Проверяет создание задачи с дэдлайном в прошлом – ошибка валидации."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
-    past_deadline = (datetime.datetime.now() - datetime.timedelta(days=1)).isoformat()
+    past_deadline = (datetime.datetime.now() - datetime.timedelta(days=1)).date().isoformat()
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/tasks',
         json={'title': 'Test', 'deadline': past_deadline},
@@ -132,7 +132,7 @@ async def test_create_task_with_assigned_to_not_in_project(async_client, test_pr
     outsider_id = test_users['outsider'].user_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/tasks',
-        json={'title': 'Test', 'assigned_to': outsider_id},
+        json={'title': 'Test', 'assigned_to': outsider_id, 'task_status': 'pending'},
         headers=headers
     )
     assert response.status_code == 403
@@ -215,7 +215,7 @@ async def test_update_task_with_invalid_deadline(async_client, test_project_with
     """Проверяет обновление дэдлайна на прошедшую дату – ошибка."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
-    past_deadline = (datetime.datetime.now() - datetime.timedelta(days=1)).isoformat()
+    past_deadline = (datetime.datetime.now() - datetime.timedelta(days=1)).date().isoformat()
     response = await async_client.put(
         f'/api/v1/projects/{project_id}/tasks/{test_task.task_id}',
         json={'deadline': past_deadline},
