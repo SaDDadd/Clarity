@@ -109,16 +109,13 @@ class ProjectRepository:
     # Проверить, является ли пользователь администратором проекта
     async def is_user_admin(self, project_id: int, user_id: int) -> bool:
         result = await self.session.execute(
-            select(ProjectModel).where(
-                ProjectModel.project_id == project_id,
-                ProjectModel.admin_id == user_id
+            select(ProjectMemberModel).where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.user_id == user_id,
+                ProjectMemberModel.role_project == 'admin'
             )
         )
-        task = result.scalar_one_or_none()
-        if task is None:
-            return False
-        else:
-            return True
+        return result.scalar_one_or_none() is not None
 
     # Получить все проекты пользователя
     async def get_user_projects(self, user_id) -> list[ProjectModel]:
@@ -175,17 +172,11 @@ class ProjectRepository:
 
     # Удалить проект
     async def delete_project(self, project_id) -> bool:
-        async with self.session.begin():
-            _ = await self.session.execute(
-                delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id)
-            )
-            result = await self.session.execute(
-                delete(ProjectModel).where(ProjectModel.project_id == project_id)
-            )
-            deleted_count = result.rowcount
-        if deleted_count == 0:
-            return False
-        return True
+        result = await self.session.execute(
+            delete(ProjectModel).where(ProjectModel.project_id == project_id)
+        )
+        await self.session.commit()
+        return result.rowcount > 0
 
     # Удалить пользователя из проекта
     async def delete_user(self, project_id, user_id_to_del) -> bool:

@@ -1,6 +1,6 @@
 # Создание, получение, обновление проектов, проверка прав
 from core.exceptions import AppException, NotFoundException, PermissionDeniedException,\
-            ConflictException, LastAdminDeletionException
+            ConflictException, LastAdminDeletionException, InvalidInvitationStateException
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate
@@ -19,18 +19,20 @@ async def create_project(db, project_date: ProjectCreate, admin_id):
 async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: int):
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
-    if await repo_user.check_user_exists(user_id_to_add) is False:
-        raise NotFoundException('Нельзя добавить пользователя: его не существует!')
+    project = await repo.get_project_by_id(project_id)
+    if not project:
+        raise NotFoundException('Проект не найден!')
     if not await repo.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ проекта!')
+    if current_user_id == user_id_to_add:
+        raise InvalidInvitationStateException('Нельзя добавить самого себя!')
+    if not await repo_user.check_user_exists(user_id_to_add):
+        raise NotFoundException('Нельзя добавить пользователя: его не существует!')
     if await repo.is_user_in_project(project_id, user_id_to_add):
         raise ConflictException('Пользователь уже состоит в проекте')
-    else:
-        result = await repo.add_user(project_id, user_id_to_add)
-        if result:
-            return {'message': 'Пользователь добавлен в проект!'}
-        else:
-            raise AppException('Неизвестная ошибка при добавлении пользователя в проект!')
+    if await repo.add_user(project_id, user_id_to_add):
+        return {'message': 'Пользователь добавлен в проект!'}
+    raise AppException(500, 'Неизвестная ошибка при добавлении пользователя в проект!')
 
 # Получить все проекты админа
 async def get_admin_projects(db, admin_id: int):
@@ -53,10 +55,12 @@ async def checking_rights_project(db, project_date: ProjectMemberCheck):
 # Получить информацию о проекте
 async def get_project_info(db, project_id: int, user_id: int):
     repo = ProjectRepository(db)
-    if await repo.is_user_in_project(project_id, user_id):
-        return await repo.get_project_all_info(project_id)
-    else:
+    project = await repo.get_project_by_id(project_id)
+    if not project:
+        raise NotFoundException('Проект не найден!')
+    if not await repo.is_user_in_project(project_id, user_id):
         raise PermissionDeniedException('Пользователь не является участником проекта!')
+    return await repo.get_project_all_info(project_id)
 
 # Получить все проекты пользователя
 async def get_user_projects(db, current_user_id: int):
@@ -97,13 +101,14 @@ async def update_project(db, project_id: int, user_id: int, project_date: Projec
 # Удалить проект
 async def delete_project(db, project_id: int, user_id: int):
     repo = ProjectRepository(db)
-    if await repo.is_user_admin(project_id, user_id):
-        if await repo.delete_project(project_id):
-            return {'message': 'Проект успешно удален!'}
-        else:
-            raise NotFoundException('Проект не найден!')
-    else:
+    project = await repo.get_project_by_id(project_id)
+    if not project:
+        raise NotFoundException('Проект не найден!')
+    if not await repo.is_user_admin(project_id, user_id):
         raise PermissionDeniedException('Вы не админ этого проекта!')
+    if await repo.delete_project(project_id):
+        return {'message': 'Проект успешно удален!'}
+    raise AppException(500, 'Не удалось удалить проект')
 
 # Удалить пользователя из проекта
 async def delete_project_user(db, project_id: int, current_user_id: int, user_id_to_del: int):

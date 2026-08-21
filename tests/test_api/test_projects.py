@@ -53,12 +53,12 @@ async def test_authorized_user_projects_returned(async_client, auth_headers):
 
 @pytest.mark.asyncio
 async def test_getting_project_lets_project_participant_see_details(async_client, member_auth_headers, \
-                                                                    test_project):
+                                                                    test_project_with_member):
     headers = member_auth_headers
-    response = await async_client.get(f'/api/v1/projects/{test_project.project_id}', \
+    response = await async_client.get(f'/api/v1/projects/{test_project_with_member['project'].project_id}', \
                                         headers=headers)
     assert response.status_code == 200
-    assert response.json()['project_name'] == test_project.project_name
+    assert response.json()['project_name'] == test_project_with_member['project'].project_name
 
 @pytest.mark.asyncio
 async def test_admin_update_project(async_client, auth_headers, test_users, test_project):

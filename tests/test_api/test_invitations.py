@@ -31,7 +31,7 @@ async def test_send_invitation_by_non_admin(async_client, test_project, test_use
 
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
-        json={'user_id': invitee_id},
+        json={'user_id': invitee_id, 'message': 'test'},
         headers=headers
     )
     assert response.status_code == 403
@@ -192,7 +192,7 @@ async def test_send_invitation_to_existing_member(async_client, test_project, te
     member_id = test_users['member'].user_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
-        json={'user_id': member_id},
+        json={'user_id': member_id, 'message': 'test'},
         headers=headers
     )
     assert response.status_code == 409
@@ -206,7 +206,7 @@ async def test_send_invitation_to_self(async_client, test_project, auth_headers,
     admin_id = test_users['admin'].user_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
-        json={'user_id': admin_id},
+        json={'user_id': admin_id, 'message': 'test'},
         headers=headers
     )
     assert response.status_code in (400, 409)
@@ -219,7 +219,7 @@ async def test_send_invitation_to_nonexistent_user(async_client, test_project, a
     project_id = test_project.project_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/invitations',
-        json={'user_id': 99999},
+        json={'user_id': 99999, 'message': 'test'},
         headers=headers
     )
     assert response.status_code == 404
