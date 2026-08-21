@@ -9,6 +9,7 @@ from services.project_service import add_user, create_project, delete_project, d
     get_admin_projects, get_project_info, get_user_projects, update_project
 from services.project_members_service import update_member_role
 from schemas.common import ProjectRole 
+
 router = APIRouter()
 
 # POST
@@ -32,6 +33,10 @@ async def update_member_role_endpoint(project_id: int, user_id: int, role: Proje
     return await update_member_role(db, user_id, project_id, current_user.user_id, role)
 
 # GET
+@router.get('/projects/all', response_model=list[UserProjectResponse], tags=['Проекты'], summary='Вывод проектов, где пользователь участвует(как админ и участник)')
+async def get_member_projects(current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
+    return await get_user_projects(db, current_user.user_id)
+
 @router.get('/projects', tags=['Проекты'], \
             summary='Вывод проектов пользователя, где он админ') # Получение проектов админа
 async def get_projects_admin(user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
@@ -42,10 +47,6 @@ async def get_projects_admin(user: UserModel = Depends(current_user), db: AsyncS
 async def get_project_info_endpoint(projects_id: int, user: UserModel = Depends(current_user),\
                                         db: AsyncSession = Depends(get_db)):
     return await get_project_info(db, projects_id, user.user_id)
-
-@router.get('/projects/all', response_model=list[UserProjectResponse], tags=['Проекты'], summary='Вывод проектов, где пользователь участвует(как админ и участник)')
-async def get_member_projects(current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
-    return await get_user_projects(db, current_user.user_id)
 
 # PUT
 @router.put('/projects/{projects_id}', tags=['Проекты'], \
