@@ -119,7 +119,7 @@ async def test_create_task_with_deadline_in_past(async_client, test_project_with
         json={'title': 'Test', 'task_description': None, 'task_status': 'pending', 'deadline': past_deadline},
         headers=headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert response.json()['detail'] == 'Время дэдлайна не может быть меньше сегодняшнего дня!'
 
 @pytest.mark.asyncio
@@ -217,7 +217,7 @@ async def test_update_task_with_invalid_deadline(async_client, test_project_with
         json={'deadline': past_deadline},
         headers=headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 422
     assert response.json()['detail'] == 'Время дэдлайна не может быть меньше сегодняшнего дня!'
 
 @pytest.mark.asyncio

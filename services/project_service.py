@@ -91,7 +91,7 @@ async def get_user_projects(db, current_user_id: int):
         result.append({
             'project_id': project.project_id,
             'project_name': project.project_name,
-            'project_description': project.project_description,
+            'project_description': project.project_description or '',
             'role': role
         })
     return result

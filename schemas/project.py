@@ -39,4 +39,4 @@ class UserProjectResponse(BaseModel):
     project_name: str
     project_description: str | None
     role: str
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra='ignore')
