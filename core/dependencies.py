@@ -1,21 +1,25 @@
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import AsyncGenerator
+
+from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.database import AsyncSessionLocal
+from core.exceptions import AuthenticationException
 from core.security import decode_access_token as decode_token
 from models.user import UserModel
-from jose import JWTError
-from fastapi.security import OAuth2PasswordBearer
 from repositories.user_repository import UserRepository
-from core.exceptions import AuthenticationException
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 
-async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+
+async def current_user(token: str = Depends(oauth2_scheme),
+                       db: AsyncSession = Depends(get_db)) -> UserModel:
     try:
         print(f"[DEBUG] Received token: {token[:20]}...")
         payload = decode_token(token)

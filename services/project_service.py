@@ -1,13 +1,15 @@
-# Создание, получение, обновление проектов, проверка прав
-from core.exceptions import AppException, NotFoundException, PermissionDeniedException,\
-            ConflictException, LastAdminDeletionException, InvalidInvitationStateException
+from core.exceptions import (AppException, ConflictException,
+                             InvalidInvitationStateException,
+                             LastAdminDeletionException, NotFoundException,
+                             PermissionDeniedException)
+from models.project import ProjectModel
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate
-from schemas.project import UserProjectResponse
+from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
 
-# Создание проекта
-async def create_project(db, project_date: ProjectCreate, admin_id):
+
+async def create_project(db, project_date: ProjectCreate, admin_id: int) -> ProjectModel:
+    """Создаёт новый проект и добавляет администратора."""
     repo = ProjectRepository(db)
     return await repo.create_project_with_admin(
         project_date.project_name,
@@ -16,8 +18,9 @@ async def create_project(db, project_date: ProjectCreate, admin_id):
         role='admin'
     )
 
-# Добавить пользователя в проект
-async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: int):
+
+async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: int) -> dict:
+    """Добавляет пользователя в проект (только администратор)."""
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
     project = await repo.get_project_by_id(project_id)
@@ -35,8 +38,9 @@ async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: in
         return {'message': 'Пользователь добавлен в проект!'}
     raise AppException(500, 'Неизвестная ошибка при добавлении пользователя в проект!')
 
-# Получить все проекты админа
-async def get_admin_projects(db, admin_id: int):
+
+async def get_admin_projects(db, admin_id: int) -> list[ProjectModel]:
+    """Возвращает проекты, где пользователь является администратором."""
     repo = ProjectRepository(db)
     numb_projects = await repo.get_projects_by_admin(admin_id)
     if not numb_projects:
@@ -44,8 +48,9 @@ async def get_admin_projects(db, admin_id: int):
     else:
         return numb_projects
 
-# Проверка прав пользователя в проекте
-async def checking_rights_project(db, project_date: ProjectMemberCheck):
+
+async def checking_rights_project(db, project_date: ProjectMemberCheck) -> str:
+    """Проверяет права пользователя в проекте (возвращает роль)."""
     repo = ProjectRepository(db)
     result = await repo.get_user_role_in_project(project_date.project_id, project_date.user_id)
     if result is None:
@@ -53,18 +58,18 @@ async def checking_rights_project(db, project_date: ProjectMemberCheck):
     else:
         return result
 
-# Получить информацию о проекте
-async def get_project_info(db, project_id: int, user_id: int):
+
+async def get_project_info(db, project_id: int, user_id: int) -> dict:
+    """Возвращает полную информацию о проекте."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
     if not await repo.is_user_in_project(project_id, user_id):
         raise PermissionDeniedException('Пользователь не является участником проекта!')
-    
+
     data = await repo.get_project_all_info(project_id)
     members = data['members']
-    # Преобразуем в сериализуемый формат
     return {
         'project_id': project.project_id,
         'project_name': project.project_name,
@@ -80,8 +85,9 @@ async def get_project_info(db, project_id: int, user_id: int):
         ]
     }
 
-# Получить все проекты пользователя
-async def get_user_projects(db, current_user_id: int):
+
+async def get_user_projects(db, current_user_id: int) -> list[UserProjectResponse]:
+    """Возвращает все проекты, в которых участвует пользователь."""
     repo = ProjectRepository(db)
     projects = await repo.get_user_projects(current_user_id)
     result = []
@@ -89,7 +95,6 @@ async def get_user_projects(db, current_user_id: int):
         role = await repo.get_user_role_in_project(project.project_id, current_user_id)
         if role is None:
             role = 'member'
-        # Создаём объект схемы, чтобы гарантировать сериализацию
         result.append(UserProjectResponse(
             project_id=project.project_id,
             project_name=project.project_name,
@@ -98,8 +103,9 @@ async def get_user_projects(db, current_user_id: int):
         ))
     return result
 
-# Обновить проект
-async def update_project(db, project_id: int, user_id: int, project_date: ProjectUpdate):
+
+async def update_project(db, project_id: int, user_id: int, project_date: ProjectUpdate) -> dict:
+    """Обновляет название и/или описание проекта (только администратор)."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
@@ -119,8 +125,9 @@ async def update_project(db, project_id: int, user_id: int, project_date: Projec
         await repo.update_project_name(project_date.project_name, project_id)
     return {'message': 'Проект обновлен!'}
 
-# Удалить проект
-async def delete_project(db, project_id: int, user_id: int):
+
+async def delete_project(db, project_id: int, user_id: int) -> dict:
+    """Удаляет проект (только администратор)."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
@@ -131,8 +138,10 @@ async def delete_project(db, project_id: int, user_id: int):
         return {'message': 'Проект успешно удален!'}
     raise AppException(500, 'Не удалось удалить проект')
 
-# Удалить пользователя из проекта
-async def delete_project_user(db, project_id: int, current_user_id: int, user_id_to_del: int):
+
+async def delete_project_user(db, project_id: int, current_user_id: int,
+                              user_id_to_del: int) -> dict:
+    """Удаляет участника из проекта (только администратор)."""
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
     if not await repo_user.check_user_exists(user_id_to_del):

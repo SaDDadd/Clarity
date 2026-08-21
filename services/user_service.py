@@ -1,9 +1,9 @@
-from core.exceptions import ConflictException, NotFoundException, LackOfInformationException,\
-                            AppException
+from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from repositories.user_repository import UserRepository
 
-# Обновление имени пользователя
-async def update_user_username(db, username: str, current_user_id: int):
+
+async def update_user_username(db, username: str, current_user_id: int) -> dict:
+    """Обновляет имя пользователя."""
     repo = UserRepository(db)
     if len(username) == 0 or len(username) > 50:
         raise LackOfInformationException('Имя не может быть пустым или превышать 50 символов!')
@@ -14,8 +14,9 @@ async def update_user_username(db, username: str, current_user_id: int):
     else:
         raise NotFoundException('Пользователь не найден!')
 
-# Обновление email пользователя
-async def update_user_email(db, email: str, current_user_id: int):
+
+async def update_user_email(db, email: str, current_user_id: int) -> dict:
+    """Обновляет email пользователя."""
     repo = UserRepository(db)
     if len(email) == 0 or len(email) > 100:
         raise LackOfInformationException('Email не может быть пустым или превышать 100 символов!')

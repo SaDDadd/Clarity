@@ -1,9 +1,12 @@
+from core.exceptions import (AppException, LastAdminDeletionException,
+                             NotFoundException, PermissionDeniedException)
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from models.project_members import ProjectMemberModel
-from core.exceptions import NotFoundException, PermissionDeniedException, AppException, LastAdminDeletionException
 
-async def update_member_role(db, user_id: int, project_id: int, current_user_id: int, role_project: str):
+
+async def update_member_role(db, user_id: int, project_id: int, current_user_id: int,
+                             role_project: str) -> dict:
+    """Обновляет роль участника в проекте."""
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
     project = await repo.get_project_by_id(project_id)
@@ -15,7 +18,7 @@ async def update_member_role(db, user_id: int, project_id: int, current_user_id:
         raise PermissionDeniedException('Текущий пользователь не администратор проекта')
     if current_user_id == user_id:
         raise PermissionDeniedException('Нельзя изменить свою собственную роль')
-    
+
     current_role = await repo.get_user_role_in_project(project_id, user_id)
 
     if current_role == 'admin' and role_project != 'admin':

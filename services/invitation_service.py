@@ -1,11 +1,18 @@
+from core.exceptions import (AppException, ConflictException,
+                             InvalidInvitationStateException,
+                             InvitationAlreadyProcessedException,
+                             MemberAlreadyInProjectException, NotFoundException,
+                             PermissionDeniedException)
+from models.project_invitations import ProjectInvitationModel
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from core.exceptions import NotFoundException, PermissionDeniedException, ConflictException,\
-    MemberAlreadyInProjectException, InvalidInvitationStateException, InvitationAlreadyProcessedException, AppException
 from schemas.invitation import InvitationRole
 
-async def send_invitation(db, project_id: int, user_id: int, current_user_id: int, message: str): # Отправка приглашения
+
+async def send_invitation(db, project_id: int, user_id: int, current_user_id: int,
+                          message: str) -> ProjectInvitationModel:
+    """Отправляет приглашение в проект."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
@@ -19,15 +26,20 @@ async def send_invitation(db, project_id: int, user_id: int, current_user_id: in
         raise MemberAlreadyInProjectException('Пользователь уже является участником проекта!')
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
-    if current_user_id == user_id: 
+    if current_user_id == user_id:
         raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
     return await repo.create_invitation(project_id, current_user_id, user_id, message)
 
-async def get_user_invitations(db, current_user_id: int): # Возращаем список приглашений пользователя
+
+async def get_user_invitations(db, current_user_id: int) -> list[ProjectInvitationModel]:
+    """Возвращает список приглашений для пользователя."""
     repo = ProjectInvitationRepository(db)
     return await repo.get_invitation_by_user(current_user_id)
 
-async def get_project_invitations(db, project_id: int, current_user_id: int): # Возращает список приглашений проекта 
+
+async def get_project_invitations(db, project_id: int,
+                                  current_user_id: int) -> list[ProjectInvitationModel]:
+    """Возвращает список приглашений проекта (только для администратора)."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     if not await repo_proj.is_user_admin(project_id, current_user_id):
@@ -36,14 +48,17 @@ async def get_project_invitations(db, project_id: int, current_user_id: int): # 
         raise NotFoundException('Проект не найден!')
     return await repo.get_invitation_for_project(project_id)
 
-async def response_to_invitation(db, invitation_id: int, action: InvitationRole, current_user_id: int): # Возращает информацию о принятии/отклонении приглашения в проект
+
+async def response_to_invitation(db, invitation_id: int, action: InvitationRole,
+                                 current_user_id: int) -> dict:
+    """Обрабатывает ответ на приглашение (принять/отклонить)."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
 
     invitation = await repo.get_invitation_by_id(invitation_id)
     if not invitation:
         raise NotFoundException('Приглашение не найдено')
-    
+
     invitee_id = invitation.invitee_id
     project_id = invitation.project_id
     status_invited = invitation.status_invited
@@ -64,7 +79,8 @@ async def response_to_invitation(db, invitation_id: int, action: InvitationRole,
     return {'message': f'Приглашение {new_status}'}
 
 
-async def cancel_invitation(db, invitation_id: int, current_user_id: int):
+async def cancel_invitation(db, invitation_id: int, current_user_id: int) -> dict:
+    """Отменяет (удаляет) приглашение."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
 
@@ -72,7 +88,6 @@ async def cancel_invitation(db, invitation_id: int, current_user_id: int):
     if not invitation:
         raise NotFoundException('Приглашение не найдено')
 
-    # Добавляем проверку статуса
     if invitation.status_invited != 'pending':
         raise InvitationAlreadyProcessedException('Приглашение уже обработано')
 

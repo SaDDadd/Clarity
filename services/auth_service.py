@@ -1,16 +1,12 @@
-# Регистрация, аутентификация, выдача токена
 from core.config import settings
-from core.exceptions import (
-    AuthenticationException,
-    ConflictException,
-    LackOfInformationException,
-)
+from core.exceptions import AuthenticationException, ConflictException, LackOfInformationException
 from core.security import create_access_token, hash_password, verify_password
 from repositories.user_repository import UserRepository
 from schemas.auth import Token, UserLogin, UserRegister
 
-# Регистрация нового пользователя
-async def register_user(db, user_date: UserRegister):
+
+async def register_user(db, user_date: UserRegister) -> dict:
+    """Регистрирует нового пользователя."""
     repo = UserRepository(db)
     if len(user_date.username) == 0 or len(user_date.email) == 0:
         raise LackOfInformationException('Нехватка информации!')
@@ -25,8 +21,9 @@ async def register_user(db, user_date: UserRegister):
         await repo.create_user(user_date.username, user_date.email, hashed_password)
         return {'message': 'Пользователь создан'}
 
-# Аутентификация пользователя и выдача токена
-async def login_user(db, user_date: UserLogin):
+
+async def login_user(db, user_date: UserLogin) -> Token:
+    """Аутентифицирует пользователя и возвращает JWT-токен."""
     repo = UserRepository(db)
     if len(user_date.username_or_email) == 0 or len(user_date.password) == 0:
         raise LackOfInformationException('Нехватка информации!')
