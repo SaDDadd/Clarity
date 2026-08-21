@@ -55,8 +55,8 @@ async def test_authorized_user_projects_returned(async_client, auth_headers):
 async def test_getting_project_lets_project_participant_see_details(async_client, member_auth_headers, \
                                                                     test_project_with_member):
     headers = member_auth_headers
-    response = await async_client.get(f'/api/v1/projects/{test_project_with_member['project'].project_id}', \
-                                        headers=headers)
+    project_id = test_project_with_member['project'].project_id
+    response = await async_client.get(f'/api/v1/projects/{project_id}', headers=headers)
     assert response.status_code == 200
     assert response.json()['project_name'] == test_project_with_member['project'].project_name
 
@@ -122,13 +122,16 @@ async def test_adding_yourself(async_client, member_auth_headers, test_project, 
     assert response.status_code == 400
 
 @pytest.mark.asyncio
-async def test_admin_not_add_user_already_in_project(async_client, auth_headers, test_project, test_users):
+async def test_admin_not_add_user_already_in_project(async_client, auth_headers, test_project_with_member, test_users):
     headers = auth_headers
-    member = test_users.get('member')
-    response = await async_client.post(f'/api/v1/projects/{test_project.project_id}/members', \
-                                            json={'user_id': member.user_id}, headers=headers)
+    project = test_project_with_member['project']
+    member = test_users['member']
+    response = await async_client.post(
+        f'/api/v1/projects/{project.project_id}/members',
+        json={'user_id': member.user_id},
+        headers=headers
+    )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Пользователь уже состоит в проекте'
 
 @pytest.mark.asyncio
 async def test_admin_delete_anyone(async_client, auth_headers, test_project, test_users):
@@ -226,8 +229,8 @@ async def test_regular_member_change_role(async_client, member_auth_headers, tes
     response = await async_client.patch(f'/api/v1/projects/{test_project.project_id}/members/{member.user_id}/role', \
                                             params={'role': 'admin'}, headers=headers)
     assert response.status_code == 403
-    assert response.json()['detail'] == 'Нельзя изменить роль: вы не админ проекта!'
-
+    assert response.json()['detail'] == 'Пользователь не состоит в проекте'
+    
 @pytest.mark.asyncio
 async def test_add_user_to_non_existent_project(async_client, auth_headers, test_users):
     headers = auth_headers

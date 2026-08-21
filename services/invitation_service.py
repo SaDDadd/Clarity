@@ -64,13 +64,17 @@ async def response_to_invitation(db, invitation_id: int, action: InvitationRole,
     return {'message': f'Приглашение {new_status}'}
 
 
-async def cancel_invitation(db, invitation_id: int, current_user_id: int): # Удалить приглашение
+async def cancel_invitation(db, invitation_id: int, current_user_id: int):
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
 
     invitation = await repo.get_invitation_by_id(invitation_id)
     if not invitation:
         raise NotFoundException('Приглашение не найдено')
+
+    # Добавляем проверку статуса
+    if invitation.status_invited != 'pending':
+        raise InvitationAlreadyProcessedException('Приглашение уже обработано')
 
     project_id = invitation.project_id
     inviter_id = invitation.inviter_id

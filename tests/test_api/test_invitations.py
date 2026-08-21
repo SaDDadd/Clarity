@@ -154,7 +154,7 @@ async def test_accept_already_processed_invitation(async_client, test_invitation
         json={'action': 'accepted'},
         headers=headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 409
 
 @pytest.mark.asyncio
 async def test_cancel_invitation_by_outsider(async_client, test_invitation, test_users):
@@ -292,7 +292,7 @@ async def test_cancel_invitation_already_processed(async_client, test_invitation
         f'/api/v1/invitations/{inv_id}',
         headers=headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json()['detail'] == 'Приглашение уже обработано'
 
 @pytest.mark.asyncio
