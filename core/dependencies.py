@@ -17,15 +17,20 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
     try:
+        print(f"[DEBUG] Received token: {token[:20]}...")
         payload = decode_token(token)
+        print(f"[DEBUG] Decoded payload: {payload}")
         user_id = payload.get('sub')
         if user_id is None:
             raise AuthenticationException('Недействительный токен')
         user_id = int(user_id)
+        print(f"[DEBUG] Looking for user_id: {user_id}")
         repo = UserRepository(db)
         user = await repo.get_by_id(user_id)
+        print(f"[DEBUG] User found: {user}")
         if user is None:
             raise AuthenticationException('Пользователь не найден')
         return user
-    except (JWTError, ValueError):
+    except Exception as e:
+        print(f"[DEBUG] Exception in current_user: {e}")
         raise AuthenticationException('Недействительный токен')

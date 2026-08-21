@@ -125,6 +125,13 @@ async def auth_headers(async_client, test_users):
     })
     assert response.status_code == 200, f"Login failed: {response.text}"
     token = response.json()['access_token']
+    from core.security import decode_access_token
+    token = response.json()['access_token']
+    try:
+        decoded = decode_access_token(token)
+        print("[DEBUG] Token decoded in fixture:", decoded)
+    except Exception as e:
+        print("[DEBUG] Token decode failed in fixture:", e)
     return {'Authorization': f'Bearer {token}'}
 
 @pytest_asyncio.fixture(scope='function')
