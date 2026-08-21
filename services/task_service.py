@@ -77,7 +77,7 @@ async def update_task(db, project_id: int, task_id: int, current_user_id: int, t
         return {'message': 'Задача обновилась!'}
 
 # Изменить статус задачи
-async def change_status(db, project_id: int, task_id: int, current_user_id: int, task_status: TaskStatusUpdate):
+async def change_status(db, project_id: int, task_id: int, current_user_id: int, task_status: TaskStatus):
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
@@ -86,7 +86,7 @@ async def change_status(db, project_id: int, task_id: int, current_user_id: int,
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    if await repo.update_task_status(project_id, task_id, task_status.task_status.value):
+    if await repo.update_task_status(project_id, task_id, task_status.value):
         return {'message': 'Статус обновлен!'}
     else:
         return {'message': 'Статус уже установлен'}

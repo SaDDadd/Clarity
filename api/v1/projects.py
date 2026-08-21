@@ -12,7 +12,7 @@ router = APIRouter()
 
 # POST
 @router.post('/projects', tags=['Проекты'], \
-             summary='Создание проекта') # Создание проекта
+             summary='Создание проекта', status_code=201) # Создание проекта
 async def create_project_endpoint(project: ProjectCreate, user: UserModel = Depends(current_user),\
                                     db: AsyncSession = Depends(get_db)):
     return await create_project(db, project, user.user_id)
@@ -26,7 +26,7 @@ async def add_member(project_id: int, request: AddMemberRequest, current_user: U
 # PATCH
 @router.patch('/projects/{project_id}/members/{user_id}/role', tags=['Проекты'],\
               summary='Изменение роли участника')
-async def update_member_role(project_id: int, user_id: int, role: ProjectRole, current_user: UserModel = Depends(current_user),\
+async def update_member_role_endpoint(project_id: int, user_id: int, role: ProjectRole, current_user: UserModel = Depends(current_user),\
                              db: AsyncSession = Depends(get_db)):
     return await update_member_role(db, user_id, project_id, current_user.user_id, role)
 

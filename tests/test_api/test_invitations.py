@@ -87,7 +87,7 @@ async def test_accept_invitation(async_client, test_invitation, test_users):
 
     response = await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
-        json={'status': 'accepted'},
+        json={'action': 'accepted'},
         headers=headers
     )
     assert response.status_code == 200
@@ -103,7 +103,7 @@ async def test_reject_invitation(async_client, test_invitation, test_users):
 
     response = await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
-        json={'status': 'rejected'},
+        json={'action': 'rejected'},
         headers=headers
     )
     assert response.status_code == 200
@@ -146,12 +146,12 @@ async def test_accept_already_processed_invitation(async_client, test_invitation
 
     await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
-        json={'status': 'accepted'},
+        json={'action': 'accepted'},
         headers=headers
     )
     response = await async_client.patch(
         f'/api/v1/invitations/{invitation_id}',
-        json={'status': 'accepted'},
+        json={'action': 'accepted'},
         headers=headers
     )
     assert response.status_code == 400
@@ -236,13 +236,13 @@ async def test_reject_invitation_already_processed(async_client, test_invitation
     # сначала принимаем
     await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'status': 'accepted'},
+        json={'action': 'accepted'},
         headers=headers
     )
     # теперь пытаемся отклонить
     response = await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'status': 'rejected'},
+        json={'action': 'rejected'},
         headers=headers
     )
     assert response.status_code == 400
@@ -259,13 +259,13 @@ async def test_accept_invitation_already_rejected(async_client, test_invitation,
     # сначала отклоняем
     await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'status': 'rejected'},
+        json={'action': 'rejected'},
         headers=headers
     )
     # теперь пытаемся принять
     response = await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'status': 'accepted'},
+        json={'action': 'accepted'},
         headers=headers
     )
     assert response.status_code == 400
@@ -283,7 +283,7 @@ async def test_cancel_invitation_already_processed(async_client, test_invitation
     accept_headers = {'Authorization': f'Bearer {token}'}
     await async_client.patch(
         f'/api/v1/invitations/{inv_id}',
-        json={'status': 'accepted'},
+        json={'action': 'accepted'},
         headers=accept_headers
     )
 

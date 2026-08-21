@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from models.project import ProjectModel
 from models.project_members import ProjectMemberModel
+from sqlalchemy import func 
 
 
 class ProjectRepository:
@@ -199,3 +200,14 @@ class ProjectRepository:
             return False
         else:
             return True
+
+    async def get_number_admins(self, project_id: int) -> int:
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(ProjectMemberModel)
+            .where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.role_project == 'admin'
+            )
+        )
+        return result.scalar() or 0

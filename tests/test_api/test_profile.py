@@ -67,7 +67,7 @@ async def test_update_username_conflict(async_client, auth_headers, test_users):
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Имя пользователя уже существует!'
+    assert response.json()['detail'] == 'Пользователь с таким именем уже существует!'
 
 @pytest.mark.asyncio
 async def test_update_email_conflict(async_client, auth_headers, test_users):
@@ -80,7 +80,7 @@ async def test_update_email_conflict(async_client, auth_headers, test_users):
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Email пользователя уже существует!'
+    assert response.json()['detail'] == 'Пользователь с таким email уже существует!'
 
 @pytest.mark.asyncio
 async def test_update_username_empty(async_client, auth_headers):
