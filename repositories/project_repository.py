@@ -174,12 +174,22 @@ class ProjectRepository:
 
     # Удалить проект
     async def delete_project(self, project_id: int) -> bool:
-        project = await self.get_project_by_id(project_id)
-        if not project:
-            return False
-        await self.session.delete(project)
-        await self.session.commit()
-        return True
+        async with self.session.begin():
+            # Удаляем все связанные записи в правильном порядке
+            await self.session.execute(
+                delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id)
+            )
+            await self.session.execute(
+                delete(TaskModel).where(TaskModel.project_id == project_id)
+            )
+            await self.session.execute(
+                delete(ProjectInvitationModel).where(ProjectInvitationModel.project_id == project_id)
+            )
+            # Теперь удаляем сам проект
+            result = await self.session.execute(
+                delete(ProjectModel).where(ProjectModel.project_id == project_id)
+            )
+            return result.rowcount > 0
 
     # Удалить пользователя из проекта
     async def delete_user(self, project_id, user_id_to_del) -> bool:
