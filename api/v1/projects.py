@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.dependencies import get_db, current_user
 from models.user import UserModel
+from schemas.project import UserProjectResponse
 from schemas.project import AddMemberRequest, DeleteMemberRequest, ProjectCreate, ProjectUpdate
 from services.project_service import add_user, create_project, delete_project, delete_project_user,\
     get_admin_projects, get_project_info, get_user_projects, update_project
@@ -42,8 +43,7 @@ async def get_project_info_endpoint(projects_id: int, user: UserModel = Depends(
                                         db: AsyncSession = Depends(get_db)):
     return await get_project_info(db, projects_id, user.user_id)
 
-@router.get('/projects/all', tags=['Проекты'], \
-            summary='Вывод проектов, где пользователь участвует(как админ и участник)')
+@router.get('/projects/all', response_model=list[UserProjectResponse], tags=['Проекты'], summary='Вывод проектов, где пользователь участвует(как админ и участник)')
 async def get_member_projects(current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await get_user_projects(db, current_user.user_id)
 

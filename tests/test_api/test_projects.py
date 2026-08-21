@@ -72,7 +72,7 @@ async def test_admin_update_project(async_client, auth_headers, test_users, test
 @pytest.mark.asyncio
 async def test_updating_not_existent_project(async_client, auth_headers):
     headers = auth_headers
-    response = await async_client.put('/api/v1/projects/999', headers=headers)
+    response = await async_client.put('/api/v1/projects/999', json={}, headers=headers)
     assert response.status_code == 404     
     assert response.json()['detail'] == 'Проект не найден!'
 
@@ -86,7 +86,7 @@ async def test_deleting_not_existent_project(async_client, member_auth_headers):
 @pytest.mark.asyncio
 async def test_regular_participant_not_update_project(async_client, member_auth_headers, test_project):
     headers = member_auth_headers
-    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}',headers=headers)
+    response = await async_client.put(f'/api/v1/projects/{test_project.project_id}', json={}, headers=headers)
     assert response.status_code == 403    
     assert response.json()['detail'] == 'Пользователь не может менять проект, он не админ!'
 
@@ -184,7 +184,8 @@ async def test_not_demote_only_admin(async_client, auth_headers, test_project_wi
         params={'role': 'member'},
         headers=admin_headers
     )
-    assert response.status_code == 400
+    assert response.status_code == 403
+    assert response.json()['detail'] == 'Текущий пользователь не администратор проекта'
 
 @pytest.mark.asyncio
 async def test_empty_projects_list_for_new_user(async_client, test_users):

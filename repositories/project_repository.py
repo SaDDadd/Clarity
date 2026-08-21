@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from models.project import ProjectModel
 from models.project_members import ProjectMemberModel
+from models.task import TaskModel
 from sqlalchemy import func 
 
 
@@ -172,11 +173,13 @@ class ProjectRepository:
 
     # Удалить проект
     async def delete_project(self, project_id) -> bool:
-        result = await self.session.execute(
-            delete(ProjectModel).where(ProjectModel.project_id == project_id)
-        )
-        await self.session.commit()
-        return result.rowcount > 0
+        async with self.session.begin():
+        # Удаляем связанные записи (если CASCADE не сработает)
+            await self.session.execute(delete(ProjectMemberModel).where(ProjectMemberModel.project_id == project_id))
+            await self.session.execute(delete(TaskModel).where(TaskModel.project_id == project_id))
+            await self.session.execute(delete(ProjectInvitationModel).where(ProjectInvitationModel.project_id == project_id))
+            result = await self.session.execute(delete(ProjectModel).where(ProjectModel.project_id == project_id))
+            return result.rowcount > 0
 
     # Удалить пользователя из проекта
     async def delete_user(self, project_id, user_id_to_del) -> bool:
