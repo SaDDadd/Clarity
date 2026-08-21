@@ -86,6 +86,8 @@ async def get_user_projects(db, current_user_id: int):
     result = []
     for project in projects:
         role = await repo.get_user_role_in_project(project.project_id, current_user_id)
+        if role is None:
+            role = 'member'
         result.append({
             'project_id': project.project_id,
             'project_name': project.project_name,

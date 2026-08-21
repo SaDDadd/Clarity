@@ -20,13 +20,12 @@ async def test_creating_task_in_project_by_member(async_client, test_project_wit
 
 @pytest.mark.asyncio
 async def test_attempt_create_task_by_non_participant(async_client, test_project, test_users):
-    """Проверяет, что пользователь, не состоящий в проекте, не может создать задачу."""
     outsider = test_users['outsider']
     token = create_access_token({'sub': outsider.user_id})
     headers = {'Authorization': f'Bearer {token}'}
     response = await async_client.post(
         f'/api/v1/projects/{test_project.project_id}/tasks',
-        json={'title': 'Test', 'task_status': 'pending'},
+        json={'title': 'Test', 'task_description': None, 'task_status': 'pending'},
         headers=headers
     )
     assert response.status_code == 403
@@ -112,13 +111,12 @@ async def test_attempt_get_non_existent_task(async_client, test_project_with_mem
 
 @pytest.mark.asyncio
 async def test_create_task_with_deadline_in_past(async_client, test_project_with_member, member_auth_headers):
-    """Проверяет создание задачи с дэдлайном в прошлом – ошибка валидации."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
     past_deadline = (datetime.datetime.now() - datetime.timedelta(days=1)).date().isoformat()
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/tasks',
-        json={'title': 'Test', 'deadline': past_deadline},
+        json={'title': 'Test', 'task_description': None, 'task_status': 'pending', 'deadline': past_deadline},
         headers=headers
     )
     assert response.status_code == 400
@@ -126,13 +124,12 @@ async def test_create_task_with_deadline_in_past(async_client, test_project_with
 
 @pytest.mark.asyncio
 async def test_create_task_with_assigned_to_not_in_project(async_client, test_project_with_member, member_auth_headers, test_users):
-    """Проверяет назначение задачи пользователю, не входящему в проект."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
     outsider_id = test_users['outsider'].user_id
     response = await async_client.post(
         f'/api/v1/projects/{project_id}/tasks',
-        json={'title': 'Test', 'assigned_to': outsider_id, 'task_status': 'pending'},
+        json={'title': 'Test', 'task_description': None, 'task_status': 'pending', 'assigned_to': outsider_id},
         headers=headers
     )
     assert response.status_code == 403
@@ -212,7 +209,6 @@ async def test_update_task_by_member(async_client, test_project_with_member, mem
 
 @pytest.mark.asyncio
 async def test_update_task_with_invalid_deadline(async_client, test_project_with_member, member_auth_headers, test_task):
-    """Проверяет обновление дэдлайна на прошедшую дату – ошибка."""
     headers = member_auth_headers
     project_id = test_project_with_member['project'].project_id
     past_deadline = (datetime.datetime.now() - datetime.timedelta(days=1)).date().isoformat()

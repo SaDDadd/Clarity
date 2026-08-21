@@ -10,11 +10,8 @@ from services.task_service import change_status, create_task, delete_task,\
 router = APIRouter()
 
 # POST
-@router.post('/projects/{project_id}/tasks', tags=['Задачи'],\
-             summary='Создать задачу') # Создать задачу
-async def create_task_endpoint(project_id: int, task: TaskCreate,\
-                                    current_user: UserModel = Depends(current_user),\
-                                    db: AsyncSession = Depends(get_db)):
+@router.post('/projects/{project_id}/tasks', status_code=201, tags=['Задачи'], summary='Создать задачу')
+async def create_task_endpoint(project_id: int, task: TaskCreate, current_user: UserModel = Depends(current_user), db: AsyncSession = Depends(get_db)):
     return await create_task(db, project_id, current_user.user_id, task)
 
 # PATCH
