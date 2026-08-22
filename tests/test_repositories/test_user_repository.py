@@ -93,53 +93,67 @@ class TestUserRepository():
         repo = UserRepository(db_session)
         first_username = test_users['user_profile'].username
         response = await repo.update_username(test_users['user_profile'].user_id, 'update_name')
-        assert response.username != first_username
+        update_user = await repo.get_by_id(test_users['user_profile'].user_id)
+        assert response is True
+        assert first_username != update_user.username
 
     @pytest.mark.asyncio
     async def test_update_email_success(self, db_session: AsyncSession, test_users):
         repo = UserRepository(db_session)
         first_email = test_users['user_profile'].email
         response = await repo.update_email(test_users['user_profile'].user_id, 'update_email@mail.ru')
-        assert response.email != first_email
-        
+        update_user = await repo.get_by_id(test_users['user_profile'].user_id)
+        assert response is True
+        assert first_email != update_user.email
+
     @pytest.mark.asyncio 
     async def test_update_user_password_hash_success():
+        #Функционала с обновлением пароля пока нет, надо добавить 
+        pass
 
     @pytest.mark.asyncio
-    async def test_update_user_duplicate_email_raises_integrity_error():
+    async def test_update_email_not_found_raises_error_or_returns_none(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        response = await repo.update_email(999, 'update_email@mail.ru')
+        assert response is False
 
     @pytest.mark.asyncio
-    async def test_update_user_duplicate_username_raises_integrity_error():
+    async def test_update_username_not_found_raises_error_or_returns_none(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        response = await repo.update_username(999, 'update_username')
+        assert response is False
 
     @pytest.mark.asyncio
-    async def test_update_user_not_found_raises_error_or_returns_none():
+    async def test_delete_user_success(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        user_id = test_users['outsider'].user_id
+        result = await repo.delete_user(user_id)
+        assert result is True
+        deleted_user = await repo.get_by_id(user_id)
+        assert deleted_user is None
 
     @pytest.mark.asyncio
-    async def test_delete_user_success():
+    async def test_delete_user_not_found_raises_error_or_ignores(self, db_session: AsyncSession):
+        repo = UserRepository(db_session)
+        result = await repo.delete_user(999)
+        assert result is False
 
     @pytest.mark.asyncio
-    async def test_delete_user_not_found_raises_error_or_ignores():
-
-    @pytest.mark.asyncio
-    async def test_delete_user_cascades_to_related_entities():
-
-    @pytest.mark.asyncio
-    async def test_get_all_users_returns_list():
-
-    @pytest.mark.asyncio 
-    async def test_get_all_users_with_pagination():
-
-    @pytest.mark.asyncio
-    async def test_get_all_users_with_sorting():
-
-    @pytest.mark.asyncio
-    async def test_exists_by_email_returns_true_if_exists():
-
-    @pytest.mark.asyncio
-    async def test_exists_by_email_returns_false_if_not_exists():
-
-    @pytest.mark.asyncio
-    async def test_exists_by_username_returns_true_if_exists():
-
-    @pytest.mark.asyncio
-    async def test_exists_by_username_returns_false_if_not_exists():
+    async def test_delete_user_cascades_to_related_entities(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        hashed_password = hash_password('qwertyui')
+        new_user = await repo.create_user(
+            username=f'cascade_test_{uuid.uuid4().hex[:8]}',
+            email=f'cascade_test_{uuid.uuid4().hex[:8]}@mail.ru',
+            password_hash=hashed_password
+        )
+        from repositories.project_repository import ProjectRepository
+        project_repo = ProjectRepository(db_session)
+        project = await project_repo.create_project_with_admin(
+            name=f'Cascade_project_{uuid.uuid4().hex[:8]}',
+            description=None,
+            admin_id=new_user.user_id,
+            role='admin'
+        )
+        with pytest.raises(IntegrityError):
+            await repo.delete_user(new_user.user_id)
