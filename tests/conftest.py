@@ -109,10 +109,16 @@ async def test_users(db_session):
         f'test_{uuid.uuid4().hex[:8]}@mail.ru',
         hashed_password
     )
+    user4 = await repo.create_user(
+        f'test_{uuid.uuid4().hex[:8]}',
+        f'test_{uuid.uuid4().hex[:8]}@mail.ru',
+        hashed_password
+    )
     return {
         'admin': user1,
         'member': user2,
-        'outsider': user3
+        'outsider': user3,
+        'user_profile': user4
     }
 
 @pytest_asyncio.fixture(scope='function')
