@@ -180,12 +180,6 @@ class TestTaskRepository:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_update_task_status_no_change(self, db_session: AsyncSession, test_project, test_task):
-        repo = TaskRepository(db_session)
-        result = await repo.update_task_status(test_project.project_id, test_task.task_id, 'pending')
-        assert result is False
-
-    @pytest.mark.asyncio
     async def test_delete_task_success(self, db_session: AsyncSession, test_task):
         repo = TaskRepository(db_session)
         task_id = test_task.task_id

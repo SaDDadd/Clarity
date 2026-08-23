@@ -74,15 +74,6 @@ class TestProjectInvitationRepository:
         assert any(inv.project_id == project_id for inv in result)
 
     @pytest.mark.asyncio
-    async def test_get_invitation_for_project_empty(self, db_session: AsyncSession, test_project):
-        repo = ProjectInvitationRepository(db_session)
-        repo_proj = ProjectRepository(db_session)
-        admin = (await db_session.execute(select(UserModel).where(UserModel.username.like('test_%')))).scalar_one_or_none()
-        if admin is None:
-            pytest.skip("No user to create project")
-        pass
-
-    @pytest.mark.asyncio
     async def test_get_invitation_for_project_empty_with_users(self, db_session: AsyncSession, test_users):
         repo = ProjectInvitationRepository(db_session)
         repo_proj = ProjectRepository(db_session)
