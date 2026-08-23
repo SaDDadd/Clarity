@@ -150,8 +150,7 @@ class TestUserRepository():
         project = await project_repo.create_project_with_admin(
             name=f'Cascade_project_{uuid.uuid4().hex[:8]}',
             description=None,
-            admin_id=new_user.user_id,
-            role='admin'
+            admin_id=new_user.user_id
         )
         with pytest.raises(IntegrityError):
             await repo.delete_user(new_user.user_id)

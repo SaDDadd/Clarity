@@ -14,8 +14,7 @@ async def create_project(db, project_date: ProjectCreate, admin_id: int) -> Proj
     return await repo.create_project_with_admin(
         project_date.project_name,
         project_date.project_description,
-        admin_id,
-        role='admin'
+        admin_id
     )
 
 

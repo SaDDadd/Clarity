@@ -7,9 +7,6 @@ from models.project import ProjectModel
 from sqlalchemy.exc import IntegrityError
 
 class TestProjectRepository:
-    def __init__(self, db_session: AsyncSession):
-        self.db_session = db_session
-
     @pytest.mark.asyncio
     async def test_create_project_with_admin_success(self, db_session: AsyncSession, test_users):
         repo = ProjectRepository(db_session)
