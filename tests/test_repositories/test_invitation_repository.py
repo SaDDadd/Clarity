@@ -47,14 +47,14 @@ class TestProjectInvitationRepository:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_invitation_by_user_success(self, db_session: AsyncSession, test_users):
+    async def test_get_invitation_by_user_success(self, db_session: AsyncSession, test_invitation):
         """Проверяет получение списка приглашений для пользователя, у которого они есть."""
         repo = ProjectInvitationRepository(db_session)
-        invitee = test_users['outsider']
-        result = await repo.get_invitation_by_user(invitee.user_id)
+        invitee_id = test_invitation.invitee_id
+        result = await repo.get_invitation_by_user(invitee_id)
         assert isinstance(result, list)
         assert len(result) >= 1
-        assert any(inv.invitee_id == invitee.user_id for inv in result)
+        assert any(inv.invitee_id == invitee_id for inv in result)
 
     @pytest.mark.asyncio
     async def test_get_invitation_by_user_empty(self, db_session: AsyncSession, test_users):
@@ -65,10 +65,10 @@ class TestProjectInvitationRepository:
         assert isinstance(result, list)
 
     @pytest.mark.asyncio
-    async def test_get_invitation_for_project_success(self, db_session: AsyncSession, test_project):
+    async def test_get_invitation_for_project_success(self, db_session: AsyncSession, test_invitation):
         """Проверяет получение списка приглашений для проекта с активными приглашениями."""
         repo = ProjectInvitationRepository(db_session)
-        project_id = test_project.project_id
+        project_id = test_invitation.project_id
         result = await repo.get_invitation_for_project(project_id)
         assert isinstance(result, list)
         assert len(result) >= 1

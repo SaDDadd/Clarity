@@ -257,18 +257,18 @@ class TestProjectRepository:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_get_user_projects_success(self, db_session: AsyncSession, test_users):
+    async def test_get_user_projects_success(self, db_session: AsyncSession, test_users, test_project_with_member):
         """Проверяет получение списка проектов, в которых состоит пользователь."""
         repo = ProjectRepository(db_session)
         admin_projects = await repo.get_user_projects(test_users['admin'].user_id)
         member_projects = await repo.get_user_projects(test_users['member'].user_id)
-        assert isinstance(admin_projects, list)
+        # Проверяем, что у обоих есть проекты
         assert len(admin_projects) >= 1
-        assert isinstance(member_projects, list)
         assert len(member_projects) >= 1
-        project_ids_admin = [p.project_id for p in admin_projects]
-        project_ids_member = [p.project_id for p in member_projects]
-        common = set(project_ids_admin) & set(project_ids_member)
+        # Проверяем, что есть общий проект
+        admin_ids = {p.project_id for p in admin_projects}
+        member_ids = {p.project_id for p in member_projects}
+        common = admin_ids & member_ids
         assert len(common) >= 1
 
     @pytest.mark.asyncio
