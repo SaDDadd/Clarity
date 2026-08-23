@@ -158,7 +158,6 @@ async def test_project(db_session, test_users):
         name=f'Test_project_<{uui}>',
         description=None,
         admin_id=user.user_id,
-        role='admin'
     )
     return project
 
