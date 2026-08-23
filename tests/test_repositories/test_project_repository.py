@@ -17,6 +17,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_create_project_with_admin_success(self, db_session: AsyncSession, test_users):
+        """Проверяет успешное создание проекта с администратором."""
         repo = ProjectRepository(db_session)
         name = f'Test_project_{uuid.uuid4().hex[:8]}'
         response = await repo.create_project_with_admin(
@@ -33,6 +34,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_create_project_with_admin_missing_fields(self, db_session: AsyncSession, test_users):
+        """Проверяет, что при отсутствии обязательного поля выбрасывается IntegrityError."""
         repo = ProjectRepository(db_session)
         with pytest.raises(IntegrityError):
             await repo.create_project_with_admin(
@@ -43,6 +45,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_add_user_success(self, db_session: AsyncSession, test_users, test_project):
+        """Проверяет успешное добавление пользователя в проект."""
         repo = ProjectRepository(db_session)
         response = await repo.add_user(test_project.project_id, test_users['member'].user_id)
         get_member = await repo.is_user_in_project(test_project.project_id, test_users['member'].user_id)
@@ -51,6 +54,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_add_user_already_in_project(self, db_session: AsyncSession, test_users, test_project_with_member):
+        """Проверяет, что повторное добавление участника вызывает IntegrityError."""
         repo = ProjectRepository(db_session)
         with pytest.raises(IntegrityError):
             await repo.add_user(
@@ -60,12 +64,14 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_add_user_non_existent_user(self, db_session: AsyncSession, test_project):
+        """Проверяет, что добавление несуществующего пользователя вызывает IntegrityError."""
         repo = ProjectRepository(db_session)
         with pytest.raises(IntegrityError):
             await repo.add_user(test_project.project_id, 99999)
 
     @pytest.mark.asyncio
     async def test_get_projects_by_admin_success(self, db_session: AsyncSession, test_users, test_project):
+        """Проверяет получение списка проектов, где пользователь является администратором."""
         repo = ProjectRepository(db_session)
         projects = await repo.get_projects_by_admin(test_users['admin'].user_id)
         assert isinstance(projects, list)
@@ -74,6 +80,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_projects_by_admin_empty(self, db_session: AsyncSession, test_users):
+        """Проверяет, что для пользователя без проектов возвращается пустой список."""
         repo = ProjectRepository(db_session)
         projects = await repo.get_projects_by_admin(test_users['outsider'].user_id)
         assert isinstance(projects, list)
@@ -81,6 +88,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_projects_by_admin_user_not_found(self, db_session: AsyncSession):
+        """Проверяет, что при несуществующем ID пользователя возвращается пустой список."""
         repo = ProjectRepository(db_session)
         projects = await repo.get_projects_by_admin(99999)
         assert isinstance(projects, list)
@@ -88,6 +96,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_in_project_true(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет, что для участника проекта возвращается True."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -96,6 +105,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_in_project_false(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что для неучастника возвращается False."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         result = await repo.is_user_in_project(test_project.project_id, outsider.user_id)
@@ -103,6 +113,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_in_project_project_not_found(self, db_session: AsyncSession, test_users):
+        """Проверяет, что для несуществующего проекта возвращается False."""
         repo = ProjectRepository(db_session)
         admin = test_users['admin']
         result = await repo.is_user_in_project(99999, admin.user_id)
@@ -110,12 +121,14 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_in_project_user_not_found(self, db_session: AsyncSession, test_project):
+        """Проверяет, что для несуществующего пользователя возвращается False."""
         repo = ProjectRepository(db_session)
         result = await repo.is_user_in_project(test_project.project_id, 99999)
         assert result is False
 
     @pytest.mark.asyncio
     async def test_get_user_role_in_project_admin(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что для администратора возвращается роль 'admin'."""
         repo = ProjectRepository(db_session)
         admin = test_users['admin']
         role = await repo.get_user_role_in_project(test_project.project_id, admin.user_id)
@@ -123,6 +136,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_user_role_in_project_member(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет, что для участника возвращается роль 'member'."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -131,6 +145,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_user_role_in_project_not_member(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что для неучастника возвращается None."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         role = await repo.get_user_role_in_project(test_project.project_id, outsider.user_id)
@@ -138,6 +153,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_project_all_info_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет получение полной информации о проекте (проект + участники)."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         info = await repo.get_project_all_info(project.project_id)
@@ -152,6 +168,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_project_all_info_project_not_found(self, db_session: AsyncSession):
+        """Проверяет, что для несуществующего проекта возвращается словарь с None и пустым списком."""
         repo = ProjectRepository(db_session)
         info = await repo.get_project_all_info(99999)
         assert info['project'] is None
@@ -159,13 +176,13 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_reassign_admin_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет успешное переназначение администратора проекта."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
         await repo.update_user_role(project.project_id, member.user_id, 'admin')
         admins_before = await repo.get_admins_list(project.project_id)
         assert len(admins_before) == 2
-
         result = await repo.reassign_admin(project.project_id, member.user_id)
         assert result is True
         updated_project = await repo.get_project_by_id(project.project_id)
@@ -173,12 +190,14 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_reassign_admin_project_not_found(self, db_session: AsyncSession, test_users):
+        """Проверяет, что при несуществующем проекте возвращается False."""
         repo = ProjectRepository(db_session)
         result = await repo.reassign_admin(99999, test_users['admin'].user_id)
         assert result is False
 
     @pytest.mark.asyncio
     async def test_reassign_admin_new_admin_not_in_project(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что переназначение на пользователя вне проекта (обновляет поле admin_id, но логика нарушается)."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         result = await repo.reassign_admin(test_project.project_id, outsider.user_id)
@@ -188,6 +207,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_admins_list_success(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет получение списка администраторов проекта."""
         repo = ProjectRepository(db_session)
         admins = await repo.get_admins_list(test_project.project_id)
         assert isinstance(admins, list)
@@ -197,6 +217,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_admins_list_no_admins(self, db_session: AsyncSession, test_project):
+        """Проверяет, что после удаления всех администраторов возвращается пустой список."""
         repo = ProjectRepository(db_session)
         from sqlalchemy import delete
         await db_session.execute(
@@ -212,6 +233,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_admin_true(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что для администратора возвращается True."""
         repo = ProjectRepository(db_session)
         admin = test_users['admin']
         result = await repo.is_user_admin(test_project.project_id, admin.user_id)
@@ -219,6 +241,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_admin_false_for_member(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет, что для обычного участника возвращается False."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -227,13 +250,15 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_is_user_admin_false_for_non_member(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что для неучастника возвращается False."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         result = await repo.is_user_admin(test_project.project_id, outsider.user_id)
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_get_user_projects_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+    async def test_get_user_projects_success(self, db_session: AsyncSession, test_users):
+        """Проверяет получение списка проектов, в которых состоит пользователь."""
         repo = ProjectRepository(db_session)
         admin_projects = await repo.get_user_projects(test_users['admin'].user_id)
         member_projects = await repo.get_user_projects(test_users['member'].user_id)
@@ -248,6 +273,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_user_projects_empty(self, db_session: AsyncSession, test_users):
+        """Проверяет, что для пользователя без проектов возвращается пустой список."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         projects = await repo.get_user_projects(outsider.user_id)
@@ -256,6 +282,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_update_project_description_success(self, db_session: AsyncSession, test_project):
+        """Проверяет успешное обновление описания проекта."""
         repo = ProjectRepository(db_session)
         new_desc = f'Updated_description_{uuid.uuid4().hex[:8]}'
         result = await repo.update_project_description(new_desc, test_project.project_id)
@@ -265,12 +292,14 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_update_project_description_project_not_found(self, db_session: AsyncSession):
+        """Проверяет, что при несуществующем проекте возвращается False."""
         repo = ProjectRepository(db_session)
         result = await repo.update_project_description('test', 99999)
         assert result is False
 
     @pytest.mark.asyncio
     async def test_update_project_name_success(self, db_session: AsyncSession, test_project):
+        """Проверяет успешное обновление названия проекта."""
         repo = ProjectRepository(db_session)
         new_name = f'Updated_name_{uuid.uuid4().hex[:8]}'
         result = await repo.update_project_name(new_name, test_project.project_id)
@@ -280,12 +309,14 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_update_project_name_project_not_found(self, db_session: AsyncSession):
+        """Проверяет, что при несуществующем проекте возвращается False."""
         repo = ProjectRepository(db_session)
         result = await repo.update_project_name('test', 99999)
         assert result is False
 
     @pytest.mark.asyncio
     async def test_update_user_role_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет успешное изменение роли пользователя в проекте."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -300,6 +331,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_update_user_role_user_not_in_project(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что при попытке изменить роль неучастника возвращается False."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         result = await repo.update_user_role(test_project.project_id, outsider.user_id, 'member')
@@ -307,6 +339,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_update_user_role_invalid_role(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет, что при передаче недопустимой роли выбрасывается DataError."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -315,6 +348,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_delete_project_member_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет успешное удаление участника из проекта."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -325,6 +359,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_delete_project_member_not_found(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что при удалении несуществующего участника возвращается False."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         result = await repo.delete_project_member(test_project.project_id, outsider.user_id)
@@ -332,6 +367,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_delete_project_success(self, db_session: AsyncSession, test_project):
+        """Проверяет успешное удаление проекта и всех связанных записей."""
         repo = ProjectRepository(db_session)
         project_id = test_project.project_id
         result = await repo.delete_project(project_id)
@@ -353,12 +389,14 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_delete_project_not_found(self, db_session: AsyncSession):
+        """Проверяет, что при удалении несуществующего проекта возвращается False."""
         repo = ProjectRepository(db_session)
         result = await repo.delete_project(99999)
         assert result is False
 
     @pytest.mark.asyncio
     async def test_delete_project_cascades(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет каскадное удаление: задачи и приглашения удаляются вместе с проектом."""
         repo = ProjectRepository(db_session)
         project = test_project
         task_repo = TaskRepository(db_session)
@@ -380,6 +418,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_number_admins_success(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет подсчёт количества администраторов в проекте."""
         repo = ProjectRepository(db_session)
         count = await repo.get_number_admins(test_project.project_id)
         assert count == 1
@@ -391,6 +430,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_number_admins_no_admins(self, db_session: AsyncSession, test_project):
+        """Проверяет, что при отсутствии администраторов возвращается 0."""
         repo = ProjectRepository(db_session)
         await db_session.execute(
             delete(ProjectMemberModel).where(
@@ -404,6 +444,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_delete_user_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+        """Проверяет успешное удаление пользователя из проекта (метод delete_user)."""
         repo = ProjectRepository(db_session)
         project = test_project_with_member['project']
         member = test_users['member']
@@ -414,6 +455,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_delete_user_not_found(self, db_session: AsyncSession, test_project, test_users):
+        """Проверяет, что при удалении несуществующего пользователя возвращается False."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
         result = await repo.delete_user(test_project.project_id, outsider.user_id)
@@ -421,6 +463,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_project_by_id_success(self, db_session: AsyncSession, test_project):
+        """Проверяет получение проекта по существующему ID."""
         repo = ProjectRepository(db_session)
         project = await repo.get_project_by_id(test_project.project_id)
         assert project is not None
@@ -428,6 +471,7 @@ class TestProjectRepository:
 
     @pytest.mark.asyncio
     async def test_get_project_by_id_not_found(self, db_session: AsyncSession):
+        """Проверяет, что при несуществующем ID возвращается None."""
         repo = ProjectRepository(db_session)
         project = await repo.get_project_by_id(99999)
         assert project is None
