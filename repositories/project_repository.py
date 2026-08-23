@@ -130,31 +130,23 @@ class ProjectRepository:
 
     # Обновить описание проекта
     async def update_project_description(self, new_description: str, project_id: int) -> bool:
-        result = await self.get_project_by_id(project_id)
-        if result:
-            await self.session.execute(
-                update(ProjectModel)
-                .values(project_description=new_description)
-                .where(ProjectModel.project_id == project_id)
-            )
-            await self.session.commit()
-            return True
-        else:
-            return False
+        result = await self.session.execute(
+            update(ProjectModel)
+            .values(project_description=new_description)
+            .where(ProjectModel.project_id == project_id)
+        )
+        await self.session.commit()
+        return result.rowcount > 0
 
     # Обновить имя проекта
     async def update_project_name(self, new_name: str, project_id: int) -> bool:
-        result = await self.get_project_by_id(project_id)
-        if result:
-            await self.session.execute(
-                update(ProjectModel)
-                .values(project_name=new_name)
-                .where(ProjectModel.project_id == project_id)
-            )
-            await self.session.commit()
-            return True
-        else:
-            return False
+        result = await self.session.execute(
+            update(ProjectModel)
+            .values(project_name=new_name)
+            .where(ProjectModel.project_id == project_id)
+        )
+        await self.session.commit()
+        return result.rowcount > 0
 
     # Обновить роль пользователя в проекте
     async def update_user_role(self, project_id: int, user_id: int, role: str) -> bool:

@@ -19,10 +19,7 @@ class UserRepository:
     # Получить пользователя по ID
     async def get_by_id(self, user_id: int) -> UserModel | None:
         result = await self.session.execute(select(UserModel).where(UserModel.user_id == user_id))
-        if result:
-            user = result.scalar_one_or_none()
-            return user
-        return None
+        return result.scalar_one_or_none()
 
     # Получить пользователя по имени
     async def get_by_username(self, username: str) -> UserModel | None:
