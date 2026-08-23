@@ -401,3 +401,33 @@ class TestProjectRepository:
         await db_session.commit()
         count = await repo.get_number_admins(test_project.project_id)
         assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_delete_user_success(self, db_session: AsyncSession, test_project_with_member, test_users):
+        repo = ProjectRepository(db_session)
+        project = test_project_with_member['project']
+        member = test_users['member']
+        assert await repo.is_user_in_project(project.project_id, member.user_id) is True
+        result = await repo.delete_user(project.project_id, member.user_id)
+        assert result is True
+        assert await repo.is_user_in_project(project.project_id, member.user_id) is False
+
+    @pytest.mark.asyncio
+    async def test_delete_user_not_found(self, db_session: AsyncSession, test_project, test_users):
+        repo = ProjectRepository(db_session)
+        outsider = test_users['outsider']
+        result = await repo.delete_user(test_project.project_id, outsider.user_id)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_get_project_by_id_success(self, db_session: AsyncSession, test_project):
+        repo = ProjectRepository(db_session)
+        project = await repo.get_project_by_id(test_project.project_id)
+        assert project is not None
+        assert project.project_id == test_project.project_id
+
+    @pytest.mark.asyncio
+    async def test_get_project_by_id_not_found(self, db_session: AsyncSession):
+        repo = ProjectRepository(db_session)
+        project = await repo.get_project_by_id(99999)
+        assert project is None

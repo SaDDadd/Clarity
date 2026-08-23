@@ -154,3 +154,92 @@ class TestUserRepository():
         )
         with pytest.raises(IntegrityError):
             await repo.delete_user(new_user.user_id)
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_true(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        user = test_users['admin']
+        result = await repo.check_user_exists(user.user_id)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_false(self, db_session: AsyncSession):
+        repo = UserRepository(db_session)
+        result = await repo.check_user_exists(99999)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_username_true(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        user = test_users['admin']
+        result = await repo.check_user_exists_by_username(user.username)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_username_false(self, db_session: AsyncSession):
+        repo = UserRepository(db_session)
+        result = await repo.check_user_exists_by_username('nonexistent')
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_email_true(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        user = test_users['admin']
+        result = await repo.check_user_exists_by_email(user.email)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_email_false(self, db_session: AsyncSession):
+        repo = UserRepository(db_session)
+        result = await repo.check_user_exists_by_email('nonexistent@mail.ru')
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_user_correct_password_by_email_success(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        user = test_users['admin']
+        result = await repo.check_user_correct_password_by_email(user.email, 'qwertyui')
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_check_user_correct_password_by_email_wrong_password(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        user = test_users['admin']
+        result = await repo.check_user_correct_password_by_email(user.email, 'wrongpass')
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_user_correct_password_by_email_user_not_found(self, db_session: AsyncSession):
+        repo = UserRepository(db_session)
+        result = await repo.check_user_correct_password_by_email('nonexistent@mail.ru', 'qwertyui')
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_username_excluding_current_true(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        admin = test_users['admin']
+        member = test_users['member']
+        result = await repo.check_user_exists_by_username_excluding_current(member.username, admin.user_id)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_username_excluding_current_false(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        admin = test_users['admin']
+        result = await repo.check_user_exists_by_username_excluding_current(admin.username, admin.user_id)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_email_excluding_current_true(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        admin = test_users['admin']
+        member = test_users['member']
+        result = await repo.check_user_exists_by_email_excluding_current(member.email, admin.user_id)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_check_user_exists_by_email_excluding_current_false(self, db_session: AsyncSession, test_users):
+        repo = UserRepository(db_session)
+        admin = test_users['admin']
+        result = await repo.check_user_exists_by_email_excluding_current(admin.email, admin.user_id)
+        assert result is False
