@@ -14,11 +14,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from httpx import AsyncClient, ASGITransport
 from main import app
 from core.dependencies import get_db
-from alembic import command
 from core.config import settings
-from pathlib import Path
-from alembic.config import Config
-from core.security import hash_password, create_access_token
+from core.security import hash_password
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
@@ -27,8 +24,7 @@ import uuid
 import time
 from schemas.task import TaskCreate
 import pytest
-from sqlalchemy import create_engine  # синхронный
-from dotenv import load_dotenv
+from sqlalchemy import create_engine
 from core.database import Base
 
 # Явно устанавливаем ENV=test
