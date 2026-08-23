@@ -1,0 +1,10 @@
+"filename", "language", "Python", "comment", "blank", "total"
+"c:\Users\Пользователь\Desktop\python\Clarity\repositories\project_repository.py", "Python", -9, 0, 0, -9
+"c:\Users\Пользователь\Desktop\python\Clarity\repositories\user_repository.py", "Python", -3, 0, 0, -3
+"c:\Users\Пользователь\Desktop\python\Clarity\services\project_service.py", "Python", -1, 0, 0, -1
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\conftest.py", "Python", 1, 0, 0, 1
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_invitation_repository.py", "Python", 119, 0, 15, 134
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_project_repository.py", "Python", 385, 0, 47, 432
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_task_repository.py", "Python", 173, 0, 21, 194
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_user_repository.py", "Python", 212, 1, 31, 244
+"Total", "-", 877, 1, 114, 992
