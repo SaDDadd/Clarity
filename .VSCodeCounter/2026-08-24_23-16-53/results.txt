@@ -1,13 +1,13 @@
-Date : 2026-08-19 21:21:58
+Date : 2026-08-24 23:16:53
 Directory : c:\Users\Пользователь\Desktop\python\Clarity
-Total : 71 files,  2518 codes, 140 comments, 547 blanks, all 3205 lines
+Total : 71 files,  5043 codes, 366 comments, 853 blanks, all 6262 lines
 
 Languages
 +------------------+------------+------------+------------+------------+------------+
 | language         | files      | code       | comment    | blank      | total      |
 +------------------+------------+------------+------------+------------+------------+
-| Python           |         64 |      1,671 |        139 |        307 |      2,117 |
-| Markdown         |          1 |        655 |          0 |        206 |        861 |
+| Python           |         64 |      3,774 |        365 |        602 |      4,741 |
+| Markdown         |          1 |      1,077 |          0 |        217 |      1,294 |
 | Ini              |          1 |        123 |          0 |         27 |        150 |
 | YAML             |          1 |         27 |          0 |          2 |         29 |
 | pip requirements |          1 |         23 |          0 |          0 |         23 |
@@ -20,23 +20,23 @@ Directories
 +----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
 | path                                                                                               | files      | code       | comment    | blank      | total      |
 +----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
-| .                                                                                                  |         71 |      2,518 |        140 |        547 |      3,205 |
-| . (Files)                                                                                          |          9 |        929 |         21 |        253 |      1,203 |
-| alembic                                                                                            |          2 |         56 |         21 |         21 |         98 |
-| alembic (Files)                                                                                    |          1 |         45 |         11 |         13 |         69 |
+| .                                                                                                  |         71 |      5,043 |        366 |        853 |      6,262 |
+| . (Files)                                                                                          |          9 |      1,351 |         21 |        264 |      1,636 |
+| alembic                                                                                            |          2 |         69 |         23 |         24 |        116 |
+| alembic (Files)                                                                                    |          1 |         58 |         13 |         16 |         87 |
 | alembic\versions                                                                                   |          1 |         11 |         10 |          8 |         29 |
-| api                                                                                                |          6 |        157 |         15 |         34 |        206 |
-| api\v1                                                                                             |          6 |        157 |         15 |         34 |        206 |
-| core                                                                                               |          6 |        204 |          3 |         43 |        250 |
+| api                                                                                                |          6 |        198 |         27 |         65 |        290 |
+| api\v1                                                                                             |          6 |        198 |         27 |         65 |        290 |
+| core                                                                                               |          6 |        183 |          5 |         52 |        240 |
 | models                                                                                             |          6 |         60 |          0 |         11 |         71 |
-| repositories                                                                                       |          6 |        391 |         47 |         57 |        495 |
-| schemas                                                                                            |          7 |        100 |          5 |         29 |        134 |
-| services                                                                                           |          7 |        369 |         23 |         38 |        430 |
-| tests                                                                                              |         19 |        225 |          1 |         59 |        285 |
-| tests (Files)                                                                                      |          2 |         89 |          1 |         10 |        100 |
-| tests\test_api                                                                                     |          6 |        136 |          0 |         38 |        174 |
-| tests\test_repositories                                                                            |          5 |          0 |          0 |          5 |          5 |
-| tests\test_services                                                                                |          6 |          0 |          0 |          6 |          6 |
+| repositories                                                                                       |          6 |        396 |         49 |         58 |        503 |
+| schemas                                                                                            |          7 |        109 |          5 |         30 |        144 |
+| services                                                                                           |          7 |        408 |         26 |         66 |        500 |
+| tests                                                                                              |         19 |      2,242 |        206 |        281 |      2,729 |
+| tests (Files)                                                                                      |          2 |        170 |         13 |         17 |        200 |
+| tests\test_api                                                                                     |          6 |      1,042 |         67 |        127 |      1,236 |
+| tests\test_repositories                                                                            |          5 |        882 |        113 |        117 |      1,112 |
+| tests\test_services                                                                                |          6 |        148 |         13 |         20 |        181 |
 | utils                                                                                              |          3 |         27 |          4 |          2 |         33 |
 +----------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
 
@@ -46,23 +46,23 @@ Files
 +----------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
 | c:\Users\Пользователь\Desktop\python\Clarity\.env                                                  | Dotenv           |          7 |          0 |          0 |          7 |
 | c:\Users\Пользователь\Desktop\python\Clarity\Dockerfile                                            | Docker           |          8 |          0 |          5 |         13 |
-| c:\Users\Пользователь\Desktop\python\Clarity\README.md                                             | Markdown         |        655 |          0 |        206 |        861 |
+| c:\Users\Пользователь\Desktop\python\Clarity\README.md                                             | Markdown         |      1,077 |          0 |        217 |      1,294 |
 | c:\Users\Пользователь\Desktop\python\Clarity\ai_commit.py                                          | Python           |         57 |         20 |          9 |         86 |
 | c:\Users\Пользователь\Desktop\python\Clarity\alembic.ini                                           | Ini              |        123 |          0 |         27 |        150 |
-| c:\Users\Пользователь\Desktop\python\Clarity\alembic\env.py                                        | Python           |         45 |         11 |         13 |         69 |
-| c:\Users\Пользователь\Desktop\python\Clarity\alembic\versions\5176abe5d497_.py                     | Python           |         11 |         10 |          8 |         29 |
+| c:\Users\Пользователь\Desktop\python\Clarity\alembic\env.py                                        | Python           |         58 |         13 |         16 |         87 |
+| c:\Users\Пользователь\Desktop\python\Clarity\alembic\versions\cf26c315fc74_init.py                 | Python           |         11 |         10 |          8 |         29 |
 | c:\Users\Пользователь\Desktop\python\Clarity\api\v1\__init__.py                                    | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\auth.py                                        | Python           |         20 |          0 |          5 |         25 |
-| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\invitations.py                                 | Python           |         23 |          4 |          6 |         33 |
-| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\projects.py                                    | Python           |         53 |          5 |         10 |         68 |
-| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\tasks.py                                       | Python           |         48 |          5 |          9 |         62 |
-| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\user.py                                        | Python           |         13 |          1 |          3 |         17 |
+| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\auth.py                                        | Python           |         20 |          3 |          8 |         31 |
+| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\invitations.py                                 | Python           |         41 |          5 |         12 |         58 |
+| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\projects.py                                    | Python           |         63 |          9 |         20 |         92 |
+| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\tasks.py                                       | Python           |         51 |          7 |         16 |         74 |
+| c:\Users\Пользователь\Desktop\python\Clarity\api\v1\user.py                                        | Python           |         23 |          3 |          8 |         34 |
 | c:\Users\Пользователь\Desktop\python\Clarity\core\__init__.py                                      | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\core\config.py                                        | Python           |         53 |          2 |         12 |         67 |
-| c:\Users\Пользователь\Desktop\python\Clarity\core\database.py                                      | Python           |          6 |          0 |          3 |          9 |
-| c:\Users\Пользователь\Desktop\python\Clarity\core\dependencies.py                                  | Python           |         33 |          0 |          3 |         36 |
+| c:\Users\Пользователь\Desktop\python\Clarity\core\config.py                                        | Python           |         27 |          0 |         10 |         37 |
+| c:\Users\Пользователь\Desktop\python\Clarity\core\database.py                                      | Python           |          6 |          0 |          4 |         10 |
+| c:\Users\Пользователь\Desktop\python\Clarity\core\dependencies.py                                  | Python           |         33 |          0 |          7 |         40 |
 | c:\Users\Пользователь\Desktop\python\Clarity\core\exceptions.py                                    | Python           |         89 |          1 |         20 |        110 |
-| c:\Users\Пользователь\Desktop\python\Clarity\core\security.py                                      | Python           |         23 |          0 |          4 |         27 |
+| c:\Users\Пользователь\Desktop\python\Clarity\core\security.py                                      | Python           |         28 |          4 |         10 |         42 |
 | c:\Users\Пользователь\Desktop\python\Clarity\docker-compose.yaml                                   | YAML             |         27 |          0 |          2 |         29 |
 | c:\Users\Пользователь\Desktop\python\Clarity\entrypoint.sh                                         | Shell Script     |          4 |          1 |          0 |          5 |
 | c:\Users\Пользователь\Desktop\python\Clarity\main.py                                               | Python           |         25 |          0 |          4 |         29 |
@@ -75,39 +75,39 @@ Files
 | c:\Users\Пользователь\Desktop\python\Clarity\repositories\__init__.py                              | Python           |          0 |          0 |          1 |          1 |
 | c:\Users\Пользователь\Desktop\python\Clarity\repositories\base.py                                  | Python           |          0 |          1 |          0 |          1 |
 | c:\Users\Пользователь\Desktop\python\Clarity\repositories\project_invitation_repository.py         | Python           |         53 |          7 |          8 |         68 |
-| c:\Users\Пользователь\Desktop\python\Clarity\repositories\project_repository.py                    | Python           |        164 |         17 |         20 |        201 |
+| c:\Users\Пользователь\Desktop\python\Clarity\repositories\project_repository.py                    | Python           |        172 |         19 |         21 |        212 |
 | c:\Users\Пользователь\Desktop\python\Clarity\repositories\task_repository.py                       | Python           |         90 |          9 |         12 |        111 |
-| c:\Users\Пользователь\Desktop\python\Clarity\repositories\user_repository.py                       | Python           |         84 |         13 |         16 |        113 |
+| c:\Users\Пользователь\Desktop\python\Clarity\repositories\user_repository.py                       | Python           |         81 |         13 |         16 |        110 |
 | c:\Users\Пользователь\Desktop\python\Clarity\requirements.txt                                      | pip requirements |         23 |          0 |          0 |         23 |
 | c:\Users\Пользователь\Desktop\python\Clarity\schemas\__init__.py                                   | Python           |          0 |          0 |          1 |          1 |
 | c:\Users\Пользователь\Desktop\python\Clarity\schemas\auth.py                                       | Python           |         15 |          1 |          4 |         20 |
 | c:\Users\Пользователь\Desktop\python\Clarity\schemas\common.py                                     | Python           |         12 |          1 |          3 |         16 |
 | c:\Users\Пользователь\Desktop\python\Clarity\schemas\invitation.py                                 | Python           |         14 |          0 |          4 |         18 |
-| c:\Users\Пользователь\Desktop\python\Clarity\schemas\project.py                                    | Python           |         25 |          1 |          8 |         34 |
+| c:\Users\Пользователь\Desktop\python\Clarity\schemas\project.py                                    | Python           |         32 |          1 |          9 |         42 |
 | c:\Users\Пользователь\Desktop\python\Clarity\schemas\task.py                                       | Python           |         23 |          1 |          5 |         29 |
-| c:\Users\Пользователь\Desktop\python\Clarity\schemas\user.py                                       | Python           |         11 |          1 |          4 |         16 |
+| c:\Users\Пользователь\Desktop\python\Clarity\schemas\user.py                                       | Python           |         13 |          1 |          4 |         18 |
 | c:\Users\Пользователь\Desktop\python\Clarity\services\__init__.py                                  | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\services\auth_service.py                              | Python           |         52 |          3 |          2 |         57 |
-| c:\Users\Пользователь\Desktop\python\Clarity\services\invitation_service.py                        | Python           |         71 |          0 |         14 |         85 |
-| c:\Users\Пользователь\Desktop\python\Clarity\services\project_members_service.py                   | Python           |         26 |          0 |          3 |         29 |
-| c:\Users\Пользователь\Desktop\python\Clarity\services\project_service.py                           | Python           |        105 |         10 |          9 |        124 |
-| c:\Users\Пользователь\Desktop\python\Clarity\services\task_service.py                              | Python           |         92 |          8 |          7 |        107 |
-| c:\Users\Пользователь\Desktop\python\Clarity\services\user_service.py                              | Python           |         23 |          2 |          2 |         27 |
+| c:\Users\Пользователь\Desktop\python\Clarity\services\auth_service.py                              | Python           |         48 |          2 |          4 |         54 |
+| c:\Users\Пользователь\Desktop\python\Clarity\services\invitation_service.py                        | Python           |         80 |          5 |         19 |        104 |
+| c:\Users\Пользователь\Desktop\python\Clarity\services\project_members_service.py                   | Python           |         26 |          1 |          4 |         31 |
+| c:\Users\Пользователь\Desktop\python\Clarity\services\project_service.py                           | Python           |        139 |          9 |         19 |        167 |
+| c:\Users\Пользователь\Desktop\python\Clarity\services\task_service.py                              | Python           |         93 |          7 |         15 |        115 |
+| c:\Users\Пользователь\Desktop\python\Clarity\services\user_service.py                              | Python           |         22 |          2 |          4 |         28 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\__init__.py                                     | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\conftest.py                                     | Python           |         89 |          1 |          9 |         99 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\conftest.py                                     | Python           |        170 |         13 |         16 |        199 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\__init__.py                            | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_auth.py                           | Python           |         66 |          0 |          9 |         75 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_invitations.py                    | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_profile.py                        | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_projects.py                       | Python           |         70 |          0 |         25 |         95 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_tasks.py                          | Python           |          0 |          0 |          1 |          1 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_auth.py                           | Python           |        134 |         10 |         16 |        160 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_invitations.py                    | Python           |        274 |         24 |         42 |        340 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_profile.py                        | Python           |        112 |         12 |         12 |        136 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_projects.py                       | Python           |        256 |          1 |         32 |        289 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_api\test_tasks.py                          | Python           |        266 |         20 |         24 |        310 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\__init__.py                   | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_invitation_repository.py | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_project_repository.py    | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_task_repository.py       | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_user_repository.py       | Python           |          0 |          0 |          1 |          1 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_invitation_repository.py | Python           |        115 |         13 |         15 |        143 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_project_repository.py    | Python           |        383 |         47 |         47 |        477 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_task_repository.py       | Python           |        172 |         20 |         22 |        214 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_repositories\test_user_repository.py       | Python           |        212 |         33 |         32 |        277 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\__init__.py                       | Python           |          0 |          0 |          1 |          1 |
-| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_auth_service.py              | Python           |          0 |          0 |          1 |          1 |
+| c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_auth_service.py              | Python           |        148 |         13 |         15 |        176 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_invitation_service.py        | Python           |          0 |          0 |          1 |          1 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_project_service.py           | Python           |          0 |          0 |          1 |          1 |
 | c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_task_service.py              | Python           |          0 |          0 |          1 |          1 |
@@ -115,5 +115,5 @@ Files
 | c:\Users\Пользователь\Desktop\python\Clarity\utils\__init__.py                                     | Python           |          0 |          0 |          1 |          1 |
 | c:\Users\Пользователь\Desktop\python\Clarity\utils\decorators.py                                   | Python           |         27 |          3 |          1 |         31 |
 | c:\Users\Пользователь\Desktop\python\Clarity\utils\logger_setuo.py                                 | Python           |          0 |          1 |          0 |          1 |
-| Total                                                                                              |                  |      2,518 |        140 |        547 |      3,205 |
+| Total                                                                                              |                  |      5,043 |        366 |        853 |      6,262 |
 +----------------------------------------------------------------------------------------------------+------------------+------------+------------+------------+------------+
