@@ -9,25 +9,26 @@ from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationRole
 
-
 async def send_invitation(db, project_id: int, user_id: int, current_user_id: int,
                           message: str) -> ProjectInvitationModel:
     """Отправляет приглашение в проект."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
+
     if not await repo_proj.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
     if not await repo_user.get_by_id(user_id):
         raise NotFoundException('Пользователь не найден!')
     if not await repo_proj.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Только администратор может приглашать!')
+    if current_user_id == user_id:
+        raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
     if await repo_proj.is_user_in_project(project_id, user_id):
         raise MemberAlreadyInProjectException('Пользователь уже является участником проекта!')
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
-    if current_user_id == user_id:
-        raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
+
     return await repo.create_invitation(project_id, current_user_id, user_id, message)
 
 
@@ -36,16 +37,15 @@ async def get_user_invitations(db, current_user_id: int) -> list[ProjectInvitati
     repo = ProjectInvitationRepository(db)
     return await repo.get_invitation_by_user(current_user_id)
 
-
 async def get_project_invitations(db, project_id: int,
                                   current_user_id: int) -> list[ProjectInvitationModel]:
     """Возвращает список приглашений проекта (только для администратора)."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
-    if not await repo_proj.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Только администратор может просматривать приглашения проекта!')
     if not await repo_proj.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
+    if not await repo_proj.is_user_admin(project_id, current_user_id):
+        raise PermissionDeniedException('Только администратор может просматривать приглашения проекта!')
     return await repo.get_invitation_for_project(project_id)
 
 

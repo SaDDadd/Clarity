@@ -92,14 +92,14 @@ class TaskRepository:
         result = await self.session.execute(
             update(TaskModel)
             .values(task_status=task_status)
-            .where(TaskModel.project_id == project_id, TaskModel.task_id == task_id)
+            .where(
+                TaskModel.project_id == project_id,
+                TaskModel.task_id == task_id,
+                TaskModel.task_status != task_status
+            )
         )
-        numb_result = result.rowcount
         await self.session.commit()
-        if numb_result == 0:
-            return False
-        else:
-            return True
+        return result.rowcount > 0
 
     # Удалить задачу
     async def delete_task(self, task_id: int) -> bool:
