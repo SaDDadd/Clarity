@@ -1,0 +1,8 @@
+"filename", "language", "Python", "comment", "blank", "total"
+"c:\Users\Пользователь\Desktop\python\Clarity\services\project_members_service.py", "Python", 2, 0, -1, 1
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_invitation_service.py", "Python", 186, 0, 21, 207
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_project_member_service.py", "Python", 69, 5, 10, 84
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_project_service.py", "Python", 245, 0, 30, 275
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_task_service.py", "Python", 242, 0, 27, 269
+"c:\Users\Пользователь\Desktop\python\Clarity\tests\test_services\test_user_service.py", "Python", 75, 0, 9, 84
+"Total", "-", 819, 5, 96, 920
