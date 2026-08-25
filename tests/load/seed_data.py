@@ -6,6 +6,7 @@ import datetime
 import os
 
 os.environ['ENV'] = 'test'
+os.environ["DB_HOST"] = "localhost"
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from core.config import settings
@@ -40,10 +41,12 @@ async def seed():
             
         projects = []
         for _ in range(50):
-            admin_id = random.choice(users)
-            project = await project_repo.create_project_with_admin(name=f'Load project {uuid.uuid4().hex[:10]}', \
-                                                                   description=f'Description {uuid.uuid4().hex[:10]}', \
-                                                                    admin_id=admin_id)
+            admin = random.choice(users)           # берём объект пользователя
+            project = await project_repo.create_project_with_admin(
+                name=f'Load project {uuid.uuid4().hex[:10]}',
+                description=f'Description {uuid.uuid4().hex[:10]}',
+                admin_id=admin.user_id             # передаём ID
+            )
             projects.append(project)
 
         for project in projects:
@@ -51,7 +54,7 @@ async def seed():
             num_member = random.randint(3, min(10, len(potential)))
             selected = random.sample(potential, num_member)
             for user in selected:
-                await project_repo.add_user(project.project_id, user.user_id)
+                await project_repo.add_user(project.project_id, user.user_id)   # передаём ID
 
         for project in projects:
             member_info = await project_repo.get_project_all_info(project.project_id)
@@ -69,4 +72,4 @@ async def seed():
         print('Данные для начального заполнения успешно созданы!')
 
 if __name__ == '__main__':
-    asyncio.run(seed)
+    asyncio.run(seed())
