@@ -1,3 +1,4 @@
+import threading
 import csv
 import random
 import asyncio
@@ -91,15 +92,21 @@ class ClarityUser(HttpUser):
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
-    """Выполняется перед началом теста: создаём таблицы и заполняем данными."""
     print("Подготовка тестовой БД...")
-    asyncio.run(seed())
+    def run():
+        try:
+            asyncio.run(seed())
+        except Exception as e:
+            print("Ошибка при заполнении БД:", e)
+            import traceback
+            traceback.print_exc()
+    thread = threading.Thread(target=run)
+    thread.start()
+    thread.join()  # ждём завершения
     print("БД готова.")
-
 
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
-    """Выполняется после завершения теста: удаляем таблицы."""
     print("Очистка тестовой БД...")
     drop_tables()
     print("БД очищена.")

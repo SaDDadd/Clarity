@@ -13,6 +13,9 @@ from sqlalchemy import create_engine  # синхронный движок для
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from core.config import settings
+
+print("🔍 Используемая БД:", settings.DATABASE_URL)
+
 from core.database import Base          # для metadata
 from core.security import hash_password
 from repositories.user_repository import UserRepository
@@ -43,8 +46,9 @@ async def seed():
     """Основная функция наполнения тестовыми данными."""
     # Сначала создаём таблицы (если они уже есть, можно сначала удалить, но здесь просто создаём)
     # Чтобы избежать конфликтов при повторном запуске, можно сначала удалить:
-    # drop_tables()
+    drop_tables()
     create_tables()   # теперь таблицы точно есть
+    
 
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = async_sessionmaker(bind=engine, expire_on_commit=False)

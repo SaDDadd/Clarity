@@ -1,3 +1,4 @@
+import os
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
         return [item.strip() for item in self.CORS_ORIGINS.split(',') if item.strip()]
 
     model_config = SettingsConfigDict(
-        env_file='.env',
+        env_file='.env.test' if os.getenv('ENV') == 'test' else '.env',
         env_file_encoding='utf-8',
         extra='ignore'
     )
