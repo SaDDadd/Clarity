@@ -7,16 +7,45 @@ import os
 
 os.environ['ENV'] = 'test'
 os.environ["DB_HOST"] = "localhost"
+os.environ["DB_NAME"] = 'task_to_do_test'
 
+from sqlalchemy import create_engine  # синхронный движок для создания/удаления таблиц
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
 from core.config import settings
+from core.database import Base          # для metadata
 from core.security import hash_password
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from schemas.task import TaskCreate
 
+
+def create_tables():
+    """Создаёт все таблицы в тестовой БД (синхронно)."""
+    sync_url = settings.DATABASE_URL.replace('+aiomysql', '+pymysql')
+    engine = create_engine(sync_url)
+    Base.metadata.create_all(engine)
+    engine.dispose()
+    print("Таблицы созданы.")
+
+
+def drop_tables():
+    """Удаляет все таблицы из тестовой БД (синхронно)."""
+    sync_url = settings.DATABASE_URL.replace('+aiomysql', '+pymysql')
+    engine = create_engine(sync_url)
+    Base.metadata.drop_all(engine)
+    engine.dispose()
+    print("Таблицы удалены.")
+
+
 async def seed():
+    """Основная функция наполнения тестовыми данными."""
+    # Сначала создаём таблицы (если они уже есть, можно сначала удалить, но здесь просто создаём)
+    # Чтобы избежать конфликтов при повторном запуске, можно сначала удалить:
+    # drop_tables()
+    create_tables()   # теперь таблицы точно есть
+
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = async_sessionmaker(bind=engine, expire_on_commit=False)
 
@@ -38,14 +67,14 @@ async def seed():
             writer.writerow(['username', 'password'])
             for user in users:
                 writer.writerow([user.username, 'qwertyui'])
-            
+
         projects = []
         for _ in range(50):
-            admin = random.choice(users)           # берём объект пользователя
+            admin = random.choice(users)
             project = await project_repo.create_project_with_admin(
                 name=f'Load project {uuid.uuid4().hex[:10]}',
                 description=f'Description {uuid.uuid4().hex[:10]}',
-                admin_id=admin.user_id             # передаём ID
+                admin_id=admin.user_id
             )
             projects.append(project)
 
@@ -54,7 +83,7 @@ async def seed():
             num_member = random.randint(3, min(10, len(potential)))
             selected = random.sample(potential, num_member)
             for user in selected:
-                await project_repo.add_user(project.project_id, user.user_id)   # передаём ID
+                await project_repo.add_user(project.project_id, user.user_id)
 
         for project in projects:
             member_info = await project_repo.get_project_all_info(project.project_id)
@@ -64,12 +93,16 @@ async def seed():
             for _ in range(10):
                 assignee = random.choice(member_ids)
                 deadline = datetime.date.today() + datetime.timedelta(days=random.randint(1, 30))
-                task_data = TaskCreate(title=f'Task {uuid.uuid4().hex[:30]}', \
-                                       task_description=f'Description {uuid.uuid4().hex[:30]}', \
-                                        deadline=deadline, assigned_to=assignee)
+                task_data = TaskCreate(
+                    title=f'Task {uuid.uuid4().hex[:30]}',
+                    task_description=f'Description {uuid.uuid4().hex[:30]}',
+                    deadline=deadline,
+                    assigned_to=assignee
+                )
                 await task_repo.create_task(project.project_id, task_data)
 
-        print('Данные для начального заполнения успешно созданы!')
+        print('Данные для нагрузочного теста успешно созданы!')
+
 
 if __name__ == '__main__':
     asyncio.run(seed())

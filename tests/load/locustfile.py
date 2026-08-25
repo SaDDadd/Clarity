@@ -1,6 +1,11 @@
 import csv
 import random
+import asyncio
 from locust import HttpUser, task, between, events
+
+# Импортируем функции подготовки БД
+from seed_data import seed, drop_tables
+
 
 class ClarityUser(HttpUser):
     wait_time = between(0.5, 2)
@@ -82,3 +87,19 @@ class ClarityUser(HttpUser):
                     json={"task_status": new_status},
                     headers=self.headers
                 )
+
+
+@events.test_start.add_listener
+def on_test_start(environment, **kwargs):
+    """Выполняется перед началом теста: создаём таблицы и заполняем данными."""
+    print("Подготовка тестовой БД...")
+    asyncio.run(seed())
+    print("БД готова.")
+
+
+@events.test_stop.add_listener
+def on_test_stop(environment, **kwargs):
+    """Выполняется после завершения теста: удаляем таблицы."""
+    print("Очистка тестовой БД...")
+    drop_tables()
+    print("БД очищена.")
