@@ -111,7 +111,49 @@ class ClarityUser(HttpUser):
     def get_invitations(self):
         self.client.get("/api/v1/invitations", headers=self.headers)
 
-    # Остальные существующие задачи (create_task, get_project_info, update_task_status) оставляем как есть
+    @task(1)
+    def create_task(self):
+        resp = self.client.get("/api/v1/projects/all", headers=self.headers)
+        if resp.status_code == 200:
+            projects = resp.json()
+            if projects:
+                project = random.choice(projects)
+                task_data = {
+                    "title": f"Load task {random.randint(1,10000)}",
+                    "task_description": "Created during load test",
+                    "task_status": "pending",
+                    "assigned_to": None,
+                    "deadline": None
+                }
+                self.client.post(
+                    f"/api/v1/projects/{project['project_id']}/tasks",
+                    json=task_data,
+                    headers=self.headers
+                )
+
+    @task(1)
+    def get_project_info(self):
+        resp = self.client.get("/api/v1/projects/all", headers=self.headers)
+        if resp.status_code == 200:
+            projects = resp.json()
+            if projects:
+                project = random.choice(projects)
+                self.client.get(f"/api/v1/projects/{project['project_id']}", headers=self.headers)
+
+    @task(1)
+    def update_task_status(self):
+        resp = self.client.get("/api/v1/tasks", headers=self.headers)
+        if resp.status_code == 200:
+            tasks = resp.json()
+            if tasks:
+                task = random.choice(tasks)
+                statuses = ['pending', 'in_progress', 'completed']
+                new_status = random.choice(statuses)
+                self.client.patch(
+                    f"/api/v1/projects/{task['project_id']}/tasks/{task['task_id']}/status",
+                    json={"task_status": new_status},
+                    headers=self.headers
+                )
 
 
 @events.test_start.add_listener
