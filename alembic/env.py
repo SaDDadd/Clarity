@@ -7,7 +7,7 @@ from alembic import context
 
 # Импортируем ваши настройки и базовый класс
 import os
-from core.config import settings, test_settings
+from core.config import settings
 from core.database import Base
 from models.user import UserModel
 from models.project import ProjectModel
@@ -28,16 +28,11 @@ print("Tables in Base.metadata:", Base.metadata.tables.keys())
 # Устанавливаем метаданные
 target_metadata = Base.metadata
 
-if os.getenv("ENV") == "test":
-    active_settings = test_settings
-else:
-    active_settings = settings
-
 print(f"ENV: {os.getenv('ENV')}")
-print(f"Active settings URL: {active_settings.DATABASE_URL}")
+print(f"Active settings URL: {settings.DATABASE_URL}")
 
 # Переопределяем URL из настроек приложения
-config.set_main_option("sqlalchemy.url", active_settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
