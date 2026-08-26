@@ -2,11 +2,11 @@ import threading
 import csv
 import random
 import asyncio
+import os
 from locust import HttpUser, task, between, events
 
-# Импортируем функции подготовки БД
-from seed_data import seed, drop_tables
-
+# Импортируем только drop_tables для очистки после теста
+from seed_data import drop_tables
 
 class ClarityUser(HttpUser):
     wait_time = between(0.5, 2)
@@ -14,7 +14,10 @@ class ClarityUser(HttpUser):
     @classmethod
     def load_users(cls):
         if not hasattr(cls, 'users'):
-            with open('tests/load/users.csv', 'r') as f:
+            # Абсолютный путь к users.csv (лежит рядом с locustfile.py)
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            csv_path = os.path.join(base_dir, 'users.csv')
+            with open(csv_path, 'r') as f:
                 reader = csv.DictReader(f)
                 cls.users = list(reader)
             random.shuffle(cls.users)
@@ -24,14 +27,18 @@ class ClarityUser(HttpUser):
         user = random.choice(self.__class__.users)
         self.username = user['username']
         self.password = user['password']
+        print(f"[DEBUG] Логин: {self.username}")
         resp = self.client.post("/api/v1/auth/login", json={
             "username_or_email": self.username,
             "password": self.password
         })
+        print(f"[DEBUG] Статус логина: {resp.status_code}")
         if resp.status_code == 200:
             self.token = resp.json()["access_token"]
             self.headers = {"Authorization": f"Bearer {self.token}"}
+            print("[DEBUG] Логин успешен")
         else:
+            print(f"[DEBUG] Ошибка: {resp.text}")
             raise Exception(f"Login failed for {self.username}")
 
     @task(3)
@@ -92,18 +99,8 @@ class ClarityUser(HttpUser):
 
 @events.test_start.add_listener
 def on_test_start(environment, **kwargs):
-    print("Подготовка тестовой БД...")
-    def run():
-        try:
-            asyncio.run(seed())
-        except Exception as e:
-            print("Ошибка при заполнении БД:", e)
-            import traceback
-            traceback.print_exc()
-    thread = threading.Thread(target=run)
-    thread.start()
-    thread.join()  # ждём завершения
-    print("БД готова.")
+    print("✅ БД уже заполнена вручную. Пропускаем автоматическое заполнение.")
+    # seed() убран – данные не удаляются
 
 @events.test_stop.add_listener
 def on_test_stop(environment, **kwargs):
