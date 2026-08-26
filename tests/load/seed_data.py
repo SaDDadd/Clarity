@@ -1,7 +1,5 @@
 import sys
 import os
-
-# Добавляем корень проекта в sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import asyncio
@@ -9,25 +7,23 @@ import uuid
 import csv
 import random
 import datetime
-import os
 
 os.environ['ENV'] = 'test'
 os.environ["DB_HOST"] = "localhost"
 os.environ["DB_NAME"] = 'task_to_do_test'
 
-from sqlalchemy import create_engine  # синхронный движок для создания/удаления таблиц
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from core.config import settings
-
-print("🔍 Используемая БД:", settings.DATABASE_URL)
-
-from core.database import Base          # для metadata
+from core.database import Base
 from core.security import hash_password
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from schemas.task import TaskCreate
+
+print("🔍 Используемая БД:", settings.DATABASE_URL)
 
 
 def create_tables():
@@ -39,22 +35,27 @@ def create_tables():
     print("Таблицы созданы.")
 
 
-def drop_tables():
-    """Удаляет все таблицы из тестовой БД (синхронно)."""
+def truncate_tables():
+    """Очищает все таблицы и сбрасывает автоинкремент (синхронно)."""
     sync_url = settings.DATABASE_URL.replace('+aiomysql', '+pymysql')
     engine = create_engine(sync_url)
-    Base.metadata.drop_all(engine)
+    with engine.connect() as conn:
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        # Получаем все таблицы в правильном порядке (но при отключенных ключах порядок не важен)
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(text(f"TRUNCATE TABLE {table.name}"))
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        conn.commit()
     engine.dispose()
-    print("Таблицы удалены.")
+    print("Все таблицы очищены, автоинкремент сброшен.")
 
 
 async def seed():
     """Основная функция наполнения тестовыми данными."""
-    # Сначала создаём таблицы (если они уже есть, можно сначала удалить, но здесь просто создаём)
-    # Чтобы избежать конфликтов при повторном запуске, можно сначала удалить:
-    drop_tables()
-    create_tables()   # теперь таблицы точно есть
-    
+    # Гарантируем наличие таблиц
+    create_tables()
+    # Очищаем всё перед заполнением
+    truncate_tables()
 
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = async_sessionmaker(bind=engine, expire_on_commit=False)
@@ -65,13 +66,14 @@ async def seed():
         task_repo = TaskRepository(session)
 
         users = []
-        for i in range(50):
+        for _ in range(50):
             username = f'{uuid.uuid4().hex[:10]}'
             email = f'{uuid.uuid4().hex[:8]}@mail.ru'
             hashed_password = hash_password('qwertyui')
             user = await user_repo.create_user(username, email, hashed_password)
             users.append(user)
 
+        # Сохраняем пользователей в CSV для Locust
         with open('tests/load/users.csv', 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(['username', 'password'])
@@ -88,16 +90,18 @@ async def seed():
             )
             projects.append(project)
 
+        # Добавляем участников
         for project in projects:
-            potential = [user for user in users if user.user_id != project.admin_id]
+            potential = [u for u in users if u.user_id != project.admin_id]
             num_member = random.randint(3, min(10, len(potential)))
             selected = random.sample(potential, num_member)
             for user in selected:
                 await project_repo.add_user(project.project_id, user.user_id)
 
+        # Создаём задачи
         for project in projects:
-            member_info = await project_repo.get_project_all_info(project.project_id)
-            member_ids = [user.user_id for user in member_info['members']]
+            members_info = await project_repo.get_project_all_info(project.project_id)
+            member_ids = [m.user_id for m in members_info['members']]
             if not member_ids:
                 continue
             for _ in range(10):
@@ -111,7 +115,7 @@ async def seed():
                 )
                 await task_repo.create_task(project.project_id, task_data)
 
-        print('Данные для нагрузочного теста успешно созданы!')
+        print('✅ Данные для нагрузочного теста успешно созданы!')
 
 
 if __name__ == '__main__':
