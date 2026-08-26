@@ -1402,10 +1402,12 @@ Clarity/
 │       ├── locustfile.py         # Сценарии Locust
 │       ├── seed_data.py          # Генерация тестовых данных
 │       └── users.csv             # Сгенерированные учётные данные (создаётся автоматически)
-├── .env.example                   # Пример файла окружения
-├── .env.test                      # Файл окружения для тестов
-├── .gitignore
+├── .env                          # Пример файла окружения
+├── .env.test                     # Файл окружения для тестов
+├── ai_commit.py
 ├── docker-compose.yml
+├── alembic.ini
+├── entrypoint.sh
 ├── Dockerfile
 ├── entrypoint.sh
 ├── requirements.txt
