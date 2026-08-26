@@ -30,6 +30,8 @@ def create_tables():
     engine = create_engine(sync_url)
     Base.metadata.create_all(engine)
     engine.dispose()
+    print(f"Созданы таблицы: {Base.metadata.tables.keys()}")
+    engine.dispose()
     print("Таблицы созданы.")
 
 
