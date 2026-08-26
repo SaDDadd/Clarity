@@ -66,7 +66,7 @@ async def seed():
         task_repo = TaskRepository(session)
 
         users = []
-        for _ in range(50):
+        for _ in range(500):
             username = f'{uuid.uuid4().hex[:10]}'
             email = f'{uuid.uuid4().hex[:8]}@mail.ru'
             hashed_password = hash_password('qwertyui')
@@ -81,7 +81,7 @@ async def seed():
                 writer.writerow([user.username, 'qwertyui'])
 
         projects = []
-        for _ in range(50):
+        for _ in range(200):
             admin = random.choice(users)
             project = await project_repo.create_project_with_admin(
                 name=f'Load project {uuid.uuid4().hex[:10]}',
