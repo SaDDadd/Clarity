@@ -20,6 +20,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
+    op.create_index('idx_users_username', 'users', ['username'])
+    op.create_index('idx_users_email', 'users', ['email'])
     # Индексы для таблицы tasks
     op.create_index('idx_tasks_task_status', 'tasks', ['task_status'])
     op.create_index('idx_tasks_deadline', 'tasks', ['deadline'])
@@ -34,6 +36,8 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.drop_index('idx_users_username', table_name='users')
+    op.drop_index('idx_users_email', table_name='users')
     op.drop_index('idx_invitations_status', table_name='project_invitations')
     op.drop_index('idx_project_members_role', table_name='project_members')
     op.drop_index('idx_tasks_project_status', table_name='tasks')

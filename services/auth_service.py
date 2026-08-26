@@ -1,12 +1,11 @@
 from core.config import settings
 from core.exceptions import AuthenticationException, ConflictException, LackOfInformationException
-from core.security import create_access_token, hash_password, verify_password
+from core.security import create_access_token, async_hash_password, async_verify_password
 from repositories.user_repository import UserRepository
 from schemas.auth import Token, UserLogin, UserRegister
 
 
 async def register_user(db, user_date: UserRegister) -> dict:
-    """Регистрирует нового пользователя."""
     repo = UserRepository(db)
     if len(user_date.username) == 0 or len(user_date.email) == 0:
         raise LackOfInformationException('Нехватка информации!')
@@ -17,19 +16,20 @@ async def register_user(db, user_date: UserRegister) -> dict:
     else:
         if len(user_date.password) < 8:
             raise LackOfInformationException('Пароль короткий, должен быть больше 8 символов!')
-        hashed_password = hash_password(user_date.password)
+        # Асинхронное хеширование
+        hashed_password = await async_hash_password(user_date.password)
         await repo.create_user(user_date.username, user_date.email, hashed_password)
         return {'message': 'Пользователь создан'}
 
 
 async def login_user(db, user_date: UserLogin) -> Token:
-    """Аутентифицирует пользователя и возвращает JWT-токен."""
     repo = UserRepository(db)
     if len(user_date.username_or_email) == 0 or len(user_date.password) == 0:
         raise LackOfInformationException('Нехватка информации!')
     user = await repo.get_by_username(user_date.username_or_email)
     if user:
-        if verify_password(user_date.password, user.password_hash):
+        # Асинхронная проверка пароля
+        if await async_verify_password(user_date.password, user.password_hash):
             token = create_access_token({'sub': user.user_id})
             return Token(
                 access_token=token,
@@ -41,7 +41,7 @@ async def login_user(db, user_date: UserLogin) -> Token:
     else:
         user = await repo.get_by_email(user_date.username_or_email)
         if user:
-            if verify_password(user_date.password, user.password_hash):
+            if await async_verify_password(user_date.password, user.password_hash):
                 token = create_access_token({'sub': user.user_id})
                 return Token(
                     access_token=token,

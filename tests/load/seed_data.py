@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from core.config import settings
 from core.database import Base
-from core.security import hash_password
+from core.security import async_hash_password  # <-- импортируем асинхронную функцию
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
@@ -30,8 +30,6 @@ def create_tables():
     engine = create_engine(sync_url)
     Base.metadata.create_all(engine)
     engine.dispose()
-    print(f"Созданы таблицы: {Base.metadata.tables.keys()}")
-    engine.dispose()
     print("Таблицы созданы.")
 
 
@@ -41,7 +39,6 @@ def truncate_tables():
     engine = create_engine(sync_url)
     with engine.connect() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
-        # Получаем все таблицы в правильном порядке (но при отключенных ключах порядок не важен)
         for table in reversed(Base.metadata.sorted_tables):
             conn.execute(text(f"TRUNCATE TABLE {table.name}"))
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
@@ -52,9 +49,7 @@ def truncate_tables():
 
 async def seed():
     """Основная функция наполнения тестовыми данными."""
-    # Гарантируем наличие таблиц
     create_tables()
-    # Очищаем всё перед заполнением
     truncate_tables()
 
     engine = create_async_engine(settings.DATABASE_URL)
@@ -69,7 +64,7 @@ async def seed():
         for _ in range(500):
             username = f'{uuid.uuid4().hex[:10]}'
             email = f'{uuid.uuid4().hex[:8]}@mail.ru'
-            hashed_password = hash_password('qwertyui')
+            hashed_password = await async_hash_password('qwertyui')  # <-- асинхронно
             user = await user_repo.create_user(username, email, hashed_password)
             users.append(user)
 
