@@ -9,8 +9,6 @@ import random
 import datetime
 
 os.environ['ENV'] = 'test'
-os.environ["DB_HOST"] = "localhost"
-os.environ["DB_NAME"] = 'task_to_do_test'
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
