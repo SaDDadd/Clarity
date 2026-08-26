@@ -1,8 +1,8 @@
-"""add_index
+"""add missing indexes
 
-Revision ID: e5c3a157b4a9
-Revises: cf26c315fc74
-Create Date: 2026-08-26 14:42:43.655606
+Revision ID: 6f7a8b9c0d1e
+Revises: e5c3a157b4a9
+Create Date: 2026-08-27 01:00:00.000000
 
 """
 from typing import Sequence, Union
@@ -12,34 +12,40 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'e5c3a157b4a9'
-down_revision: Union[str, Sequence[str], None] = 'cf26c315fc74'
+revision: str = '6f7a8b9c0d1e'
+down_revision: Union[str, Sequence[str], None] = 'e5c3a157b4a9'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade schema."""
-    op.create_index('idx_users_username', 'users', ['username'])
-    op.create_index('idx_users_email', 'users', ['email'])
-    # Индексы для таблицы tasks
-    op.create_index('idx_tasks_task_status', 'tasks', ['task_status'])
-    op.create_index('idx_tasks_deadline', 'tasks', ['deadline'])
-    op.create_index('idx_tasks_project_status', 'tasks', ['project_id', 'task_status'])
+    # Индексы для таблицы projects
+    op.create_index('idx_projects_admin_id', 'projects', ['admin_id'])
 
-    # Индекс для project_members
+    # Индексы для таблицы tasks
+    op.create_index('idx_tasks_project_id', 'tasks', ['project_id'])
+    op.create_index('idx_tasks_assigned_to', 'tasks', ['assigned_to'])
+    op.create_index('idx_tasks_project_assigned', 'tasks', ['project_id', 'assigned_to'])
+
+    # Индекс для таблицы project_members
     op.create_index('idx_project_members_role', 'project_members', ['role_project'])
 
-    # Индекс для project_invitations
+    # Индексы для таблицы project_invitations
     op.create_index('idx_invitations_status', 'project_invitations', ['status_invited'])
+    op.create_index('idx_invitations_project_status', 'project_invitations', ['project_id', 'status_invited'])
+    op.create_index('idx_invitations_invitee_status', 'project_invitations', ['invitee_id', 'status_invited'])
 
 
 def downgrade() -> None:
-    """Downgrade schema."""
-    op.drop_index('idx_users_username', table_name='users')
-    op.drop_index('idx_users_email', table_name='users')
+    # Удаление индексов (обратный порядок)
+    op.drop_index('idx_invitations_invitee_status', table_name='project_invitations')
+    op.drop_index('idx_invitations_project_status', table_name='project_invitations')
     op.drop_index('idx_invitations_status', table_name='project_invitations')
+
     op.drop_index('idx_project_members_role', table_name='project_members')
-    op.drop_index('idx_tasks_project_status', table_name='tasks')
-    op.drop_index('idx_tasks_deadline', table_name='tasks')
-    op.drop_index('idx_tasks_task_status', table_name='tasks')
+
+    op.drop_index('idx_tasks_project_assigned', table_name='tasks')
+    op.drop_index('idx_tasks_assigned_to', table_name='tasks')
+    op.drop_index('idx_tasks_project_id', table_name='tasks')
+
+    op.drop_index('idx_projects_admin_id', table_name='projects')
