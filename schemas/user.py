@@ -16,3 +16,6 @@ class UpdateUsernameRequest(BaseModel):
 
 class UpdateEmailRequest(BaseModel):
     email: EmailStr = Field(max_length=100)
+
+class UpdatePasswordReguest(BaseModel):
+    password: str = Field(max_length=100)

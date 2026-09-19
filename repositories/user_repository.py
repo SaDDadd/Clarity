@@ -108,3 +108,12 @@ class UserRepository:
         await self.session.delete(user)
         await self.session.commit()
         return True
+
+    async def update_password(self, user_id: int, password: str) -> bool:
+        task = await self.session.execute(update(UserModel).values(password=password).where(UserModel.user_id == user_id))
+        numb_result = task.rowcount
+        await self.session.commit()
+        if numb_result == 0:
+            return False
+        else:
+            return True
