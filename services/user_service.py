@@ -30,7 +30,7 @@ async def update_user_email(db, email: str, current_user_id: int) -> dict:
 async def update_user_password(db, password: str, current_user_id: int) -> dict:
     """Обновление пароля пользователя"""
     repo = UserRepository(db)
-    if len(password) == 0 or len(password) > 100:
+    if len(password) < 8 or len(password) > 100:
         raise LackOfInformationException('Пароль не может быть пустым или превышать 100 символов!')
     if await repo.update_password(current_user_id, password):
         return {'message': 'Пароль пользователя обновлен!'}
