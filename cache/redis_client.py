@@ -8,7 +8,7 @@ async def get_redis_client() -> Redis:
     if _redis_client is None:
         _redis_client = Redis.from_url(settings.REDIS_URL, max_connections=10, \
                                        socket_timeout=2, socket_connect_timeout=2, \
-                                       retry_on_timeout=True, decode_responses=True)
+                                       decode_responses=True)
     return _redis_client
 
 async def close_redis_client():
@@ -20,3 +20,10 @@ async def close_redis_client():
             print(f'Ошибка при закрытии Redis: {e}')
         finally:
             _redis_client = None
+
+async def ping_redis():
+    global _redis_client
+    if await _redis_client.ping():
+        return True
+    else:
+        return False
