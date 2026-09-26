@@ -10,7 +10,9 @@ from core.security import decode_access_token as decode_token
 from models.user import UserModel
 from repositories.user_repository import UserRepository
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+# Для проверки в Swagger
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
