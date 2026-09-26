@@ -48,7 +48,13 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, compare_server_default=True)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_server_default=True,
+    )
+    with context.begin_transaction():
+        context.run_migrations()
 
 async def run_async_migrations() -> None:
     """In this scenario we need to create an Engine
