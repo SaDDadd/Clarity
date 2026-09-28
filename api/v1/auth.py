@@ -24,13 +24,6 @@ async def user_log_endpoint(user: UserLogin, db: AsyncSession = Depends(get_db))
     """Аутентификация пользователя и выдача JWT-токена."""
     return await login_user(db, user)
 
-
-@router.get('/auth/me', tags=['Аутентификация'],
-            summary='Получение информации о пользователе')
-async def get_user_info_endpoint(user: UserModel = Depends(current_user)) -> UserResponse:
-    """Получить информацию о текущем авторизованном пользователе."""
-    return UserResponse.model_validate(user)
-
 @router.post('/auth/token', tags=['Аутентификация'], 
              summary='Логин для Swagger')
 async def login_user_swagger(data: OAuth2PasswordRequestForm = Depends(), 
