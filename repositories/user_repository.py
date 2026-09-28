@@ -121,6 +121,5 @@ class UserRepository:
 
     async def search_by_username(self, username) -> UserModel | None:
         task = await self.session.execute(select(UserModel.email, UserModel.username, UserModel.created_date).where(
-            UserModel.username == username))
-        result = task.scalar_one_or_none()
-        return result is not None
+            UserModel.username.ilike(f'%{username}%')))
+        return task.scalars().all()

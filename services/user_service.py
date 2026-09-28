@@ -38,7 +38,7 @@ async def update_user_password(db: AsyncSession, password: str, current_user_id:
     else:
         raise NotFoundException('Пользователь не найден!')
 
-async def search_by_username(db: AsyncSession, search_user: str, current_user_username: str) -> UserModel:
+async def search_by_username(db: AsyncSession, search_user: str, current_user_username: str) -> UserModel | dict:
     """Запрос пользователя на поиск другого пользователя"""
     repo = UserRepository(db)
     if len(search_user) == 0:
