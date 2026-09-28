@@ -3,9 +3,10 @@ from core.exceptions import AuthenticationException, ConflictException, LackOfIn
 from core.security import create_access_token, async_hash_password, async_verify_password
 from repositories.user_repository import UserRepository
 from schemas.auth import Token, UserLogin, UserRegister
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def register_user(db, user_date: UserRegister) -> dict:
+async def register_user(db: AsyncSession, user_date: UserRegister) -> dict:
     repo = UserRepository(db)
     if len(user_date.username) == 0 or len(user_date.email) == 0:
         raise LackOfInformationException('Нехватка информации!')
@@ -22,7 +23,7 @@ async def register_user(db, user_date: UserRegister) -> dict:
         return {'message': 'Пользователь создан'}
 
 
-async def login_user(db, user_date: UserLogin) -> Token:
+async def login_user(db: AsyncSession, user_date: UserLogin) -> Token:
     repo = UserRepository(db)
     if len(user_date.username_or_email) == 0 or len(user_date.password) == 0:
         raise LackOfInformationException('Нехватка информации!')

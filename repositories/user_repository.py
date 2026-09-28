@@ -111,7 +111,7 @@ class UserRepository:
 
     async def update_password(self, user_id: int, password: str) -> bool:
         password_hashed = hash_password(password)
-        task = await self.session.execute(update(UserModel).values(password=password_hashed).where(UserModel.user_id == user_id))
+        task = await self.session.execute(update(UserModel).values(password_hash=password_hashed).where(UserModel.user_id == user_id))
         numb_result = task.rowcount
         await self.session.commit()
         if numb_result == 0:

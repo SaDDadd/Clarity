@@ -1,8 +1,9 @@
 from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from repositories.user_repository import UserRepository
+from sqlalchemy.ext.asyncio import AsyncSession 
 
 
-async def update_user_username(db, username: str, current_user_id: int) -> dict:
+async def update_user_username(db: AsyncSession, username: str, current_user_id: int) -> dict:
     """Обновляет имя пользователя."""
     repo = UserRepository(db)
     if len(username) == 0 or len(username) > 50:
@@ -15,7 +16,7 @@ async def update_user_username(db, username: str, current_user_id: int) -> dict:
         raise NotFoundException('Пользователь не найден!')
 
 
-async def update_user_email(db, email: str, current_user_id: int) -> dict:
+async def update_user_email(db: AsyncSession, email: str, current_user_id: int) -> dict:
     """Обновляет email пользователя."""
     repo = UserRepository(db)
     if len(email) == 0 or len(email) > 100:
@@ -27,7 +28,7 @@ async def update_user_email(db, email: str, current_user_id: int) -> dict:
     else:
         raise NotFoundException('Пользователь не найден!')
 
-async def update_user_password(db, password: str, current_user_id: int) -> dict:
+async def update_user_password(db: AsyncSession, password: str, current_user_id: int) -> dict:
     """Обновление пароля пользователя"""
     repo = UserRepository(db)
     if len(password) < 8 or len(password) > 100:

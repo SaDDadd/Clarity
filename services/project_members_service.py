@@ -2,9 +2,10 @@ from core.exceptions import (AppException, LastAdminDeletionException,
                              NotFoundException, PermissionDeniedException)
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def update_member_role(db, user_id: int, project_id: int, current_user_id: int,
+async def update_member_role(db: AsyncSession, user_id: int, project_id: int, current_user_id: int,
                              role_project: str) -> dict:
     """Обновляет роль участника в проекте."""
     repo = ProjectRepository(db)

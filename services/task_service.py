@@ -6,9 +6,9 @@ from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 from schemas.common import TaskStatus
+from sqlalchemy.ext.asyncio import AsyncSession 
 
-
-async def create_task(db, project_id: int, current_user_id: int, task) -> TaskModel:
+async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task) -> TaskModel:
     """Создаёт задачу в проекте."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -23,7 +23,7 @@ async def create_task(db, project_id: int, current_user_id: int, task) -> TaskMo
     return await repo.create_task(project_id, task)
 
 
-async def get_project_tasks(db, project_id: int, current_user_id: int) -> list[TaskModel] | None:
+async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: int) -> list[TaskModel] | None:
     """Возвращает все задачи проекта."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -33,7 +33,7 @@ async def get_project_tasks(db, project_id: int, current_user_id: int) -> list[T
         return await repo.get_project_tasks(project_id)
 
 
-async def get_task_info(db, project_id: int, current_user_id: int, task_id: int) -> TaskModel | None:
+async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int, task_id: int) -> TaskModel | None:
     """Возвращает информацию о задаче."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -50,13 +50,13 @@ async def get_task_info(db, project_id: int, current_user_id: int, task_id: int)
         return result
 
 
-async def get_tasks_user(db, current_user_id: int) -> list[TaskModel]:
+async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[TaskModel]:
     """Возвращает все задачи, назначенные на пользователя."""
     repo = TaskRepository(db)
     return await repo.get_tasks_by_user(current_user_id)
 
 
-async def update_task(db, project_id: int, task_id: int, current_user_id: int, task) -> dict:
+async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, task) -> dict:
     """Обновляет задачу."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -82,7 +82,7 @@ async def update_task(db, project_id: int, task_id: int, current_user_id: int, t
         return {'message': 'Задача обновилась!'}
 
 
-async def change_status(db, project_id: int, task_id: int, current_user_id: int,
+async def change_status(db: AsyncSession, project_id: int, task_id: int, current_user_id: int,
                         task_status: TaskStatus) -> dict:
     """Изменяет статус задачи."""
     repo = TaskRepository(db)
@@ -99,7 +99,7 @@ async def change_status(db, project_id: int, task_id: int, current_user_id: int,
         return {'message': 'Статус уже установлен'}
 
 
-async def delete_task(db, project_id: int, task_id: int, current_user_id: int) -> dict:
+async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int) -> dict:
     """Удаляет задачу."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)

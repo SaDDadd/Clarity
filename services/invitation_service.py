@@ -8,8 +8,9 @@ from repositories.project_invitation_repository import ProjectInvitationReposito
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationRole
+from sqlalchemy.ext.asyncio import AsyncSession
 
-async def send_invitation(db, project_id: int, user_id: int, current_user_id: int,
+async def send_invitation(db: AsyncSession, project_id: int, user_id: int, current_user_id: int,
                           message: str) -> ProjectInvitationModel:
     """Отправляет приглашение в проект."""
     repo = ProjectInvitationRepository(db)
@@ -32,7 +33,7 @@ async def send_invitation(db, project_id: int, user_id: int, current_user_id: in
     return await repo.create_invitation(project_id, current_user_id, user_id, message)
 
 
-async def get_user_invitations(db, current_user_id: int) -> list[ProjectInvitationModel]:
+async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[ProjectInvitationModel]:
     """Возвращает список приглашений для пользователя."""
     repo = ProjectInvitationRepository(db)
     return await repo.get_invitation_by_user(current_user_id)
@@ -49,7 +50,7 @@ async def get_project_invitations(db, project_id: int,
     return await repo.get_invitation_for_project(project_id)
 
 
-async def response_to_invitation(db, invitation_id: int, action: InvitationRole,
+async def response_to_invitation(db: AsyncSession, invitation_id: int, action: InvitationRole,
                                  current_user_id: int) -> dict:
     """Обрабатывает ответ на приглашение (принять/отклонить)."""
     repo = ProjectInvitationRepository(db)
@@ -79,7 +80,7 @@ async def response_to_invitation(db, invitation_id: int, action: InvitationRole,
     return {'message': f'Приглашение {new_status}'}
 
 
-async def cancel_invitation(db, invitation_id: int, current_user_id: int) -> dict:
+async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_id: int) -> dict:
     """Отменяет (удаляет) приглашение."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)

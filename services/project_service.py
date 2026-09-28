@@ -6,9 +6,10 @@ from models.project import ProjectModel
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
+from sqlalchemy.ext.asyncio import AsyncSession 
 
 
-async def create_project(db, project_date: ProjectCreate, admin_id: int) -> ProjectModel:
+async def create_project(db: AsyncSession, project_date: ProjectCreate, admin_id: int) -> ProjectModel:
     """Создаёт новый проект и добавляет администратора."""
     repo = ProjectRepository(db)
     return await repo.create_project_with_admin(
@@ -18,7 +19,7 @@ async def create_project(db, project_date: ProjectCreate, admin_id: int) -> Proj
     )
 
 
-async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: int) -> dict:
+async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user_id_to_add: int) -> dict:
     """Добавляет пользователя в проект (только администратор)."""
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
@@ -38,7 +39,7 @@ async def add_user(db, project_id: int, current_user_id: int, user_id_to_add: in
     raise AppException(500, 'Неизвестная ошибка при добавлении пользователя в проект!')
 
 
-async def get_admin_projects(db, admin_id: int) -> list[ProjectModel]:
+async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[ProjectModel]:
     """Возвращает проекты, где пользователь является администратором."""
     repo = ProjectRepository(db)
     numb_projects = await repo.get_projects_by_admin(admin_id)
@@ -48,7 +49,7 @@ async def get_admin_projects(db, admin_id: int) -> list[ProjectModel]:
         return numb_projects
 
 
-async def checking_rights_project(db, project_date: ProjectMemberCheck) -> str:
+async def checking_rights_project(db: AsyncSession, project_date: ProjectMemberCheck) -> str:
     """Проверяет права пользователя в проекте (возвращает роль)."""
     repo = ProjectRepository(db)
     result = await repo.get_user_role_in_project(project_date.project_id, project_date.user_id)
@@ -58,7 +59,7 @@ async def checking_rights_project(db, project_date: ProjectMemberCheck) -> str:
         return result
 
 
-async def get_project_info(db, project_id: int, user_id: int) -> dict:
+async def get_project_info(db: AsyncSession, project_id: int, user_id: int) -> dict:
     """Возвращает полную информацию о проекте."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
@@ -85,7 +86,7 @@ async def get_project_info(db, project_id: int, user_id: int) -> dict:
     }
 
 
-async def get_user_projects(db, current_user_id: int) -> list[UserProjectResponse]:
+async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[UserProjectResponse]:
     """Возвращает все проекты, в которых участвует пользователь."""
     repo = ProjectRepository(db)
     projects = await repo.get_user_projects(current_user_id)
@@ -103,7 +104,7 @@ async def get_user_projects(db, current_user_id: int) -> list[UserProjectRespons
     return result
 
 
-async def update_project(db, project_id: int, user_id: int, project_date: ProjectUpdate) -> dict:
+async def update_project(db: AsyncSession, project_id: int, user_id: int, project_date: ProjectUpdate) -> dict:
     """Обновляет название и/или описание проекта (только администратор)."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
@@ -125,7 +126,7 @@ async def update_project(db, project_id: int, user_id: int, project_date: Projec
     return {'message': 'Проект обновлен!'}
 
 
-async def delete_project(db, project_id: int, user_id: int) -> dict:
+async def delete_project(db: AsyncSession, project_id: int, user_id: int) -> dict:
     """Удаляет проект (только администратор)."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
@@ -138,7 +139,7 @@ async def delete_project(db, project_id: int, user_id: int) -> dict:
     raise AppException(500, 'Не удалось удалить проект')
 
 
-async def delete_project_user(db, project_id: int, current_user_id: int,
+async def delete_project_user(db: AsyncSession, project_id: int, current_user_id: int,
                               user_id_to_del: int) -> dict:
     """Удаляет участника из проекта (только администратор)."""
     repo = ProjectRepository(db)
