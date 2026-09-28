@@ -1,6 +1,7 @@
 from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession 
+from models.user import UserModel
 
 
 async def update_user_username(db: AsyncSession, username: str, current_user_id: int) -> dict:
@@ -14,7 +15,6 @@ async def update_user_username(db: AsyncSession, username: str, current_user_id:
         return {'message': 'Имя пользователя обновлено!'}
     else:
         raise NotFoundException('Пользователь не найден!')
-
 
 async def update_user_email(db: AsyncSession, email: str, current_user_id: int) -> dict:
     """Обновляет email пользователя."""
@@ -35,5 +35,18 @@ async def update_user_password(db: AsyncSession, password: str, current_user_id:
         raise LackOfInformationException('Пароль не может быть пустым или превышать 100 символов!')
     if await repo.update_password(current_user_id, password):
         return {'message': 'Пароль пользователя обновлен!'}
+    else:
+        raise NotFoundException('Пользователь не найден!')
+
+async def search_by_username(db: AsyncSession, search_user: str, current_user_username: str) -> UserModel:
+    """Запрос пользователя на поиск другого пользователя"""
+    repo = UserRepository(db)
+    if len(search_user) == 0:
+        raise NotFoundException('Нельзя найти пользователя, введите ник!')
+    if search_user == current_user_username:
+        return {'message': ''}
+    user = await repo.search_by_username(search_user)
+    if user:
+        return user
     else:
         raise NotFoundException('Пользователь не найден!')

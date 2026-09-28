@@ -118,3 +118,9 @@ class UserRepository:
             return False
         else:
             return True
+
+    async def search_by_username(self, username) -> UserModel | None:
+        task = await self.session.execute(select(UserModel.email, UserModel.username, UserModel.created_date).where(
+            UserModel.username == username))
+        result = task.scalar_one_or_none()
+        return result is not None

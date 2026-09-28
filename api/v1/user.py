@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import current_user, get_db
 from models.user import UserModel
 from schemas.user import UpdateEmailRequest, UpdateUsernameRequest, UpdatePasswordRequest, UserResponse
-from services.user_service import update_user_email, update_user_username, update_user_password
+from services.user_service import update_user_email, update_user_username, update_user_password, search_by_username
 
 router = APIRouter()
 
@@ -40,3 +40,8 @@ async def update_password_endpoint(request: UpdatePasswordRequest,
                                    db: AsyncSession = Depends(get_db)):
     """Обновление пароля пользователя."""
     return await update_user_password(db, request.password, current_user.user_id)
+
+@router.get('/users/search', tags=['Пользователи'], summary='Поиск пользователя по нику')
+async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 
+                       db: AsyncSession = Depends(get_db)):
+    return await search_by_username(db, search_user, current_user.username)
