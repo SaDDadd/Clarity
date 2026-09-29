@@ -14,3 +14,8 @@ class InvitationRole(str, Enum):
     PENDING = 'pending'
     ACCEPTED = 'accepted'
     DECLINED = 'declined'
+
+class TaskPriority(str, Enum):
+    LOW = 'low'
+    MEDIUM = 'medium'
+    HIGH = 'high'
