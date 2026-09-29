@@ -2,6 +2,7 @@
 from pydantic import BaseModel, Field
 import datetime
 from schemas.common import TaskStatus, TaskPriority
+from pydantic import ConfigDict
 
 class TaskBase(BaseModel):
     title: str = Field(max_length=150)
@@ -19,7 +20,7 @@ class TaskUpdate(BaseModel):
     task_description: str | None = None
     task_status: TaskStatus | None = None
     task_priority: TaskPriority | None = None
-    favorite: bool | None = None
+    task_favorite: bool | None = None
     assigned_to: int | None = None
     deadline: datetime.date | None = None
 
@@ -31,3 +32,4 @@ class TaskResponse(TaskBase):
     project_id: int
     assigned_to: int | None
     created_date: datetime.datetime
+    model_config = ConfigDict(from_attributes=True)
