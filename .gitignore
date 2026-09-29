@@ -1,0 +1,6 @@
+__pycache__/
+.putest_cache/
+.VSCodeCounter/
+__pycache__
+__init.py__
+ai_commit.py
