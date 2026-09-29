@@ -4,7 +4,7 @@ import datetime
 
 class UserBase(BaseModel):
     username: str = Field(max_length=50)
-    email: EmailStr = Field(max_length=100)
+    email: EmailStr = Field(min_length=8, max_length=100)
 
 class UserResponse(UserBase):
     user_id: int

@@ -7,8 +7,8 @@ class TaskBase(BaseModel):
     title: str = Field(max_length=150)
     task_description: str | None = None
     task_status: TaskStatus = Field(default=TaskStatus.PENDING)
-    task_priority: TaskPriority = TaskPriority.LOW
-    favorite: bool = False
+    task_priority: TaskPriority = Field(default=TaskPriority.LOW)
+    task_favorite: bool = Field(default=False)
     deadline: datetime.date | None = Field(default=None)
 
 class TaskCreate(TaskBase):
@@ -30,6 +30,4 @@ class TaskResponse(TaskBase):
     task_id: int
     project_id: int
     assigned_to: int | None
-    task_priority: TaskPriority | None = None
-    favorite: bool
     created_date: datetime.datetime

@@ -5,12 +5,12 @@ from schemas.user import UserResponse
 
 class ProjectBase(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
-    project_description: str | None
+    project_description: str | None = None
 
 class ProjectCreate(ProjectBase):
     pass
 
-class ProjectUpdate(ProjectBase):
+class ProjectUpdate(BaseModel):
     project_name: str | None = None
     project_description: str | None = None
 
@@ -38,5 +38,5 @@ class UserProjectResponse(BaseModel):
     project_id: int
     project_name: str
     project_description: str | None
-    role: str
+    role: ProjectRole
     model_config = ConfigDict(from_attributes=True, extra='ignore')
