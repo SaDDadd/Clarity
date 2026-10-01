@@ -20,6 +20,7 @@
   - [Задачи](#задачи)
   - [Приглашения](#приглашения)
   - [Профиль пользователя](#профиль-пользователя)
+  - [Пользователи](#пользователи)
 - [Тестирование](#тестирование)
 - [Нагрузочное тестирование](#нагрузочное-тестирование)
 - [Инструкция для фронтенда](#инструкция-для-фронтенда)
@@ -32,9 +33,12 @@
 - Управление проектами (создание, просмотр, обновление, удаление).
 - Ролевая модель: **admin** и **member** в рамках проекта.
 - Управление задачами внутри проектов (CRUD, смена статуса).
+- Приоритет задачи (low / medium / high) и флаг «избранное».
 - Приглашения пользователей в проекты.
-- Профиль пользователя (смена имени, email и получение данных профиля).
+- Профиль пользователя (смена имени, email, пароля и получение данных профиля).
+- Поиск пользователей по нику.
 - Получение информации о текущем пользователе через `/auth/me` и `/profile`.
+- Инфраструктура кэширования на Redis (в разработке).
 - Пагинация для списков (реализована, но не задокументирована — будет добавлена в следующих релизах).
 - Полностью асинхронный код.
 - Docker-контейнеризация.
@@ -57,7 +61,7 @@
 | **Обновление проекта** (PUT `/projects/{project_id}`) | ❌ | ✅ |
 | **Удаление проекта** (DELETE `/projects/{project_id}`) | ❌ | ✅ |
 | **Добавление участника** (POST `/projects/{project_id}/members`) | ❌ | ✅ |
-| **Удаление участника** (DELETE `/projects/{project_id}/members`) | ❌ | ✅ |
+| **Удаление участника** (DELETE `/projects/{project_id}/members/{user_id}`) | ❌ | ✅ |
 | **Изменение роли участника** (PATCH `/projects/{project_id}/members/{user_id}/role`) | ❌ | ✅ |
 | **Отправка приглашения** (POST `/projects/{project_id}/invitations`) | ❌ | ✅ |
 | **Просмотр приглашений проекта** (GET `/invitations/project/{project_id}`) | ❌ | ✅ |
@@ -73,7 +77,8 @@
 - **Alembic** — миграции
 - **Pydantic** — валидация данных
 - **python-jose** — JWT
-- **bcrypt / aiobcrypt** — хеширование паролей (асинхронное)
+- **bcrypt / aiobcrypt** — хеширование паролей (синхронное и асинхронное)
+- **Redis** — кэширование (в разработке)
 - **pytest + httpx** — тестирование
 - **Locust** — нагрузочное тестирование
 - **Docker / Docker Compose** — контейнеризация
@@ -88,6 +93,7 @@
 - **Модели** — SQLAlchemy-модели.
 - **Схемы** — Pydantic-схемы для валидации запросов и ответов.
 - **Ядро** — конфигурация, безопасность, зависимости, исключения.
+- **Кэш** — обёртки над Redis (в разработке).
 
 Такая структура обеспечивает **разделение ответственности**, упрощает тестирование и поддержку кода.
 
@@ -96,12 +102,14 @@
 ### Локальный запуск (без Docker)
 
 1. **Клонируйте репозиторий:**
+
    ```bash
    git clone https://github.com/SaDDadd/Clarity.git
    cd Clarity
    ```
 
 2. **Создайте и активируйте виртуальное окружение:**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # для Linux/Mac
@@ -110,6 +118,7 @@
    ```
 
 3. **Установите зависимости:**
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -119,11 +128,13 @@
 5. **Запустите MySQL** (локально или в контейнере) и создайте базу данных.
 
 6. **Примените миграции:**
+
    ```bash
    alembic upgrade head
    ```
 
 7. **Запустите приложение:**
+
    ```bash
    uvicorn main:app --reload
    ```
@@ -135,16 +146,21 @@ API будет доступно по адресу `http://localhost:8000`.
 Для запуска всего приложения (бэкенд + MySQL) в контейнерах:
 
 1. Убедитесь, что установлены **Docker** и **Docker Compose**.
+
 2. Создайте файл `.env` в корне проекта (как описано в разделе переменных окружения).
+
 3. Соберите и запустите контейнеры:
+
    ```bash
    docker-compose up --build
    ```
+
    - Бэкенд будет доступен на `http://localhost:8000`
    - База данных MySQL будет доступна на порту `3307` хоста (внутри контейнера – `3306`).
    - При старте контейнера бэкенда автоматически выполняются миграции (скрипт `entrypoint.sh`).
 
 4. Остановка:
+
    ```bash
    docker-compose down
    ```
@@ -169,6 +185,12 @@ JWT_SECRET_KEY=your_super_secret_key_here  # обязательно задайт
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
+# Redis (опционально, для кэширования)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
 # CORS (опционально)
 CORS_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
 ```
@@ -187,28 +209,36 @@ JWT_SECRET_KEY=your_very_secret_key_here_32_chars_min
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 ```
 
-Он подключается в `core/config.py` через `SettingsTEST`.
+Он подключается в `core/config.py` через `SettingsTEST` (при установленной переменной окружения `ENV=test` подгружается `.env.test`).
 
 ## Миграции базы данных
 
 Для управления схемой используется **Alembic**.
 
 - **Создать новую миграцию** (после изменения моделей):
+
   ```bash
   alembic revision --autogenerate -m "описание изменений"
   ```
 
 - **Применить миграции:**
+
   ```bash
   alembic upgrade head
   ```
 
 - **Откатиться на предыдущую версию:**
+
   ```bash
   alembic downgrade -1
   ```
 
 > **Важно:** перед созданием миграции убедитесь, что ваши модели импортированы в `env.py`, чтобы Alembic мог их обнаружить.
+
+В проекте уже есть две миграции:
+
+- `4ed2a0e57d1c_init.py` — начальная миграция (создаёт таблицы `users`, `projects`, `project_members`, `tasks`, `project_invitations`).
+- `38152136d0e1_add_task_favorite.py` — добавляет поле `tasks.task_favorite` и обновляет `server_default` для `created_date`, `update_date`, `joined_date`.
 
 ## Описание таблиц базы данных
 
@@ -250,6 +280,8 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 | `title` | `varchar(150)` | NOT NULL | Название задачи |
 | `task_description` | `text` | YES | Описание задачи |
 | `task_status` | `enum('pending','in_progress','completed')` | YES, DEFAULT 'pending' | Статус задачи |
+| `task_priority` | `enum('low','medium','high')` | NOT NULL, DEFAULT 'low' | Приоритет задачи |
+| `task_favorite` | `bool` | NOT NULL, DEFAULT 0 | Флаг «избранное» |
 | `project_id` | `int` | NOT NULL, FOREIGN KEY | ID проекта |
 | `assigned_to` | `int` | YES, FOREIGN KEY | ID исполнителя |
 | `deadline` | `date` | YES | Срок выполнения |
@@ -284,11 +316,12 @@ Authorization: Bearer <token>
 |-------|----------|----------|------------------------|
 | POST | `/auth/register` | Регистрация нового пользователя | ❌ |
 | POST | `/auth/login` | Вход в систему (получение токена) | ❌ |
-| GET | `/auth/me` | Получить информацию о текущем пользователе | ✅ |
+| POST | `/auth/token` | Логин для Swagger (OAuth2PasswordRequestForm) | ❌ |
 
 #### Регистрация
 
 **Запрос:**
+
 ```http
 POST /api/v1/auth/register
 Content-Type: application/json
@@ -301,6 +334,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (201 Created):**
+
 ```json
 {
   "message": "Пользователь создан"
@@ -308,12 +342,14 @@ Content-Type: application/json
 ```
 
 **Ошибки:**
+
 - `409 Conflict` — имя пользователя или email уже заняты.
 - `422 Unprocessable Entity` — пароль короче 8 символов.
 
 #### Логин
 
 **Запрос:**
+
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -325,34 +361,44 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
-  "token_type": "bearer"
+  "token_type": "bearer",
+  "expires_in": 1800
 }
 ```
 
 **Ошибки:**
+
 - `401 Unauthorized` — неверные учётные данные.
 - `422 Unprocessable Entity` — пустые поля.
+
+#### Логин для Swagger
+
+**Запрос:**
+
+```http
+POST /api/v1/auth/token
+Content-Type: application/x-www-form-urlencoded
+
+username=john_doe&password=securepassword123
+```
+
+**Успешный ответ (200 OK):**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "expires_in": 1800
+}
+```
 
 #### Получение информации о текущем пользователе
 
 **Запрос:**
-```http
-GET /api/v1/auth/me
-Authorization: Bearer <token>
-```
-
-**Успешный ответ (200 OK):**
-```json
-{
-  "user_id": 1,
-  "username": "john_doe",
-  "email": "john@example.com",
-  "created_date": "2026-08-20T10:00:00"
-}
-```
 
 ### Проекты
 
@@ -365,12 +411,13 @@ Authorization: Bearer <token>
 | PUT | `/projects/{project_id}` | Обновить проект | ✅ | admin |
 | DELETE | `/projects/{project_id}` | Удалить проект | ✅ | admin |
 | POST | `/projects/{project_id}/members` | Добавить участника в проект | ✅ | admin |
-| DELETE | `/projects/{project_id}/members` | Удалить участника из проекта | ✅ | admin |
+| DELETE | `/projects/{project_id}/members/{user_id}` | Удалить участника из проекта | ✅ | admin |
 | PATCH | `/projects/{project_id}/members/{user_id}/role` | Изменить роль участника | ✅ | admin |
 
 #### Создание проекта
 
 **Запрос:**
+
 ```http
 POST /api/v1/projects
 Authorization: Bearer <token>
@@ -383,6 +430,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (201 Created):**
+
 ```json
 {
   "project_id": 1,
@@ -395,12 +443,14 @@ Content-Type: application/json
 #### Получение списка проектов (где пользователь — админ)
 
 **Запрос:**
+
 ```http
 GET /api/v1/projects
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 [
   {
@@ -415,12 +465,14 @@ Authorization: Bearer <token>
 #### Получение списка всех проектов пользователя (админ + участник)
 
 **Запрос:**
+
 ```http
 GET /api/v1/projects/all
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 [
   {
@@ -441,12 +493,14 @@ Authorization: Bearer <token>
 #### Получение информации о проекте
 
 **Запрос:**
+
 ```http
 GET /api/v1/projects/1
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "project_id": 1,
@@ -456,25 +510,27 @@ Authorization: Bearer <token>
   "members": [
     {
       "user_id": 1,
-      "username": "john_doe",
-      "role": "admin"
+      "role": "admin",
+      "joined_date": "2026-08-20T10:00:00"
     },
     {
       "user_id": 2,
-      "username": "jane_doe",
-      "role": "member"
+      "role": "member",
+      "joined_date": "2026-08-20T10:05:00"
     }
   ]
 }
 ```
 
 **Ошибки:**
+
 - `404 Not Found` — проект не найден.
 - `403 Forbidden` — пользователь не является участником проекта.
 
 #### Обновление проекта
 
 **Запрос:**
+
 ```http
 PUT /api/v1/projects/1
 Authorization: Bearer <token>
@@ -487,6 +543,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Проект обновлен!"
@@ -494,6 +551,7 @@ Content-Type: application/json
 ```
 
 Если данные не изменились:
+
 ```json
 {
   "message": "Ничего не изменилось!"
@@ -501,18 +559,21 @@ Content-Type: application/json
 ```
 
 **Ошибки:**
+
 - `403 Forbidden` — пользователь не админ проекта.
 - `404 Not Found` — проект не найден.
 
 #### Удаление проекта
 
 **Запрос:**
+
 ```http
 DELETE /api/v1/projects/1
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Проект успешно удален!"
@@ -520,12 +581,14 @@ Authorization: Bearer <token>
 ```
 
 **Ошибки:**
+
 - `403 Forbidden` — пользователь не админ проекта.
 - `404 Not Found` — проект не найден.
 
 #### Добавление участника в проект
 
 **Запрос:**
+
 ```http
 POST /api/v1/projects/1/members
 Authorization: Bearer <token>
@@ -537,6 +600,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (201 Created):**
+
 ```json
 {
   "message": "Пользователь добавлен в проект!"
@@ -544,6 +608,7 @@ Content-Type: application/json
 ```
 
 **Ошибки:**
+
 - `400 Bad Request` — попытка добавить самого себя.
 - `403 Forbidden` — пользователь не админ проекта.
 - `404 Not Found` — пользователь не найден.
@@ -552,17 +617,14 @@ Content-Type: application/json
 #### Удаление участника из проекта
 
 **Запрос:**
-```http
-DELETE /api/v1/projects/1/members
-Authorization: Bearer <token>
-Content-Type: application/json
 
-{
-  "user_id": 2
-}
+```http
+DELETE /api/v1/projects/1/members/2
+Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Пользователь удален из проекта!"
@@ -570,6 +632,7 @@ Content-Type: application/json
 ```
 
 **Ошибки:**
+
 - `400 Bad Request` — попытка удалить самого себя (единственного админа).
 - `403 Forbidden` — пользователь не админ проекта.
 - `409 Conflict` — пользователь не состоит в проекте.
@@ -577,12 +640,14 @@ Content-Type: application/json
 #### Изменение роли участника
 
 **Запрос:**
+
 ```http
 PATCH /api/v1/projects/1/members/2/role?role=admin
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Роль обновлена"
@@ -590,6 +655,7 @@ Authorization: Bearer <token>
 ```
 
 **Ошибки:**
+
 - `400 Bad Request` — попытка понизить единственного админа.
 - `403 Forbidden` — пользователь не админ проекта.
 
@@ -608,6 +674,7 @@ Authorization: Bearer <token>
 #### Создание задачи
 
 **Запрос:**
+
 ```http
 POST /api/v1/projects/1/tasks
 Authorization: Bearer <token>
@@ -616,19 +683,24 @@ Content-Type: application/json
 {
   "title": "Написать документацию",
   "task_description": "Описание задачи",
-  "task_status": "pending",  // или "in_progress", "completed"
-  "assigned_to": 2,  // ID пользователя (опционально)
-  "deadline": "2026-09-01"  // в формате YYYY-MM-DD
+  "task_status": "pending",           // "pending" | "in_progress" | "completed"
+  "task_priority": "low",             // "low" | "medium" | "high"
+  "task_favorite": false,
+  "assigned_to": 2,                   // ID пользователя (опционально)
+  "deadline": "2026-09-01"            // в формате YYYY-MM-DD
 }
 ```
 
 **Успешный ответ (201 Created):**
+
 ```json
 {
   "task_id": 1,
   "title": "Написать документацию",
   "task_description": "Описание задачи",
   "task_status": "pending",
+  "task_priority": "low",
+  "task_favorite": false,
   "project_id": 1,
   "assigned_to": 2,
   "deadline": "2026-09-01",
@@ -639,18 +711,22 @@ Content-Type: application/json
 #### Получение всех задач проекта
 
 **Запрос:**
+
 ```http
 GET /api/v1/projects/1/tasks
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 [
   {
     "task_id": 1,
     "title": "Написать документацию",
     "task_status": "pending",
+    "task_priority": "low",
+    "task_favorite": false,
     "assigned_to": 2,
     "deadline": "2026-09-01"
   }
@@ -660,18 +736,22 @@ Authorization: Bearer <token>
 #### Получение деталей задачи
 
 **Запрос:**
+
 ```http
 GET /api/v1/projects/1/tasks/1
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "task_id": 1,
   "title": "Написать документацию",
   "task_description": "Описание задачи",
   "task_status": "pending",
+  "task_priority": "low",
+  "task_favorite": false,
   "project_id": 1,
   "assigned_to": 2,
   "deadline": "2026-09-01",
@@ -682,6 +762,7 @@ Authorization: Bearer <token>
 #### Обновление задачи
 
 **Запрос:**
+
 ```http
 PUT /api/v1/projects/1/tasks/1
 Authorization: Bearer <token>
@@ -691,21 +772,25 @@ Content-Type: application/json
   "title": "Обновлённый заголовок",
   "task_description": "Новое описание",
   "task_status": "in_progress",
+  "task_priority": "high",
+  "task_favorite": true,
   "assigned_to": 3,
   "deadline": "2026-10-01"
 }
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
-  "message": "Задача обновлена"
+  "message": "Задача обновилась!"
 }
 ```
 
 #### Изменение статуса задачи
 
 **Запрос:**
+
 ```http
 PATCH /api/v1/projects/1/tasks/1/status
 Authorization: Bearer <token>
@@ -717,6 +802,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Статус обновлен!"
@@ -726,30 +812,35 @@ Content-Type: application/json
 #### Удаление задачи
 
 **Запрос:**
+
 ```http
 DELETE /api/v1/projects/1/tasks/1
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
-  "message": "Задача успешно удалена"
+  "message": "Задача удалена из проекта!"
 }
 ```
 
 **Ошибки:**
+
 - `403 Forbidden` — пользователь не админ проекта.
 
 #### Получение задач, назначенных текущему пользователю
 
 **Запрос:**
+
 ```http
 GET /api/v1/tasks
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 [
   {
@@ -775,6 +866,7 @@ Authorization: Bearer <token>
 #### Отправка приглашения
 
 **Запрос:**
+
 ```http
 POST /api/v1/projects/1/invitations
 Authorization: Bearer <token>
@@ -787,6 +879,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "invitation_id": 1,
@@ -803,12 +896,14 @@ Content-Type: application/json
 #### Получение списка приглашений для пользователя
 
 **Запрос:**
+
 ```http
 GET /api/v1/invitations
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 [
   {
@@ -827,12 +922,14 @@ Authorization: Bearer <token>
 #### Получение списка приглашений проекта
 
 **Запрос:**
+
 ```http
 GET /api/v1/invitations/project/1
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 [
   {
@@ -847,6 +944,7 @@ Authorization: Bearer <token>
 #### Ответ на приглашение
 
 **Запрос:**
+
 ```http
 PATCH /api/v1/invitations/1
 Authorization: Bearer <token>
@@ -858,6 +956,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Приглашение accepted"
@@ -869,12 +968,14 @@ Content-Type: application/json
 #### Отмена приглашения
 
 **Запрос:**
+
 ```http
 DELETE /api/v1/invitations/1
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Приглашение отменено"
@@ -888,16 +989,19 @@ Authorization: Bearer <token>
 | GET | `/profile` | Получить данные текущего пользователя | ✅ |
 | PUT | `/profile/username` | Обновить имя пользователя | ✅ |
 | PUT | `/profile/email` | Обновить email пользователя | ✅ |
+| PATCH | `/profile/password` | Обновить пароль пользователя | ✅ |
 
 #### Получение данных профиля
 
 **Запрос:**
+
 ```http
 GET /api/v1/profile
 Authorization: Bearer <token>
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "user_id": 1,
@@ -910,6 +1014,7 @@ Authorization: Bearer <token>
 #### Обновление имени
 
 **Запрос:**
+
 ```http
 PUT /api/v1/profile/username
 Authorization: Bearer <token>
@@ -921,6 +1026,7 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Имя пользователя обновлено!"
@@ -930,6 +1036,7 @@ Content-Type: application/json
 #### Обновление email
 
 **Запрос:**
+
 ```http
 PUT /api/v1/profile/email
 Authorization: Bearer <token>
@@ -941,11 +1048,68 @@ Content-Type: application/json
 ```
 
 **Успешный ответ (200 OK):**
+
 ```json
 {
   "message": "Email пользователя обновлено!"
 }
 ```
+
+#### Обновление пароля
+
+**Запрос:**
+
+```http
+PATCH /api/v1/profile/password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "password": "new_secure_password"
+}
+```
+
+**Успешный ответ (200 OK):**
+
+```json
+{
+  "message": "Пароль пользователя обновлен!"
+}
+```
+
+### Пользователи
+
+| Метод | Эндпоинт | Описание | Требует аутентификации |
+|-------|----------|----------|------------------------|
+| GET | `/users/search?search_user=...` | Поиск пользователя по нику | ✅ |
+
+#### Поиск пользователя по нику
+
+**Запрос:**
+
+```http
+GET /api/v1/users/search?search_user=john
+Authorization: Bearer <token>
+```
+
+**Успешный ответ (200 OK):**
+
+```json
+[
+  {
+    "user_id": 1,
+    "username": "john_doe",
+    "email": "john@example.com",
+    "created_date": "2026-08-20T10:00:00"
+  }
+]
+```
+
+**Ошибки:**
+
+- `404 Not Found` — пользователь не найден.
+
+> ⚠️ В коде репозитория (`UserRepository.search_by_username`) возвращается `list[dict]`, при этом сервис `search_by_username` в `services/user_service.py` типизирован как `UserModel | dict`. Проверьте фактический формат ответа.
 
 ## Тестирование
 
@@ -982,6 +1146,7 @@ tests/
 
 1. Убедитесь, что создан файл `.env.test` с настройками для тестовой базы данных.
 2. Запустите тесты:
+
    ```bash
    pytest -v
    ```
@@ -1142,11 +1307,12 @@ tests/
 
 | Фикстура | Описание |
 |----------|----------|
-| `engine` | Создаёт асинхронный движок SQLAlchemy, применяет миграции перед тестами и откатывает их после. |
-| `db_session` | Создаёт новую сессию базы данных для каждого теста. |
+| `sync_engine` | Создаёт синхронный движок SQLAlchemy (pymysql), создаёт все таблицы через `Base.metadata.create_all`. |
+| `async_engine` | Создаёт асинхронный движок SQLAlchemy для тестов. |
+| `db_session` | Создаёт новую сессию базы данных для каждого теста, откатывает транзакцию после. |
 | `async_client` | Предоставляет асинхронный HTTP-клиент для тестирования эндпоинтов без запуска сервера. |
 | `create_test_user` | Создаёт тестового пользователя с заданным паролем. |
-| `test_users` | Создаёт трёх тестовых пользователей: `admin`, `member`, `outsider`. |
+| `test_users` | Создаёт четырёх тестовых пользователей: `admin`, `member`, `outsider`, `user_profile`. |
 | `auth_headers` | Возвращает заголовки с JWT-токеном для пользователя `admin`. |
 | `member_auth_headers` | Возвращает заголовки с JWT-токеном для пользователя `member`. |
 | `test_project` | Создаёт тестовый проект с пользователем `admin` в роли администратора. |
@@ -1192,6 +1358,7 @@ python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
 ```
 
 Скрипт автоматически:
+
 - Запускает сервер на `http://localhost:8000` с переменной окружения `ENV=test`.
 - Ожидает готовности сервера.
 - Заполняет БД тестовыми данными (вызов `seed_data.py`).
@@ -1203,17 +1370,23 @@ python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
 Если вы хотите запустить сервер и Locust отдельно:
 
 1. Установите переменную окружения `ENV=test` и запустите сервер:
+
    ```bash
    ENV=test uvicorn main:app --host 0.0.0.0 --port 8000
    ```
+
 2. В другом терминале заполните БД тестовыми данными:
+
    ```bash
    python tests/load/seed_data.py
    ```
+
 3. Запустите Locust:
+
    ```bash
    locust -f tests/load/locustfile.py --host=http://localhost:8000
    ```
+
    Откройте веб-интерфейс Locust по адресу `http://localhost:8089` и настройте нагрузку.
 
 ### Структура нагрузочных тестов
@@ -1238,9 +1411,11 @@ python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
 
 - После успешного логина сервер возвращает `access_token`.
 - Этот токен необходимо отправлять с каждым защищённым запросом в заголовке:
+
   ```
   Authorization: Bearer <token>
   ```
+
 - Токен действителен **30 минут** (настраивается в `.env`). По истечении срока пользователь должен повторно войти.
 
 ### 3. Форматы данных
@@ -1248,14 +1423,16 @@ python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
 - Все даты передаются в формате ISO 8601:
   - `YYYY-MM-DD` для дат без времени.
   - `YYYY-MM-DDTHH:MM:SS` для datetime.
-- Enum-поля (статусы задач, роли) передаются строками:
+- Enum-поля (статусы задач, роли, приоритеты) передаются строками:
   - `task_status`: `"pending"`, `"in_progress"`, `"completed"`
+  - `task_priority`: `"low"`, `"medium"`, `"high"`
   - `role_project` (в запросах/ответах): `"admin"`, `"member"`
   - `status_invited`: `"pending"`, `"accepted"`, `"declined"`
 
 ### 4. Обработка ошибок
 
 Все ошибки приходят в формате:
+
 ```json
 {
   "detail": "Текст ошибки"
@@ -1263,6 +1440,7 @@ python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
 ```
 
 HTTP-статусы соответствуют стандартам:
+
 - `200` – успех
 - `201` – создано
 - `400` – плохой запрос
@@ -1274,7 +1452,7 @@ HTTP-статусы соответствуют стандартам:
 
 ### 5. CORS
 
-Настроен CORS для всех источников (в разработке). Для продакшена укажите конкретные домены через переменную `CORS_ORIGINS` в `.env` (через запятую).
+Настроен CORS для всех источников (в разработке). Для продакшена укажите конкретные домены через переменную `CORS_ORIGINS` в `.env` (через запятую). Список доменов парсится свойством `cors_origins_list` в `Settings`.
 
 ### 6. Пример работы с API на фронтенде (JavaScript)
 
@@ -1321,6 +1499,29 @@ const getProfile = async () => {
   });
   return res.json();
 };
+
+// Обновление пароля
+const updatePassword = async (newPassword) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch('http://localhost:8000/api/v1/profile/password', {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ password: newPassword })
+  });
+  return res.json();
+};
+
+// Поиск пользователя
+const searchUsers = async (query) => {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`http://localhost:8000/api/v1/users/search?search_user=${encodeURIComponent(query)}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return res.json();
+};
 ```
 
 ## Структура проекта
@@ -1329,8 +1530,8 @@ const getProfile = async () => {
 Clarity/
 ├── alembic/                     # Миграции Alembic
 │   ├── versions/
-│   │   ├── cf26c315fc74_init.py
-│   │   └── 6f7a8b9c0d1e_add_missing_indexes.py  # Добавлены индексы для оптимизации
+│   │   ├── 4ed2a0e57d1c_init.py                 # Начальная миграция
+│   │   └── 38152136d0e1_add_task_favorite.py    # Добавлено поле task_favorite
 │   ├── env.py                    # Конфигурация окружения Alembic
 │   └── script.py.mako            # Шаблон для генерации миграций
 ├── api/
@@ -1340,28 +1541,33 @@ Clarity/
 │       ├── projects.py           # Роутеры проектов
 │       ├── tasks.py              # Роутеры задач
 │       ├── invitations.py        # Роутеры приглашений
-│       └── user.py               # Роутеры профиля (включая GET /profile)
+│       └── user.py               # Роутеры профиля (включая GET /profile, PATCH /profile/password, GET /users/search)
+├── cache/                        # Обёртки Redis (в разработке)
+│   ├── cache_keys.py             # Префиксы, TTL, функции формирования ключей
+│   ├── cache_service.py          # get/set/delete + (в разработке) get_or_set, delete_cache_by_pattern
+│   └── redis_client.py           # get_redis_client / close_redis_client / ping_redis
+|   └── rate_limiter.py           # Модуль ограничения частоты запросов
 ├── core/
 │   ├── __init__.py
-│   ├── config.py                 # Настройки приложения
+│   ├── config.py                 # Настройки приложения (в т.ч. Redis)
 │   ├── database.py               # Подключение к БД
-│   ├── dependencies.py           # Dependency Injection
-│   ├── exceptions.py             # Кастомные исключения
+│   ├── dependencies.py           # Dependency Injection, current_user, oauth2_scheme
+│   ├── exceptions.py             # Кастомные исключения и обработчики
 │   └── security.py               # JWT, хеширование (синхронное и асинхронное)
 ├── models/
 │   ├── __init__.py
 │   ├── user.py                   # Модель User
 │   ├── project.py                # Модель Project
-│   ├── project_member.py         # Модель ProjectMember
-│   ├── task.py                   # Модель Task
-│   └── invitation.py             # Модель Invitation
+│   ├── project_members.py        # Модель ProjectMember
+│   ├── task.py                   # Модель Task (с task_priority и task_favorite)
+│   └── project_invitations.py    # Модель Invitation
 ├── repositories/
 │   ├── __init__.py
 │   ├── base.py                   # Базовый репозиторий
 │   ├── user_repository.py
 │   ├── project_repository.py
 │   ├── task_repository.py
-│   └── invitation_repository.py
+│   └── project_invitation_repository.py
 ├── schemas/
 │   ├── __init__.py
 │   ├── auth.py                   # Схемы для аутентификации
@@ -1369,7 +1575,7 @@ Clarity/
 │   ├── task.py                   # Схемы для задач
 │   ├── invitation.py             # Схемы для приглашений
 │   ├── user.py                   # Схемы для профиля
-│   └── common.py                 # Общие перечисления (статусы, роли)
+│   └── common.py                 # Общие перечисления (статусы, роли, приоритеты)
 ├── services/
 │   ├── __init__.py
 │   ├── auth_service.py
@@ -1404,12 +1610,11 @@ Clarity/
 │       └── users.csv             # Сгенерированные учётные данные (создаётся автоматически)
 ├── .env                          # Пример файла окружения
 ├── .env.test                     # Файл окружения для тестов
-├── ai_commit.py
-├── docker-compose.yml
+├── ai_commit.py                  # ИИ помощник для комментариев коммитов
+├── docker-compose.yaml
 ├── alembic.ini
 ├── entrypoint.sh
 ├── Dockerfile
-├── entrypoint.sh
 ├── requirements.txt
 ├── run_load_test.py               # Скрипт для автоматического запуска нагрузочных тестов
 └── main.py                        # Точка входа
@@ -1419,13 +1624,14 @@ Clarity/
 
 Проект активно развивается. В ближайших релизах планируется:
 
-- **Документирование пагинации** — пагинация уже реализована в коде, но ещё не описана в документации API. Будет добавлено подробное описание с примерами запросов.
+- **Пагинации** — пагинация не реализована. Будет добавлено подробное описание с примерами запросов в будущем.
 - **WebSocket-уведомления** — добавление реального времени: уведомления о новых задачах, изменениях статуса, приглашениях и комментариях.
 - **Комментарии к задачам** — возможность обсуждать задачи прямо в системе.
-- **Фильтрация и поиск** — расширенные возможности поиска задач по названию, статусу, исполнителю и дедлайну.
+- **Фильтрация и поиск** — расширенные возможности поиска задач по названию, статусу, исполнителю, приоритету и дедлайну.
+- **Завершение кэширования на Redis** — в `cache/` сейчас реализованы только `get/set/delete` и заготовки ключей; нужно доделать инвалидацию (`delete_cache_by_pattern`) и комбинированный `get_or_set`, а также подключить кэш к роутерам.
 - **Метрики и мониторинг** — интеграция с Prometheus для сбора метрик производительности и здоровья сервиса.
 - **CI/CD пайплайн** — настройка автоматического тестирования и деплоя через GitHub Actions.
 - **Поддержка других БД** — добавление поддержки PostgreSQL для упрощения локальной разработки и тестирования.
 - **Swagger/OpenAPI улучшения** — детальное описание всех эндпоинтов, схем и возможных ошибок для улучшения Developer Experience.
-- **Rate Limiting** — защита API от чрезмерных запросов.
+- **Rate Limiting** — защита API от чрезмерных запросов (в `cache_keys.py` уже предусмотрен префикс `RATE_LIMITING_PREFIX`).
 - **Логирование** — внедрение структурированного логирования (например, через `structlog`) для упрощения отладки и мониторинга.
