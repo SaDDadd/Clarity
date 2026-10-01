@@ -14,7 +14,7 @@ class TaskRepository:
             title=task.title,
             task_description=task.task_description,
             task_status=task.task_status,
-            task_priority=task.priority,
+            task_priority=task.task_priority,
             task_favorite=task.task_favorite,
             project_id=project_id,
             assigned_to=task.assigned_to,

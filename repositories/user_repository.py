@@ -156,9 +156,10 @@ class UserRepository:
         """Поиск пользователей по имени."""
         task = await self.session.execute(
             select(
+                UserModel.user_id,
                 UserModel.email,
                 UserModel.username,
                 UserModel.created_date,
             ).where(UserModel.username.ilike(f"%{username}%"))
         )
-        return [{"email": i[0], "username": i[1], "created_date": i[2]} for i in task.all()]
+        return [{"user_id": i[0], "email": i[1], "username": i[2], "created_date": i[3]} for i in task.all()]
