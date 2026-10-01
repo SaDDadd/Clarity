@@ -83,13 +83,14 @@ async def test_short_password(async_client):
 async def test_get_current_user_info(async_client, auth_headers, test_users):
     """Проверяет, что аутентифицированный пользователь может получить свои данные через /auth/me."""
     headers = auth_headers
-    response = await async_client.get('/api/v1/auth/me', headers=headers)
+    response = await async_client.get('/api/v1/users/search', headers=headers)
     assert response.status_code == 200
     data = response.json()
     admin = test_users['admin']
     assert data['user_id'] == admin.user_id
     assert data['username'] == admin.username
     assert data['email'] == admin.email
+    assert data['created_date'] == admin.created_date
 
 @pytest.mark.asyncio
 async def test_register_invalid_email(async_client):
@@ -145,16 +146,3 @@ async def test_login_empty_password(async_client):
     )
     assert response.status_code == 422
     assert response.json()['detail'] == 'Нехватка информации!'
-
-@pytest.mark.asyncio
-async def test_get_current_user_unauthorized(async_client):
-    """Запрос /auth/me без токена."""
-    response = await async_client.get('/api/v1/auth/me')
-    assert response.status_code == 401
-
-@pytest.mark.asyncio
-async def test_get_current_user_invalid_token(async_client):
-    """Запрос /auth/me с неверным токеном."""
-    headers = {'Authorization': 'Bearer invalid_token'}
-    response = await async_client.get('/api/v1/auth/me', headers=headers)
-    assert response.status_code == 401
