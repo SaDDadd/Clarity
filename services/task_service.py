@@ -110,7 +110,7 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    if not repo_proj.is_user_admin(project_id, current_user_id):
+    if not await repo_proj.is_user_admin(project_id, current_user_id):
         raise PermissionDeniedException('Не админ не может удалить задачу!')
     if not await repo.delete_task(task_id):
         raise NotFoundException('Не удалось удалить задачу')

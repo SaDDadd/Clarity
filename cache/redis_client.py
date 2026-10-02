@@ -21,9 +21,12 @@ async def close_redis_client():
         finally:
             _redis_client = None
 
-async def ping_redis():
-    global _redis_client
-    if await _redis_client.ping():
-        return True
-    else:
+async def ping_redis() -> bool:
+    client = await get_redis_client()
+    try:
+        return await client.ping()
+    except Exception:
         return False
+
+async def redis_health():
+    pass 

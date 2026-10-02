@@ -55,8 +55,18 @@ def project_invitations_key(project_id: int, invitation_id: int = 'all') -> str:
 def rate_limiting() -> str:
     return make_key(RATE_LIMITING_PREFIX)
 
-def user_cache_patterns():
-    return []
+def user_cache_patterns(user_id: int) -> list[str]:
+    """"""
+    return [
+        f'{USER_PREFIX}:{user_id}:*',
+        f'{USER_PREFIX}:{user_id}:task:"',
+        f'{USER_PREFIX}:{user_id}:invitation:*',
+    ]
 
-def project_cache_patterns():
-    return []
+def project_cache_patterns(project_id: int) -> list[str]:
+    """"""
+    return [
+        f'{USER_PREFIX}:{project_id}:*',
+        f'{USER_PREFIX}:{project_id}:task:*',
+        f'{USER_PREFIX}:{project_id}:invitation:*',
+    ]

@@ -1,7 +1,7 @@
 from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession 
-from models.user import UserModel
+from schemas.user import UserResponse
 
 
 async def update_user_username(db: AsyncSession, username: str, current_user_id: int) -> dict:
@@ -38,7 +38,7 @@ async def update_user_password(db: AsyncSession, password: str, current_user_id:
     else:
         raise NotFoundException('Пользователь не найден!')
 
-async def search_by_username(db: AsyncSession, search_user: str, current_user_username: str) -> UserModel | dict:
+async def search_by_username(db: AsyncSession, search_user: str, current_user_username: str) -> list[UserResponse]:
     """Запрос пользователя на поиск другого пользователя"""
     repo = UserRepository(db)
     if len(search_user) == 0:
