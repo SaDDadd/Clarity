@@ -7,8 +7,25 @@ from fastapi import FastAPI
 from core.exceptions import register_exception_handlers
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from contextlib import asynccontextmanager
+from cache.redis_client import close_redis_client, redis_health
+from core.database import engine
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await close_redis_client()
+    await engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.get('/health', tags=['Сервер'], summary='Проверка работы redis')
+async def health():
+    return await redis_health()
+
 
 app.add_middleware(
     CORSMiddleware,

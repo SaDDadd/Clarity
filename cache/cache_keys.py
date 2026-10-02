@@ -29,44 +29,43 @@ def task_key(project_id: int, task_id: int) -> str:
     return make_key(PROJECT_PREFIX, project_id, 'task', task_id)
 
 def invitations_key(project_id: int, invitation_id: int) -> str:
-    """Ключ приглашений."""
+    """Ключ одного приглашения внутри проекта."""
     return make_key(PROJECT_PREFIX, project_id, 'invitation', invitation_id)
 
 def user_projects_key(user_id: int, kind: str = 'all') -> str:
-    """"""
+    """Ключ списка проектов пользователя. kind: 'all' | 'admin'."""
     return make_key(USER_PREFIX, user_id, kind)
 
 def user_tasks_key(user_id: int, task_id: int = 'all') -> str:
-    """"""
+    """Ключ списка задач пользователя (task_id='all' — весь список)."""
     return make_key(USER_PREFIX, user_id, 'task', task_id)
 
 def user_invitations_key(user_id: int, invitation_id: int = 'all') -> str:
-    """"""
+    """Ключ списка входящих приглашений пользователя."""
     return make_key(USER_PREFIX, user_id, 'invitations', invitation_id)
 
-def project_tasks_key(project_id: int, task_id: int = 'all'):
-    """"""
+def project_tasks_key(project_id: int, task_id: int = 'all') -> str:
+    """Ключ списка задач проекта (task_id='all' — весь список)."""
     return make_key(PROJECT_PREFIX, project_id, 'task', task_id)
 
 def project_invitations_key(project_id: int, invitation_id: int = 'all') -> str:
-    """"""
+    """Ключ списка приглашений проекта (invitation_id='all' — весь список)."""
     return make_key(PROJECT_PREFIX, project_id, 'invitations', invitation_id)
 
 def rate_limiting() -> str:
+    """Базовый префикс для ключей rate limiting (пока не используется)."""
     return make_key(RATE_LIMITING_PREFIX)
 
 def user_cache_patterns(user_id: int) -> list[str]:
-    """"""
+    """Паттерны для инвалидации всех ключей пользователя."""
     return [
+        user_key(user_id),
         f'{USER_PREFIX}:{user_id}:*',
-        f'{USER_PREFIX}:{user_id}:task:"',
-        f'{USER_PREFIX}:{user_id}:invitation:*',
     ]
 
 def project_cache_patterns(project_id: int) -> list[str]:
-    """"""
+    """Паттерны для инвалидации всех ключей проекта."""
     return [
-        f'{USER_PREFIX}:{project_id}:*',
-        f'{USER_PREFIX}:{project_id}:task:*',
-        f'{USER_PREFIX}:{project_id}:invitation:*',
+        project_key(project_id),
+        f'{PROJECT_PREFIX}:{project_id}:*',
     ]
