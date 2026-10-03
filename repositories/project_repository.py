@@ -11,7 +11,7 @@ class ProjectRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_project_with_admin(self, name: str, description: str, admin_id: int) -> ProjectModel:
+    async def create_project_with_admin(self, name: str, description: str | None, admin_id: int) -> ProjectModel:
         """Создать проект и добавить админа."""
         task = ProjectModel(
             project_name=name,
@@ -205,6 +205,7 @@ class ProjectRepository:
             result = await self.session.execute(
                 delete(ProjectModel).where(ProjectModel.project_id == project_id)
             )
+            await self.session.commit()
             return result.rowcount > 0
         except Exception as e:
             print(f"ERROR deleting project {project_id}: {e}")

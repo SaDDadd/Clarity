@@ -7,10 +7,12 @@ RATE_LIMITING_PREFIX = f'{APP_NAMESPACE}:rate_limit'
 
 TTL_USER_LIST = 180
 TTL_USER = 300
+TTL_PROJECT_LIST = 180
 TTL_PROJECT = 120
-TTL_TASK_LIST = 120
-TTL_TASK = 180
-TTL_INVITATION = 180
+TTL_TASK_LIST = 180
+TTL_TASK = 120
+TTL_INVITATION_LIST = 180
+TTL_INVITATION = 120
 
 def make_key(*parts) -> str:
     """Склеивает части ключа через ':', отбрасывая None."""

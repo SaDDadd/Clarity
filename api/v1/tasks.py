@@ -3,11 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.dependencies import current_user, get_db
 from models.user import UserModel
-from schemas.task import TaskCreate, TaskStatusUpdate, TaskUpdate
+from schemas.task import TaskCreate, TaskStatusUpdate, TaskUpdate, TaskResponse
 from services.task_service import (change_status, create_task, delete_task,
                                    get_project_tasks, get_task_info, get_tasks_user,
                                    update_task)
-
+from cache.cache_keys import user_tasks_key, TTL_TASK_LIST
+from cache.cache_service import get_cache, set_cache
 router = APIRouter()
 
 
@@ -35,7 +36,17 @@ async def change_status_endpoint(task: TaskStatusUpdate, project_id: int, task_i
 async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
     """Возвращает все задачи, назначенные на текущего пользователя."""
-    return await get_tasks_user(db, current_user.user_id)
+    key = user_tasks_key(current_user.user_id)
+
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached 
+
+    tasks = await get_tasks_user(db, current_user.user_id)
+
+    data = [TaskResponse.model_validate(task).model_dump(mode='json') for task in tasks]
+    await set_cache(key, data, TTL_TASK_LIST)
+    return data 
 
 
 @router.get('/projects/{project_id}/tasks', tags=['Задачи'],
