@@ -5,18 +5,23 @@ from core.exceptions import (AppException, ConflictException,
 from models.project import ProjectModel
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
+from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse, ProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession 
+from cache.cache_keys import project_key, user_projects_key, TTL_PROJECT
+from cache.cache_service import get_cache, set_cache, delete_cache
 
 
-async def create_project(db: AsyncSession, project_date: ProjectCreate, admin_id: int) -> ProjectModel:
+async def create_project(db: AsyncSession, project_data: ProjectCreate, admin_id: int) -> ProjectModel:
     """Создаёт новый проект и добавляет администратора."""
     repo = ProjectRepository(db)
-    return await repo.create_project_with_admin(
-        project_date.project_name,
-        project_date.project_description,
+    result = await repo.create_project_with_admin(
+        project_data.project_name,
+        project_data.project_description,
         admin_id
     )
+    await delete_cache(user_projects_key(admin_id, 'all'))
+    await delete_cache(user_projects_key(admin_id, 'admin'))
+    return result
 
 
 async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user_id_to_add: int) -> dict:
@@ -24,6 +29,8 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
     project = await repo.get_project_by_id(project_id)
+    project_info = await repo.get_project_all_info(project_id)
+    member_ids = [i.user_id for i in project_info['members']]
     if not project:
         raise NotFoundException('Проект не найден!')
     if not await repo.is_user_admin(project_id, current_user_id):
@@ -35,6 +42,10 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
     if await repo.is_user_in_project(project_id, user_id_to_add):
         raise ConflictException('Пользователь уже состоит в проекте')
     if await repo.add_user(project_id, user_id_to_add):
+        await delete_cache(project_key(project_id))
+        for i in member_ids:
+            await delete_cache(user_projects_key(i, 'all'))
+            await delete_cache(user_projects_key(i, 'admin'))
         return {'message': 'Пользователь добавлен в проект!'}
     raise AppException(500, 'Неизвестная ошибка при добавлении пользователя в проект!')
 
@@ -67,23 +78,28 @@ async def get_project_info(db: AsyncSession, project_id: int, user_id: int) -> d
         raise NotFoundException('Проект не найден!')
     if not await repo.is_user_in_project(project_id, user_id):
         raise PermissionDeniedException('Пользователь не является участником проекта!')
-
-    data = await repo.get_project_all_info(project_id)
-    members = data['members']
-    return {
-        'project_id': project.project_id,
-        'project_name': project.project_name,
-        'project_description': project.project_description,
-        'admin_id': project.admin_id,
-        'members': [
-            {
-                'user_id': m.user_id,
-                'role': m.role_project,
-                'joined_date': m.joined_date.isoformat() if m.joined_date else None,
+    key = project_key(project_id)
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached
+    project_info = await repo.get_project_all_info(project_id)
+    info = project_info['project']
+    members = project_info['members']
+    answer = {'project_id':info.project_id, 
+              'project_name':info.project_name, 
+              'project_description':info.project_description,
+              'admin_id':info.admin_id, 
+              'members': [
+                {
+                    'user_id': member.user_id,
+                    'role': member.role_project,
+                    'joined_date': member.joined_date.isoformat() if member.joined_date else None,
+                }
+                for member in members
+                ],
             }
-            for m in members
-        ]
-    }
+    await set_cache(key, answer, TTL_PROJECT)
+    return answer
 
 
 async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[UserProjectResponse]:
@@ -130,13 +146,19 @@ async def delete_project(db: AsyncSession, project_id: int, user_id: int) -> dic
     """Удаляет проект (только администратор)."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
+    project_info = repo.get_project_all_info(project_id)
+    member_ids = [i.user_id for i in project_info['members']]
     if not project:
         raise NotFoundException('Проект не найден!')
     if not await repo.is_user_admin(project_id, user_id):
         raise PermissionDeniedException('Вы не админ этого проекта!')
-    if await repo.delete_project(project_id):
-        return {'message': 'Проект успешно удален!'}
-    raise AppException(500, 'Не удалось удалить проект')
+    if not await repo.delete_project(project_id):
+        raise AppException(500, 'Не удалось удалить проект')
+    await delete_cache(project_key(project_id))
+    for i in member_ids:
+        await delete_cache(user_projects_key(i, 'all'))
+        await delete_cache(user_projects_key(i, 'admin'))
+    return {'message': 'Проект успешно удален!'}
 
 
 async def delete_project_user(db: AsyncSession, project_id: int, current_user_id: int,

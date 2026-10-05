@@ -39,7 +39,7 @@ async def response_to_invitation_endpoint(invitation_id: int,
 async def user_invitations_endpoint(current_user: UserModel = Depends(current_user),
                                     db: AsyncSession = Depends(get_db)):
     """Возвращает все входящие приглашения для текущего пользователя."""
-    key = await user_invitations_key(current_user.user_id)
+    key = user_invitations_key(current_user.user_id)
     cached = await get_cache(key)
     if cached is not None:
         return cached

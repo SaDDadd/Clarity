@@ -34,7 +34,7 @@ async def update_email_endpoint(request: UpdateEmailRequest,
 async def get_profile_endpoint(current_user: UserModel = Depends(current_user)) -> UserResponse:
     """Возвращает данные текущего пользователя."""
     key = user_key(current_user.user_id)
-    cached = get_cache(key)
+    cached = await get_cache(key)
 
     if cached is not None:
         return cached 
