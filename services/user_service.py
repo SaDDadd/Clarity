@@ -2,6 +2,9 @@ from core.exceptions import ConflictException, LackOfInformationException, NotFo
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession 
 from schemas.user import UserResponse
+from core.security import async_hash_password
+from cache.cache_keys import user_key
+from cache.cache_service import delete_cache
 
 
 async def update_user_username(db: AsyncSession, username: str, current_user_id: int) -> dict:
@@ -11,6 +14,7 @@ async def update_user_username(db: AsyncSession, username: str, current_user_id:
         raise LackOfInformationException('Имя не может быть пустым или превышать 50 символов!')
     if await repo.check_user_exists_by_username_excluding_current(username, current_user_id):
         raise ConflictException('Пользователь с таким именем уже существует!')
+    await delete_cache(user_key(current_user_id))
     if await repo.update_username(current_user_id, username):
         return {'message': 'Имя пользователя обновлено!'}
     else:
@@ -23,6 +27,7 @@ async def update_user_email(db: AsyncSession, email: str, current_user_id: int) 
         raise LackOfInformationException('Email не может быть пустым или превышать 100 символов!')
     if await repo.check_user_exists_by_email_excluding_current(email, current_user_id):
         raise ConflictException('Пользователь с таким email уже существует!')
+    await delete_cache(user_key(current_user_id))
     if await repo.update_email(current_user_id, email):
         return {'message': 'Email пользователя обновлено!'}
     else:
@@ -31,9 +36,11 @@ async def update_user_email(db: AsyncSession, email: str, current_user_id: int) 
 async def update_user_password(db: AsyncSession, password: str, current_user_id: int) -> dict:
     """Обновление пароля пользователя"""
     repo = UserRepository(db)
+    hashed_password = async_hash_password(password)
     if len(password) < 8 or len(password) > 100:
         raise LackOfInformationException('Пароль не может быть пустым или превышать 100 символов!')
-    if await repo.update_password(current_user_id, password):
+    await delete_cache(user_key(current_user_id))
+    if await repo.update_password(current_user_id, hashed_password):
         return {'message': 'Пароль пользователя обновлен!'}
     else:
         raise NotFoundException('Пользователь не найден!')

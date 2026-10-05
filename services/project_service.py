@@ -29,8 +29,6 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
     project = await repo.get_project_by_id(project_id)
-    project_info = await repo.get_project_all_info(project_id)
-    member_ids = [i.user_id for i in project_info['members']]
     if not project:
         raise NotFoundException('Проект не найден!')
     if not await repo.is_user_admin(project_id, current_user_id):
@@ -42,9 +40,11 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
     if await repo.is_user_in_project(project_id, user_id_to_add):
         raise ConflictException('Пользователь уже состоит в проекте')
     if await repo.add_user(project_id, user_id_to_add):
+        project_info = await repo.get_project_all_info(project_id)
+        member_ids = [i.user_id for i in project_info['members']]
         await delete_cache(project_key(project_id))
         for i in member_ids:
-            await delete_cache(user_projects_key(i, 'all'))
+            await delete_cache(user_projects_key(user_id_to_add, 'all'))
             await delete_cache(user_projects_key(i, 'admin'))
         return {'message': 'Пользователь добавлен в проект!'}
     raise AppException(500, 'Неизвестная ошибка при добавлении пользователя в проект!')
@@ -146,7 +146,7 @@ async def delete_project(db: AsyncSession, project_id: int, user_id: int) -> dic
     """Удаляет проект (только администратор)."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
-    project_info = repo.get_project_all_info(project_id)
+    project_info = await repo.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
     if not project:
         raise NotFoundException('Проект не найден!')

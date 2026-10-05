@@ -58,7 +58,7 @@ async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: 
     return answer
 
 
-async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int, task_id: int) -> TaskModel | None:
+async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int, task_id: int) -> list | None:
     """Возвращает информацию о задаче."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -93,7 +93,7 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[TaskMod
     """Возвращает все задачи, назначенные на пользователя."""
     repo = TaskRepository(db)
     key = user_tasks_key(current_user_id, 'all')
-    cached = get_cache(key)
+    cached = await get_cache(key)
     if cached is not None:
         return cached
     data = await repo.get_tasks_by_user(current_user_id)
@@ -172,7 +172,7 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
     assignee = task.assigned_to if task else None
     if not await repo.delete_task(task_id):
         raise NotFoundException('Не удалось удалить задачу')
-    await delete_cache(task_key(task_id))
+    await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id, 'all'))
     if assignee:
         await delete_cache(user_tasks_key(assignee, 'all'))
