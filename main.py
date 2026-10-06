@@ -10,6 +10,7 @@ import uvicorn
 from contextlib import asynccontextmanager
 from cache.redis_client import close_redis_client, redis_health
 from core.database import engine
+from core.config import settings
 
 
 @asynccontextmanager
@@ -29,7 +30,7 @@ async def health():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=['*'], # Хост фронтенда
+    allow_origins=settings.cors_origins_list, # Хост фронтенда
     allow_methods=['*'], # Разрешить все методы
     allow_headers=['*'], #  Разрешить все заголовки
     allow_credentials=True # Разрешить передачу учетных данных
