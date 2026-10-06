@@ -1,4 +1,4 @@
-from core.exceptions import ConflictException, LackOfInformationException, NotFoundException, InvalidDeadlineException
+from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession 
 from schemas.user import UserResponse
@@ -51,7 +51,7 @@ async def search_by_username(db: AsyncSession, search_user: str, current_user_us
     if len(search_user) == 0:
         raise NotFoundException('Нельзя найти пользователя, введите ник!')
     if search_user == current_user_username:
-        raise InvalidDeadlineException('Нельзя искать самого себя!')
+        raise ConflictException('Нельзя искать самого себя!')
     user = await repo.search_by_username(search_user)
     if user:
         return user

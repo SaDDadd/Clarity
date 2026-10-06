@@ -181,6 +181,7 @@ class ProjectRepository:
             )
         )
         delete_count = result.rowcount
+        await self.session.commit()
         if delete_count == 0:
             return False
         else:
@@ -221,6 +222,7 @@ class ProjectRepository:
             )
         )
         delete_count = result.rowcount
+        await self.session.commit()
         if delete_count == 0:
             return False
         else:
