@@ -9,7 +9,7 @@ from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, Us
 from sqlalchemy.ext.asyncio import AsyncSession 
 from cache.cache_keys import project_key, user_projects_key, project_tasks_key, project_invitations_key, \
                                 project_cache_patterns, TTL_PROJECT
-from cache.cache_service import get_cache, set_cache, delete_cache
+from cache.cache_service import get_cache, set_cache, delete_cache, delete_cache_by_pattern
 
 
 async def create_project(db: AsyncSession, project_data: ProjectCreate, admin_id: int) -> ProjectModel:
@@ -163,6 +163,7 @@ async def delete_project(db: AsyncSession, project_id: int, user_id: int) -> dic
     await delete_cache(project_key(project_id))
     await delete_cache(project_tasks_key(project_id))
     member_ids = [i.user_id for i in project_info['members']]
+    await delete_cache(project_invitations_key(project_id, 'admin'))
     for i in member_ids:
         await delete_cache(user_projects_key(i, 'all'))
         await delete_cache(user_projects_key(i, 'admin'))
@@ -197,9 +198,10 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
         raise AppException(500, 'Неизвестная ошибка при удалении пользователя из проекта!')
     await delete_cache(project_key(project_id))
     await delete_cache(project_tasks_key(project_id))
-    await delete_cache(project_invitations_key(project_id))
+    await delete_cache(project_invitations_key(project_id, 'admin'))
     await delete_cache(user_projects_key(current_user_id, 'admin'))
     await delete_cache(user_projects_key(user_id_to_del, 'all'))
     await delete_cache(user_projects_key(user_id_to_del, 'admin'))
-    await delete_cache(project_cache_patterns(project_id))
+    for pattern in project_cache_patterns(project_id):
+        await delete_cache_by_pattern(pattern)
     return {'message': 'Пользователь удален из проекта!'}
