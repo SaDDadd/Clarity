@@ -132,6 +132,8 @@ async def update_project(db: AsyncSession, project_id: int, user_id: int, projec
         raise PermissionDeniedException('Пользователь не может менять проект, он не админ!')
     if project_date.project_description is None and project_date.project_name is None:
         return {'message': 'Ничего не изменилось!'}
+    project_info = repo.get_project_all_info(project_id)
+    member_ids = [i.user_id for i in project_info['members']]
     if project_date.project_description is None:
         await repo.update_project_name(project_date.project_name, project_id)
     elif project_date.project_name is None:
@@ -139,6 +141,10 @@ async def update_project(db: AsyncSession, project_id: int, user_id: int, projec
     else:
         await repo.update_project_description(project_date.project_description, project_id)
         await repo.update_project_name(project_date.project_name, project_id)
+    await delete_cache(project_key(project_id))
+    for i in member_ids:
+        await delete_cache(user_projects_key(i, 'all'))
+        await delete_cache(user_projects_key(i, 'admin'))
     return {'message': 'Проект обновлен!'}
 
 

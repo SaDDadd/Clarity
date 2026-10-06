@@ -27,8 +27,8 @@ async def update_user_email(db: AsyncSession, email: str, current_user_id: int) 
         raise LackOfInformationException('Email не может быть пустым или превышать 100 символов!')
     if await repo.check_user_exists_by_email_excluding_current(email, current_user_id):
         raise ConflictException('Пользователь с таким email уже существует!')
-    await delete_cache(user_key(current_user_id))
     if await repo.update_email(current_user_id, email):
+        await delete_cache(user_key(current_user_id))
         return {'message': 'Email пользователя обновлено!'}
     else:
         raise NotFoundException('Пользователь не найден!')

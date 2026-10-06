@@ -140,7 +140,7 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     if 'assigned_to' in slov and slov['assigned_to'] is not None:
         await delete_cache(user_tasks_key(slov['assigned_to'], 'all'))
     if task.assigned_to:
-        await delete_cache(user_tasks_key(task.asiigned_to, 'all'))
+        await delete_cache(user_tasks_key(task.assigned_to, 'all'))
     return {'message': 'Задача обновилась!'}
 
 
@@ -155,13 +155,13 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    task = repo.get_task_by_id(task_id)
+    task = await repo.get_task_by_id(task_id)
     assignee = task.assigned_to if task else None 
     if await repo.update_task_status(project_id, task_id, task_status.value):
         await delete_cache(task_key(project_id, task_id))
         await delete_cache(project_tasks_key(project_id))
         if assignee:
-            delete_cache(user_tasks_key(assignee, 'all'))
+            await delete_cache(user_tasks_key(assignee, 'all'))
         return {'message': 'Статус обновлен!'}
     else:
         return {'message': 'Статус уже установлен'}

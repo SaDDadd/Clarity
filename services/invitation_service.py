@@ -9,8 +9,10 @@ from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationRole
 from sqlalchemy.ext.asyncio import AsyncSession
-from cache.cache_keys import user_invitations_key, user_projects_key, project_invitations_key, TTL_INVITATION_LIST
+from cache.cache_keys import user_invitations_key, user_projects_key, project_invitations_key,project_key, \
+                                TTL_INVITATION_LIST
 from cache.cache_service import get_cache, delete_cache, set_cache
+
 
 async def send_invitation(db: AsyncSession, project_id: int, user_id: int, current_user_id: int,
                           message: str) -> ProjectInvitationModel:
@@ -31,7 +33,7 @@ async def send_invitation(db: AsyncSession, project_id: int, user_id: int, curre
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
     await repo.create_invitation(project_id, current_user_id, user_id, message)
-    await delete_cache(user_invitations_key(user_id, 'all'))
+    await delete_cache(user_invitations_key(user_id, 'admin'))
     await delete_cache(project_invitations_key(project_id))
 
 
@@ -83,8 +85,8 @@ async def response_to_invitation(db: AsyncSession, invitation_id: int, action: I
     if action == InvitationRole.ACCEPTED:
         await repo_proj.add_user(project_id, invitee_id)
         await delete_cache(user_projects_key(invitee_id))
-    await delete_cache(user_invitations_key(project_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, invitation.invitation_id))
+    await delete_cache(user_invitations_key(invitee_id, 'all'))
+    await delete_cache(project_key(project_id))
     return {'message': f'Приглашение {new_status}'}
 
 
@@ -105,6 +107,6 @@ async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_i
     deleted = await repo.delete_invitation(invitation_id)
     if not deleted:
         raise NotFoundException('Не удалось удалить приглашение (возможно, оно уже удалено)')
-    await delete_cache(user_invitations_key(inviter_id, invitation_id))
-    await delete_cache(project_invitations_key(project_id, 'all'))
+    await delete_cache(user_invitations_key(invitation.invitee_id, 'all'))
+    await delete_cache(project_invitations_key(project_id, 'admin'))
     return {'message': 'Приглашение отменено'}
