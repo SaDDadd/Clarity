@@ -7,7 +7,7 @@ from models.project_invitations import ProjectInvitationModel
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from schemas.invitation import InvitationRole
+from schemas.invitation import InvitationRole, InvitationResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from cache.cache_keys import user_invitations_key, user_projects_key, project_invitations_key,project_key, \
                                 TTL_INVITATION_LIST
@@ -33,8 +33,8 @@ async def send_invitation(db: AsyncSession, project_id: int, user_id: int, curre
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
     await repo.create_invitation(project_id, current_user_id, user_id, message)
-    await delete_cache(user_invitations_key(user_id, 'admin'))
-    await delete_cache(project_invitations_key(project_id))
+    await delete_cache(user_invitations_key(user_id, 'all'))
+    await delete_cache(project_invitations_key(project_id, 'admin'))
 
 
 async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[ProjectInvitationModel]:
@@ -57,8 +57,9 @@ async def get_project_invitations(db, project_id: int,
     if cached is not None:
         return cached
     data = await repo.get_invitation_for_project(project_id)
-    await set_cache(key, data, TTL_INVITATION_LIST)
-    return data
+    serialized = [InvitationResponse.model_validate(i).model_dump(mode='json') for i in data]
+    await set_cache(key, serialized, TTL_INVITATION_LIST)
+    return serialized
 
 
 async def response_to_invitation(db: AsyncSession, invitation_id: int, action: InvitationRole,
@@ -87,6 +88,7 @@ async def response_to_invitation(db: AsyncSession, invitation_id: int, action: I
         await delete_cache(user_projects_key(invitee_id))
     await delete_cache(user_invitations_key(invitee_id, 'all'))
     await delete_cache(project_key(project_id))
+    await delete_cache(project_invitations_key(project_id, 'admin'))
     return {'message': f'Приглашение {new_status}'}
 
 

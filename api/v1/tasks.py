@@ -36,17 +36,7 @@ async def change_status_endpoint(task: TaskStatusUpdate, project_id: int, task_i
 async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
     """Возвращает все задачи, назначенные на текущего пользователя."""
-    key = user_tasks_key(current_user.user_id)
-
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached 
-
-    tasks = await get_tasks_user(db, current_user.user_id)
-
-    data = [TaskResponse.model_validate(task).model_dump(mode='json') for task in tasks]
-    await set_cache(key, data, TTL_TASK_LIST)
-    return data 
+    return await get_tasks_user(db, current_user.user_id)
 
 
 @router.get('/projects/{project_id}/tasks', tags=['Задачи'],

@@ -33,4 +33,5 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int, cu
         raise AppException(500, 'Не удалось обновить роль')
     await delete_cache(project_key(project_id))
     await delete_cache(user_projects_key(user_id, 'all'))
+    await delete_cache(user_projects_key(user_id, 'admin'))
     return {'message': 'Роль обновлена'}

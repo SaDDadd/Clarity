@@ -7,7 +7,8 @@ from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse, ProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession 
-from cache.cache_keys import project_key, user_projects_key, TTL_PROJECT
+from cache.cache_keys import project_key, user_projects_key, project_tasks_key, project_invitations_key, \
+                                project_cache_patterns, TTL_PROJECT
 from cache.cache_service import get_cache, set_cache, delete_cache
 
 
@@ -132,7 +133,7 @@ async def update_project(db: AsyncSession, project_id: int, user_id: int, projec
         raise PermissionDeniedException('Пользователь не может менять проект, он не админ!')
     if project_date.project_description is None and project_date.project_name is None:
         return {'message': 'Ничего не изменилось!'}
-    project_info = repo.get_project_all_info(project_id)
+    project_info = await repo.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
     if project_date.project_description is None:
         await repo.update_project_name(project_date.project_name, project_id)
@@ -160,6 +161,7 @@ async def delete_project(db: AsyncSession, project_id: int, user_id: int) -> dic
     if not await repo.delete_project(project_id):
         raise AppException(500, 'Не удалось удалить проект')
     await delete_cache(project_key(project_id))
+    await delete_cache(project_tasks_key(project_id))
     member_ids = [i.user_id for i in project_info['members']]
     for i in member_ids:
         await delete_cache(user_projects_key(i, 'all'))
@@ -194,6 +196,10 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
     if not deleted:
         raise AppException(500, 'Неизвестная ошибка при удалении пользователя из проекта!')
     await delete_cache(project_key(project_id))
+    await delete_cache(project_tasks_key(project_id))
+    await delete_cache(project_invitations_key(project_id))
     await delete_cache(user_projects_key(current_user_id, 'admin'))
     await delete_cache(user_projects_key(user_id_to_del, 'all'))
+    await delete_cache(user_projects_key(user_id_to_del, 'admin'))
+    await delete_cache(project_cache_patterns(project_id))
     return {'message': 'Пользователь удален из проекта!'}
