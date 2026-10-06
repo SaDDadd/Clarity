@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="authScreen" class="auth-screen">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <div class="logo-icon">✓</div>
+            <div>
+                <strong>Tasker</strong>
+                <span>Ваши проекты и задачи в одном месте</span>
+            </div>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="Авторизация">
+            <button id="loginTab" class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
+            <button id="registerTab" class="auth-tab" type="button" data-auth-mode="register">Регистрация</button>
+        </div>
+
+        <form id="authForm" class="auth-form">
+            <label id="authNameField" class="hidden">
+                <span>Ник</span>
+                <input id="authNameInput" type="text" minlength="3" maxlength="30" autocomplete="username" placeholder="Например: alex.dev">
+            </label>
+
+            <label>
+                <span id="authLoginLabel">Ник или e-mail</span>
+                <input id="authEmailInput" type="text" maxlength="160" autocomplete="username" placeholder="@nickname или name@example.com" required>
+            </label>
+
+            <label>
+                <span>Пароль</span>
+                <input id="authPasswordInput" type="password" minlength="6" maxlength="128" autocomplete="current-password" placeholder="Минимум 6 символов" required>
+            </label>
+
+            <label id="authConfirmField" class="hidden">
+                <span>Повторите пароль</span>
+                <input id="authConfirmInput" type="password" minlength="6" maxlength="128" autocomplete="new-password" placeholder="Повторите пароль">
+            </label>
+
+            <div id="authMessage" class="auth-message" aria-live="polite"></div>
+            <button id="authSubmitButton" class="auth-submit" type="submit">Войти</button>
+        </form>
+
+        <p class="auth-note">Аккаунт, проекты и задачи хранятся на сервере. Сессия авторизации использует JWT.</p>
+    </div>
+</div>
+
+<div id="app" class="app hidden">
+    <aside class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">✓</div>
+            <span>Tasker</span>
+        </div>
+
+        <nav class="navigation" aria-label="Основная навигация">
+            <a href="#overview" class="nav-item active" data-page="overview">
+                <span>▦</span><span>Обзор</span>
+            </a>
+            <a href="#my-tasks" class="nav-item" data-page="my-tasks">
+                <span>✓</span><span>Мои задачи</span>
+            </a>
+            <a href="#favorites" class="nav-item" data-page="favorites">
+                <span>★</span><span>Избранное</span>
+            </a>
+        </nav>
+
+        <div class="projects">
+            <div class="projects-header">
+                <button id="projectsPageButton" class="projects-page-button" type="button">ПРОЕКТЫ</button>
+                <button id="addProjectButton" class="add-project-button" type="button" aria-label="Создать проект">+</button>
+            </div>
+            <div id="projectsList"></div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <a href="#settings" class="nav-item" data-page="settings">
+                <span>⚙</span><span>Настройки</span>
+            </a>
+            <div class="user">
+                <div id="sidebarAvatar" class="avatar">C</div>
+                <div class="user-info">
+                    <strong id="sidebarUserName">Cracker</strong>
+                    <span id="sidebarUserEmail">Мой аккаунт</span>
+                </div>
+            </div>
+            <button id="logoutButton" class="logout-button" type="button">Выйти</button>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div class="search">
+                <span class="search-icon">⌕</span>
+                <input id="searchInput" type="text" placeholder="Поиск задач..." autocomplete="off">
+                <kbd>Ctrl K</kbd>
+            </div>
+            <div class="topbar-actions">
+                <button id="helpButton" class="icon-button" type="button" aria-label="Помощь">?</button>
+                <button id="notificationButton" class="icon-button" type="button" aria-label="Уведомления">🔔</button>
+                <div id="topAvatar" class="top-avatar">C</div>
+            </div>
+        </header>
+
+        <section class="content">
+            <div class="page-header">
+                <div>
+                    <div id="breadcrumb" class="breadcrumb">Проекты / <span id="breadcrumbProject">Проект</span></div>
+                    <h1 id="projectTitle">Создайте первый проект</h1>
+                    <p id="projectDescription">Создайте свой первый проект, чтобы начать работу.</p>
+                </div>
+                <button id="createTaskButton" class="create-button" type="button">
+                    <span>+</span><span id="createTaskButtonText">Новая задача</span>
+                </button>
+            </div>
+
+            <div id="toolbar" class="toolbar">
+                <div id="views" class="views">
+                    <button class="view active-view" data-view="board" type="button">▦ Доска</button>
+                    <button class="view" data-view="list" type="button">☷ Список</button>
+                    <button class="view" data-view="calendar" type="button">▣ Календарь</button>
+                </div>
+                <div class="filters">
+                    <button id="filterButton" class="filter" type="button">Фильтр</button>
+                    <button id="sortButton" class="filter" type="button">Сортировка</button>
+                </div>
+            </div>
+
+            <div id="board" class="board" aria-live="polite"></div>
+        </section>
+    </main>
+</div>
+
+
+<div id="taskModal" class="modal hidden">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="taskModalTitle">Новая задача</h2>
+                <p id="taskModalSubtitle">Добавьте новую задачу в проект</p>
+            </div>
+            <button id="closeTaskModal" class="modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+
+        <form id="taskForm">
+            <label>
+                <span>Название задачи</span>
+                <input id="taskTitleInput" type="text" placeholder="Например: Создать главную страницу" maxlength="100" required>
+            </label>
+
+            <label>
+                <span>Описание</span>
+                <textarea id="taskDescriptionInput" placeholder="Описание задачи..." maxlength="500"></textarea>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Проект</span>
+                    <select id="taskProjectInput" required></select>
+                </label>
+                <label>
+                    <span>Статус</span>
+                    <select id="taskStatusInput">
+                        <option value="todo">К выполнению</option>
+                        <option value="progress">В работе</option>
+                        <option value="done">Готово</option>
+                    </select>
+                </label>
+            </div>
+
+            <label id="taskAssigneeField">
+                <span>Исполнитель</span>
+                <select id="taskAssigneeInput"></select>
+            </label>
+
+            <div class="form-row">
+                <label>
+                    <span>Приоритет</span>
+                    <select id="taskPriorityInput">
+                        <option value="low">Низкий</option>
+                        <option value="medium" selected>Средний</option>
+                        <option value="high">Высокий</option>
+                    </select>
+                </label>
+                <label>
+                    <span>Дедлайн</span>
+                    <input id="taskDateInput" type="date">
+                </label>
+            </div>
+
+            <label class="favorite-field">
+                <input id="taskFavoriteInput" type="checkbox">
+                <span>★ Добавить в избранное</span>
+            </label>
+
+            <div class="modal-actions modal-actions-split">
+                <button id="deleteTaskButton" class="danger-button hidden" type="button">Удалить</button>
+                <div class="modal-actions-group">
+                    <button id="cancelTaskButton" class="cancel-button" type="button">Отмена</button>
+                    <button id="taskSubmitButton" class="modal-submit" type="submit">Создать задачу</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div id="projectModal" class="modal hidden">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="projectModalTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="projectModalTitle">Новый проект</h2>
+                <p id="projectModalSubtitle">Создайте проект для своих задач</p>
+            </div>
+            <button id="closeProjectModal" class="modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+
+        <form id="projectForm">
+            <label>
+                <span>Название проекта</span>
+                <input id="projectNameInput" type="text" placeholder="Например: Интернет-магазин" maxlength="60" required>
+            </label>
+            <label>
+                <span>Описание</span>
+                <textarea id="projectDescriptionInput" placeholder="Краткое описание проекта..." maxlength="300"></textarea>
+            </label>
+
+            <section id="projectMembersSection" class="project-members-section hidden">
+                <div class="project-members-heading">
+                    <div>
+                        <strong>Участники проекта</strong>
+                        <span id="projectRoleBadge" class="role-badge"></span>
+                    </div>
+                    <small>Администратор может добавлять пользователей по нику и удалять участников.</small>
+                </div>
+
+                <div id="projectMembersList" class="project-members-list"></div>
+
+                <div id="projectMemberSearchWrap" class="project-member-search">
+                    <label>
+                        <span>Добавить участника по нику</span>
+                        <input id="projectMemberSearch" type="search" maxlength="30" autocomplete="off" placeholder="Начните вводить ник...">
+                    </label>
+                    <div id="projectMemberSearchResults" class="project-member-search-results"></div>
+                </div>
+            </section>
+
+            <div class="modal-actions modal-actions-split">
+                <button id="deleteProjectButton" class="danger-button hidden" type="button">Удалить</button>
+                <div class="modal-actions-group">
+                    <button id="cancelProjectButton" class="cancel-button" type="button">Отмена</button>
+                    <button id="projectSubmitButton" class="modal-submit" type="submit">Создать проект</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div id="taskMenu" class="task-menu hidden">
+    <button data-action="edit" type="button">✎ Редактировать</button>
+    <button data-action="favorite" type="button">★ В избранное</button>
+    <div class="task-menu-divider"></div>
+    <button data-action="todo" type="button">○ К выполнению</button>
+    <button data-action="progress" type="button">◐ В работу</button>
+    <button data-action="done" type="button">✓ Выполнено</button>
+    <div class="task-menu-divider"></div>
+    <button data-action="delete" class="danger-action" type="button">Удалить задачу</button>
+</div>
+
+
+<div id="filterMenu" class="toolbar-menu hidden">
+    <label>
+        <span>Статус</span>
+        <select id="filterStatus">
+            <option value="all">Все статусы</option>
+            <option value="todo">К выполнению</option>
+            <option value="progress">В работе</option>
+            <option value="done">Готово</option>
+        </select>
+    </label>
+    <label>
+        <span>Приоритет</span>
+        <select id="filterPriority">
+            <option value="all">Все приоритеты</option>
+            <option value="high">Высокий</option>
+            <option value="medium">Средний</option>
+            <option value="low">Низкий</option>
+        </select>
+    </label>
+    <label id="filterProjectLabel">
+        <span>Проект</span>
+        <select id="filterProject"></select>
+    </label>
+    <label class="menu-checkbox">
+        <input id="filterOverdue" type="checkbox">
+        <span>Только просроченные</span>
+    </label>
+    <button id="resetFiltersButton" class="menu-reset" type="button">Сбросить фильтры</button>
+</div>
+
+
+<div id="sortMenu" class="toolbar-menu hidden">
+    <label>
+        <span>Сортировать</span>
+        <select id="sortSelect">
+            <option value="newest">Сначала новые</option>
+            <option value="oldest">Сначала старые</option>
+            <option value="date-asc">По сроку: раньше</option>
+            <option value="date-desc">По сроку: позже</option>
+            <option value="priority">По приоритету</option>
+            <option value="title">По названию</option>
+            <option value="status">По статусу</option>
+        </select>
+    </label>
+</div>
+
+
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+<script src="api.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
