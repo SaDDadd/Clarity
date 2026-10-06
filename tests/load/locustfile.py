@@ -1,9 +1,7 @@
 import os
 os.environ['ENV'] = 'test'
-import threading
 import csv
 import random
-import asyncio
 from locust import HttpUser, task, between, events
 
 # Импортируем truncate_tables вместо drop_tables
