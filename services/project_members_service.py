@@ -3,7 +3,8 @@ from core.exceptions import (AppException, LastAdminDeletionException,
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from cache.cache_keys import project_key, user_projects_key
+from cache.cache_service import delete_cache
 
 async def update_member_role(db: AsyncSession, user_id: int, project_id: int, current_user_id: int,
                              role_project: str) -> dict:
@@ -30,4 +31,6 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int, cu
     updated = await repo.update_user_role(project_id, user_id, role_project)
     if not updated:
         raise AppException(500, 'Не удалось обновить роль')
+    await delete_cache(project_key(project_id))
+    await delete_cache(user_projects_key(user_id, 'all'))
     return {'message': 'Роль обновлена'}

@@ -46,9 +46,9 @@ def user_invitations_key(user_id: int, invitation_id: int = 'all') -> str:
     """Ключ списка входящих приглашений пользователя."""
     return make_key(USER_PREFIX, user_id, 'invitations', invitation_id)
 
-def project_tasks_key(project_id: int, task_id: int = 'all') -> str:
+def project_tasks_key(project_id: int) -> str:
     """Ключ списка задач проекта (task_id='all' — весь список)."""
-    return make_key(PROJECT_PREFIX, project_id, 'task', task_id)
+    return make_key(PROJECT_PREFIX, project_id, 'task')
 
 def project_invitations_key(project_id: int, invitation_id: int = 'all') -> str:
     """Ключ списка приглашений проекта (invitation_id='all' — весь список)."""

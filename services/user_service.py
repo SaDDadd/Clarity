@@ -14,8 +14,8 @@ async def update_user_username(db: AsyncSession, username: str, current_user_id:
         raise LackOfInformationException('Имя не может быть пустым или превышать 50 символов!')
     if await repo.check_user_exists_by_username_excluding_current(username, current_user_id):
         raise ConflictException('Пользователь с таким именем уже существует!')
-    await delete_cache(user_key(current_user_id))
     if await repo.update_username(current_user_id, username):
+        await delete_cache(user_key(current_user_id))
         return {'message': 'Имя пользователя обновлено!'}
     else:
         raise NotFoundException('Пользователь не найден!')
@@ -36,11 +36,11 @@ async def update_user_email(db: AsyncSession, email: str, current_user_id: int) 
 async def update_user_password(db: AsyncSession, password: str, current_user_id: int) -> dict:
     """Обновление пароля пользователя"""
     repo = UserRepository(db)
-    hashed_password = async_hash_password(password)
+    hashed_password = await async_hash_password(password)
     if len(password) < 8 or len(password) > 100:
         raise LackOfInformationException('Пароль не может быть пустым или превышать 100 символов!')
-    await delete_cache(user_key(current_user_id))
     if await repo.update_password(current_user_id, hashed_password):
+        await delete_cache(user_key(current_user_id))
         return {'message': 'Пароль пользователя обновлен!'}
     else:
         raise NotFoundException('Пользователь не найден!')

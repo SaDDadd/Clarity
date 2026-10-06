@@ -24,7 +24,7 @@ async def create_task(db: AsyncSession, project_id: int, current_user_id: int, t
         if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     result = await repo.create_task(project_id, task)
-    await delete_cache(project_tasks_key(project_id, 'all'))
+    await delete_cache(project_tasks_key(project_id))
     if task.assigned_to is not None:
         await delete_cache(user_tasks_key(task.assigned_to, 'all'))
     return result
@@ -36,7 +36,7 @@ async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: 
     repo_proj = ProjectRepository(db)
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Пользователя нет в проекте!')
-    key = project_tasks_key(project_id, 'all')
+    key = project_tasks_key(project_id)
     cached = await get_cache(key)
     if cached is not None:
         return cached
@@ -50,7 +50,7 @@ async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: 
             'status':i.task_status,
             'assigned_to':i.assigned_to,
             'deadline':i.deadline,
-            'created_at':i.created_at.isoformat() if i.created_at else None,
+            'created_at':i.created_date.isoformat() if i.created_date else None,
         } 
         for i in data
     ]
@@ -82,7 +82,7 @@ async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int,
             'status':data.task_status,
             'assigned_to':data.assigned_to,
             'deadline':data.deadline.isoformat() if data.deadline else None,
-            'created_at':data.created_at.isoformat() if data.created_at else None,
+            'created_at':data.created_date.isoformat() if data.created_date else None,
         }
     ]
     await set_cache(key, answer, TTL_TASK)
@@ -104,8 +104,8 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[TaskMod
             'title':i.title,
             'description':i.task_description,
             'status':i.task_status,
-            'deadline':i.deadline.isoformat() if i.deadline.isoformat else None,
-            'created_at':i.created_at.isoformat() if i.created_at else None,
+            'deadline':i.deadline.isoformat() if i.deadline else None,
+            'created_at':i.created_date.isoformat() if i.created_date else None,
         } 
         for i in data
     ]
@@ -135,8 +135,13 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     if await repo.update_task_by_id(project_id, task_id, slov) is False:
         raise NotFoundException('Задача не найдена!')
-    else:
-        return {'message': 'Задача обновилась!'}
+    await delete_cache(task_key(project_id, task_id))
+    await delete_cache(project_tasks_key(project_id))
+    if 'assigned_to' in slov and slov['assigned_to'] is not None:
+        await delete_cache(user_tasks_key(slov['assigned_to'], 'all'))
+    if task.assigned_to:
+        await delete_cache(user_tasks_key(task.asiigned_to, 'all'))
+    return {'message': 'Задача обновилась!'}
 
 
 async def change_status(db: AsyncSession, project_id: int, task_id: int, current_user_id: int,
@@ -150,7 +155,13 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
+    task = repo.get_task_by_id(task_id)
+    assignee = task.assigned_to if task else None 
     if await repo.update_task_status(project_id, task_id, task_status.value):
+        await delete_cache(task_key(project_id, task_id))
+        await delete_cache(project_tasks_key(project_id))
+        if assignee:
+            delete_cache(user_tasks_key(assignee, 'all'))
         return {'message': 'Статус обновлен!'}
     else:
         return {'message': 'Статус уже установлен'}
@@ -173,7 +184,7 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
     if not await repo.delete_task(task_id):
         raise NotFoundException('Не удалось удалить задачу')
     await delete_cache(task_key(project_id, task_id))
-    await delete_cache(project_tasks_key(project_id, 'all'))
+    await delete_cache(project_tasks_key(project_id))
     if assignee:
         await delete_cache(user_tasks_key(assignee, 'all'))
     return {'message': 'Задача удалена из проекта!'}
