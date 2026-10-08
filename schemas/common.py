@@ -1,4 +1,3 @@
-# Общие схемы (пагинация, ответы с ошибками)
 from enum import Enum
 
 class TaskStatus(str, Enum):

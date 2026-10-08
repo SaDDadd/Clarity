@@ -1,8 +1,9 @@
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.security import hash_password, verify_password
+from core.security import async_verify_password
 from models.user import UserModel
+from schemas.user import UserResponse
 
 
 class UserRepository:
@@ -73,7 +74,7 @@ class UserRepository:
         """Проверить пароль по email."""
         user = await self.get_by_email(email)
         if user:
-            if verify_password(password, user.password_hash):
+            if async_verify_password(password, user.password_hash):
                 return True
             return False
         return False
@@ -151,7 +152,7 @@ class UserRepository:
         else:
             return True
 
-    async def search_by_username(self, username: str) -> list[dict] | None:
+    async def search_by_username(self, username: str) -> list[UserResponse] | None:
         """Поиск пользователей по имени."""
         task = await self.session.execute(
             select(
@@ -161,4 +162,4 @@ class UserRepository:
                 UserModel.created_date,
             ).where(UserModel.username.ilike(f"%{username}%"))
         )
-        return [{"user_id": i[0], "email": i[1], "username": i[2], "created_date": i[3]} for i in task.all()]
+        return [task.all()]

@@ -36,9 +36,9 @@ async def update_user_email(db: AsyncSession, email: str, current_user_id: int) 
 async def update_user_password(db: AsyncSession, password: str, current_user_id: int) -> dict:
     """Обновление пароля пользователя"""
     repo = UserRepository(db)
-    hashed_password = await async_hash_password(password)
     if len(password) < 8 or len(password) > 100:
         raise LackOfInformationException('Пароль не может быть пустым или превышать 100 символов!')
+    hashed_password = await async_hash_password(password)
     if await repo.update_password(current_user_id, hashed_password):
         await delete_cache(user_key(current_user_id))
         return {'message': 'Пароль пользователя обновлен!'}

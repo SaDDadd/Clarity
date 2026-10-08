@@ -58,7 +58,7 @@ async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: 
     return answer
 
 
-async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int, task_id: int) -> list | None:
+async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int, task_id: int) -> dict | None:
     """Возвращает информацию о задаче."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -73,8 +73,7 @@ async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int,
     if cached is not None:
         return cached
     data = await repo.get_task_by_id(task_id)
-    answer = [
-        {
+    answer ={
             'task_id':data.task_id,
             'project_id':data.project_id,
             'title':data.title, 
@@ -84,7 +83,6 @@ async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int,
             'deadline':data.deadline.isoformat() if data.deadline else None,
             'created_at':data.created_date.isoformat() if data.created_date else None,
         }
-    ]
     await set_cache(key, answer, TTL_TASK)
     return answer
 
@@ -139,8 +137,6 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     await delete_cache(project_tasks_key(project_id))
     if 'assigned_to' in slov and slov['assigned_to'] is not None:
         await delete_cache(user_tasks_key(slov['assigned_to'], 'all'))
-    if task.assigned_to:
-        await delete_cache(user_tasks_key(task.assigned_to, 'all'))
     return {'message': 'Задача обновилась!'}
 
 

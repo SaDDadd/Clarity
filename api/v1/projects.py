@@ -71,13 +71,13 @@ async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
     await set_cache(key, data, TTL_PROJECT_LIST)
     return data
 
-@router.get('/projects/{projects_id}', tags=['Проекты'],
+@router.get('/project/{project_id}', tags=['Проекты'],
             summary='Получить информацию о проекте')
-async def get_project_info_endpoint(projects_id: int,
+async def get_project_info_endpoint(project_id: int,
                                     user: UserModel = Depends(current_user),
                                     db: AsyncSession = Depends(get_db)):
     """Возвращает полную информацию о проекте (включая список участников)."""
-    return await get_project_info(db, projects_id, user.user_id)
+    return await get_project_info(db, project_id, user.user_id)
 
 
 @router.put('/projects/{projects_id}', tags=['Проекты'],
