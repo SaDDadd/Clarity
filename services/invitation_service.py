@@ -32,9 +32,10 @@ async def send_invitation(db: AsyncSession, project_id: int, user_id: int, curre
         raise MemberAlreadyInProjectException('Пользователь уже является участником проекта!')
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
-    await delete_cache(user_invitations_key(user_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'admin'))
-    return await repo.create_invitation(project_id, current_user_id, user_id, message)
+    result = await repo.create_invitation(project_id, current_user_id, user_id, message)
+    if result:
+        await delete_cache(user_invitations_key(user_id, 'all'))
+        await delete_cache(project_invitations_key(project_id, 'admin'))
 
 
 async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[ProjectInvitationModel]:

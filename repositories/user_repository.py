@@ -162,4 +162,4 @@ class UserRepository:
                 UserModel.created_date,
             ).where(UserModel.username.ilike(f"%{username}%"))
         )
-        return task.all()
+        return [UserResponse.model_validate(row._mapping) for row in task.all()]

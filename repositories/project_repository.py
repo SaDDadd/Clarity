@@ -102,8 +102,13 @@ class ProjectRepository:
             .where(ProjectModel.project_id == project_id)
             .values(admin_id=new_admin_id)
         )
+        result_2 = await self.session.execute(
+            update(ProjectMemberModel)
+            .where(ProjectMemberModel.project_id == project_id)
+            .values(role_project='admin')
+        )
         await self.session.commit()
-        return result.rowcount > 0
+        return (result.rowcount > 0 and result_2.rowcount > 0)
 
     async def get_admins_list(self, project_id: int) -> list[ProjectMemberModel]:
         """Получить всех администраторов проекта."""
@@ -171,21 +176,6 @@ class ProjectRepository:
         )
         await self.session.commit()
         return task.rowcount > 0
-
-    async def delete_project_member(self, project_id: int, user_id: int) -> bool:
-        """Удалить пользователя из проекта."""
-        result = await self.session.execute(
-            delete(ProjectMemberModel).where(
-                ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.user_id == user_id,
-            )
-        )
-        delete_count = result.rowcount
-        await self.session.commit()
-        if delete_count == 0:
-            return False
-        else:
-            return True
 
     async def delete_project(self, project_id: int) -> bool:
         """Удалить проект."""

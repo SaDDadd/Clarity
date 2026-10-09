@@ -1,10 +1,10 @@
-from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
+from core.exceptions import ConflictException, LackOfInformationException, NotFoundException, AppException
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from sqlalchemy.ext.asyncio import AsyncSession 
 from schemas.user import UserResponse
 from core.security import async_hash_password
-from cache.cache_keys import user_key
+from cache.cache_keys import user_key, user_cache_patterns
 from cache.cache_service import delete_cache
 
 
@@ -69,10 +69,14 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
         raise NotFoundException('Пользователь не найден!')
     for project in user_projects:
         count_admins = await repo_project.get_admins_list(project.project_id)
-        if count_admins == 1:
-            count_members = await repo_project.get_number_members()
+        if len(count_admins) == 1:
+            count_members = await repo_project.get_number_members(project.project_id)
             if count_members == 0:
                 await repo_project.delete_project(project.project_id)
             else:
                 await repo_project.automatically_assign_admin(project.project_id, current_user_id)
-    return {'message': 'Профиль удален!'}
+    if await repo.delete_user(current_user_id) is True:
+        await delete_cache(user_cache_patterns(current_user_id))
+        return {'message': 'Профиль удален!'}
+    else:
+        raise AppException(500, 'Не удалось удалить проект')

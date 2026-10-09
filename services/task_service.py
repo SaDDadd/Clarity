@@ -131,12 +131,15 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
             raise NotFoundException('Такого пользователя не существует!')
         if not await repo_proj.is_user_in_project(project_id, slov['assigned_to']):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
+    old_info = await repo.get_task_by_id(task_id)
+    previous_performer = old_info.assigned_to
     if await repo.update_task_by_id(project_id, task_id, slov) is False:
         raise NotFoundException('Задача не найдена!')
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     if 'assigned_to' in slov and slov['assigned_to'] is not None:
         await delete_cache(user_tasks_key(slov['assigned_to'], 'all'))
+        await delete_cache(user_tasks_key(previous_performer, 'all'))
     return {'message': 'Задача обновилась!'}
 
 
