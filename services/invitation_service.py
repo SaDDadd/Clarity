@@ -36,6 +36,7 @@ async def send_invitation(db: AsyncSession, project_id: int, user_id: int, curre
     if result:
         await delete_cache(user_invitations_key(user_id, 'all'))
         await delete_cache(project_invitations_key(project_id, 'admin'))
+    return result
 
 
 async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[ProjectInvitationModel]:

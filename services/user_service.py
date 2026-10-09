@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.user import UserResponse
 from core.security import async_hash_password
 from cache.cache_keys import user_key, user_cache_patterns
-from cache.cache_service import delete_cache
+from cache.cache_service import delete_cache, delete_cache_by_pattern
 
 
 async def update_user_username(db: AsyncSession, username: str, current_user_id: int) -> dict:
@@ -76,7 +76,7 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
             else:
                 await repo_project.automatically_assign_admin(project.project_id, current_user_id)
     if await repo.delete_user(current_user_id) is True:
-        await delete_cache(user_cache_patterns(current_user_id))
+        await delete_cache_by_pattern(user_cache_patterns(current_user_id))
         return {'message': 'Профиль удален!'}
     else:
-        raise AppException(500, 'Не удалось удалить проект')
+        raise AppException(500, 'Не удалось удалить профиль!')

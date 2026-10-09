@@ -104,7 +104,8 @@ class ProjectRepository:
         )
         result_2 = await self.session.execute(
             update(ProjectMemberModel)
-            .where(ProjectMemberModel.project_id == project_id)
+            .where(ProjectMemberModel.project_id == project_id,
+                   ProjectMemberModel.user_id == new_admin_id)
             .values(role_project='admin')
         )
         await self.session.commit()
@@ -249,6 +250,11 @@ class ProjectRepository:
                 ProjectMemberModel.user_id == new_admin_id,
             )
             .values(role_project='admin')
+        )
+        await self.session.execute(
+            update(ProjectModel)
+            .where(ProjectModel.project_id == project_id)
+            .values(admin_id=new_admin_id)
         )
         await self.session.commit()
         return new_admin_id

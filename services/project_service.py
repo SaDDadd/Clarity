@@ -46,7 +46,6 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
         await delete_cache(project_key(project_id))
         for i in member_ids:
             await delete_cache(user_projects_key(i, 'all'))
-            await delete_cache(user_projects_key(i, 'admin'))
         return {'message': 'Пользователь добавлен в проект!'}
     raise AppException(500, 'Неизвестная ошибка при добавлении пользователя в проект!')
 
