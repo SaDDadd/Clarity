@@ -14,7 +14,7 @@ class ProjectUpdate(BaseModel):
     project_name: str | None = None
     project_description: str | None = None
 
-class ProjectMember(ProjectBase):
+class ProjectMember(BaseModel):
     user_id: int
     role: ProjectRole
 

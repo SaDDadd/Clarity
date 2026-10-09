@@ -71,7 +71,7 @@ async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
     await set_cache(key, data, TTL_PROJECT_LIST)
     return data
 
-@router.get('/project/{project_id}', tags=['Проекты'],
+@router.get('/projects/{project_id}', tags=['Проекты'],
             summary='Получить информацию о проекте')
 async def get_project_info_endpoint(project_id: int,
                                     user: UserModel = Depends(current_user),
@@ -80,13 +80,13 @@ async def get_project_info_endpoint(project_id: int,
     return await get_project_info(db, project_id, user.user_id)
 
 
-@router.put('/projects/{projects_id}', tags=['Проекты'],
+@router.put('/projects/{project_id}', tags=['Проекты'],
             summary='Обновить описание проекта')
-async def update_project_description_endpoint(projects_id: int, project: ProjectUpdate,
+async def update_project_description_endpoint(project_id: int, project: ProjectUpdate,
                                               user: UserModel = Depends(current_user),
                                               db: AsyncSession = Depends(get_db)):
     """Обновляет название и/или описание проекта (только администратор)."""
-    return await update_project(db, projects_id, user.user_id, project)
+    return await update_project(db, project_id, user.user_id, project)
 
 
 @router.delete('/projects/{project_id}', tags=['Проекты'],

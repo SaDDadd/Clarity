@@ -11,6 +11,6 @@ class ProjectInvitationModel(Base):
     inviter_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'), nullable=False)
     invitee_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'), nullable=False)
     status_invited: Mapped[str] = mapped_column(Enum('pending', 'accepted', 'declined'), nullable=False, server_default='pending')
-    created_date: Mapped[datetime.datetime] = mapped_column(nullable=True, server_default=func.now())
-    update_date: Mapped[datetime.datetime] = mapped_column(nullable=True, server_default=func.now())
+    created_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())
+    update_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())
     message: Mapped[str] = mapped_column(Text, nullable=True)

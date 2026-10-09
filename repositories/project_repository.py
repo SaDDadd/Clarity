@@ -6,7 +6,6 @@ from models.user import UserModel
 from models.project_members import ProjectMemberModel
 from models.project_invitations import ProjectInvitationModel
 from models.task import TaskModel
-from model.
 
 class ProjectRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -241,16 +240,16 @@ class ProjectRepository:
         )
         return result.scalar() or 0
 
-    async def automatically_assign_admin(self, project_id: int, user_id: int) -> int:
+    async def automatically_assign_admin(self, project_id: int, user_id: int) -> int | None:
         """Автоматически назначить одного из пользователей проекта админом, 
         когда прошлы единственный админ удаляет профиль"""
         result = await self.session.execute(
             select(UserModel.user_id)
             .where(ProjectMemberModel.project_id == project_id, 
                    ProjectMemberModel.user_id != user_id)
-            .order_by(ProjectMemberModel.joined_date, ProjectMemberModel.user_id())
+            .order_by(ProjectMemberModel.joined_date, ProjectMemberModel.user_id)
             .limit(1))
-        new_admin_id = await self.session.scalar()
+        new_admin_id = result.scalar()
         if new_admin_id is None:
             return None
         await self.session.execute(
@@ -271,7 +270,7 @@ class ProjectRepository:
             .select_from(ProjectMemberModel)
             .where(
                 ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.role_project == 'admin',
+                ProjectMemberModel.role_project == 'member',
             )
         )
         return result.scalar() or 0

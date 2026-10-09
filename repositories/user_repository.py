@@ -74,7 +74,7 @@ class UserRepository:
         """Проверить пароль по email."""
         user = await self.get_by_email(email)
         if user:
-            if async_verify_password(password, user.password_hash):
+            if await async_verify_password(password, user.password_hash):
                 return True
             return False
         return False
@@ -162,4 +162,4 @@ class UserRepository:
                 UserModel.created_date,
             ).where(UserModel.username.ilike(f"%{username}%"))
         )
-        return [task.all()]
+        return task.all()
