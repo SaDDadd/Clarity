@@ -2,10 +2,11 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.project import ProjectModel
+from models.user import UserModel
 from models.project_members import ProjectMemberModel
 from models.project_invitations import ProjectInvitationModel
 from models.task import TaskModel
-
+from model.
 
 class ProjectRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -213,7 +214,7 @@ class ProjectRepository:
             await self.session.rollback()
             return False
 
-    async def delete_user(self, project_id: int, user_id_to_del: int) -> bool:
+    async def delete_user_from_project(self, project_id: int, user_id_to_del: int) -> bool:
         """Удалить пользователя из проекта."""
         result = await self.session.execute(
             delete(ProjectMemberModel).where(
@@ -236,6 +237,41 @@ class ProjectRepository:
             .where(
                 ProjectMemberModel.project_id == project_id,
                 ProjectMemberModel.role_project == "admin",
+            )
+        )
+        return result.scalar() or 0
+
+    async def automatically_assign_admin(self, project_id: int, user_id: int) -> int:
+        """Автоматически назначить одного из пользователей проекта админом, 
+        когда прошлы единственный админ удаляет профиль"""
+        result = await self.session.execute(
+            select(UserModel.user_id)
+            .where(ProjectMemberModel.project_id == project_id, 
+                   ProjectMemberModel.user_id != user_id)
+            .order_by(ProjectMemberModel.joined_date, ProjectMemberModel.user_id())
+            .limit(1))
+        new_admin_id = await self.session.scalar()
+        if new_admin_id is None:
+            return None
+        await self.session.execute(
+            update(ProjectMemberModel)
+            .where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.user_id == new_admin_id,
+            )
+            .values(role_project='admin')
+        )
+        await self.session.commit()
+        return new_admin_id
+
+    async def get_number_members(self, project_id) -> int | None:
+        """Получить количество участников(без админов) проекта."""
+        result = await self.session.execute(
+            select(func.count())
+            .select_from(ProjectMemberModel)
+            .where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.role_project == 'admin',
             )
         )
         return result.scalar() or 0

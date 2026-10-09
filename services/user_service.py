@@ -1,5 +1,6 @@
 from core.exceptions import ConflictException, LackOfInformationException, NotFoundException
 from repositories.user_repository import UserRepository
+from repositories.project_repository import ProjectRepository
 from sqlalchemy.ext.asyncio import AsyncSession 
 from schemas.user import UserResponse
 from core.security import async_hash_password
@@ -57,3 +58,21 @@ async def search_by_username(db: AsyncSession, search_user: str, current_user_us
         return user
     else:
         raise NotFoundException('Пользователь не найден!')
+
+async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
+    """Удаление профиля пользователя"""
+    repo = UserRepository(db)
+    repo_project = ProjectRepository(db)
+    user_projects = repo_project.get_projects_by_admin(current_user_id)
+    user = await repo.get_by_id(current_user_id)
+    if user is None:
+        raise NotFoundException('Пользователь не найден!')
+    for project in user_projects:
+        count_admins = repo_project.get_admins_list(project.project_id)
+        if count_admins == 1:
+            count_members = repo_project.get_number_members()
+            if count_members == 0:
+                await repo_project.delete_project(project.project_id)
+            else:
+                await repo_project.automatically_assign_admin(project.project_id)
+    return {'message': 'Профиль удален!'}

@@ -193,7 +193,7 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
                 await repo.reassign_admin(project_id, other_admin.user_id)
             else:
                 raise AppException(500, 'Не удалось переназначить администратора')
-    deleted = await repo.delete_user(project_id, user_id_to_del)
+    deleted = await repo.delete_user_from_project(project_id, user_id_to_del)
     if not deleted:
         raise AppException(500, 'Неизвестная ошибка при удалении пользователя из проекта!')
     await delete_cache(project_key(project_id))

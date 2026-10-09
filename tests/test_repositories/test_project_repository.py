@@ -449,7 +449,7 @@ class TestProjectRepository:
         project = test_project_with_member['project']
         member = test_users['member']
         assert await repo.is_user_in_project(project.project_id, member.user_id) is True
-        result = await repo.delete_user(project.project_id, member.user_id)
+        result = await repo.delete_user_from_project(project.project_id, member.user_id)
         assert result is True
         assert await repo.is_user_in_project(project.project_id, member.user_id) is False
 
@@ -458,7 +458,7 @@ class TestProjectRepository:
         """Проверяет, что при удалении несуществующего пользователя возвращается False."""
         repo = ProjectRepository(db_session)
         outsider = test_users['outsider']
-        result = await repo.delete_user(test_project.project_id, outsider.user_id)
+        result = await repo.delete_user_from_project(test_project.project_id, outsider.user_id)
         assert result is False
 
     @pytest.mark.asyncio
