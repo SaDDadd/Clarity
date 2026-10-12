@@ -1,0 +1,136 @@
+@media (max-width: 900px) {
+    :root {
+        --sidebar-width: 215px;
+    }
+
+    .content {
+        padding: 25px;
+    }
+
+    .topbar {
+        padding: 0 25px;
+    }
+
+    .search {
+        width: 270px;
+    }
+}
+
+@media (max-width: 700px) {
+    :root {
+        --sidebar-width: 0px;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .main {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .topbar {
+        height: 62px;
+        padding: 0 15px;
+    }
+
+    .search {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    .search kbd {
+        display: none;
+    }
+
+    .content {
+        padding: 20px 15px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .filters {
+        width: 100%;
+    }
+
+    .filter {
+        flex: 1;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .modal {
+        padding: 12px;
+    }
+
+    .modal-content {
+        padding: 21px;
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 430px) {
+    .views {
+        width: 100%;
+    }
+
+    .view {
+        flex: 1;
+        padding: 0 5px;
+    }
+
+    .topbar-actions .icon-button {
+        display: none;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .cancel-button,
+    .modal-submit {
+        width: 100%;
+    }
+}
+
+@media (max-width: 900px) {
+    .calendar-grid { grid-template-columns: repeat(7, minmax(86px, 1fr)); overflow-x: auto; }
+}
+
+@media (max-width: 700px) {
+    .page-task-card { grid-template-columns: 1fr; }
+    .page-task-actions { justify-content: flex-end; }
+    .settings-grid { grid-template-columns: 1fr; }
+    .calendar-wrap { overflow-x: auto; }
+    .calendar-grid { min-width: 700px; }
+}
+
+@media (max-width: 430px) {
+    .modal-actions-split { flex-direction: column-reverse; align-items: stretch; }
+    .modal-actions-group { margin-left: 0; flex-direction: column-reverse; align-items: stretch; }
+    .danger-button { width: 100%; }
+}
+
+@media (max-width: 700px) {
+    .project-member-row,
+    .project-member-result {
+        align-items: flex-start;
+    }
+
+    .member-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
