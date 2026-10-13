@@ -117,18 +117,16 @@ async function toggleFavorite(taskId) {
         favorite: !task.favorite
     };
 
-    const result = await api(
+    await api(
         "PUT",
         `/projects/${Number(task.projectId)}/tasks/${Number(task.id)}`,
         mapTaskToServer(payload)
     );
 
-    const mapped = mapTaskFromServer(result);
-    const index = tasks.findIndex(item => Number(item.id) === Number(task.id));
-    if (index >= 0) tasks[index] = mapped;
+    task.favorite = !task.favorite;
 
     closeTaskMenu();
     render();
-    showToast(mapped.favorite ? "✓ Добавлено в избранное" : "Удалено из избранного");
+    showToast(task.favorite ? "✓ Добавлено в избранное" : "Удалено из избранного");
     return true;
 }
