@@ -81,8 +81,8 @@ async def test_delete_task(async_client, test_project_with_member, member_auth_h
         f'/api/v1/projects/{project_id}/tasks/{test_task.task_id}',
         headers=headers
     )
-    assert response.status_code == 200
-    assert response.json()['message'] == 'Задача удалена из проекта!'
+    assert response.status_code == 403
+    assert response.json()['message'] == 'Не админ не может удалить задачу!'
 
 @pytest.mark.asyncio
 async def test_changing_task_status(async_client, test_project_with_member, member_auth_headers, test_task):

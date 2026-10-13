@@ -37,7 +37,6 @@ async def test_send_invitation_by_non_admin(async_client, test_project, test_use
     assert response.status_code == 403
 
 @pytest.mark.asyncio
-@pytest.mark.asyncio
 async def test_get_user_invitations(async_client, test_invitation, test_users):
     """Проверяет получение списка входящих приглашений для пользователя."""
     outsider = test_users['outsider']

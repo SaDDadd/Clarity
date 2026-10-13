@@ -5,7 +5,7 @@ from core.exceptions import (AppException, ConflictException,
 from models.project import ProjectModel
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse, ProjectResponse
+from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession 
 from cache.cache_keys import project_key, user_projects_key, project_tasks_key, project_invitations_key, \
                                 project_cache_patterns, TTL_PROJECT

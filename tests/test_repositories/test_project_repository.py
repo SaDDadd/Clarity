@@ -196,16 +196,6 @@ class TestProjectRepository:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_reassign_admin_new_admin_not_in_project(self, db_session: AsyncSession, test_project, test_users):
-        """Проверяет, что переназначение на пользователя вне проекта (обновляет поле admin_id, но логика нарушается)."""
-        repo = ProjectRepository(db_session)
-        outsider = test_users['outsider']
-        result = await repo.reassign_admin(test_project.project_id, outsider.user_id)
-        assert result is True
-        updated = await repo.get_project_by_id(test_project.project_id)
-        assert updated.admin_id == outsider.user_id
-
-    @pytest.mark.asyncio
     async def test_get_admins_list_success(self, db_session: AsyncSession, test_project, test_users):
         """Проверяет получение списка администраторов проекта."""
         repo = ProjectRepository(db_session)

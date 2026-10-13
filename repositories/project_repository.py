@@ -235,7 +235,7 @@ class ProjectRepository:
         """Автоматически назначить одного из пользователей проекта админом, 
         когда прошлы единственный админ удаляет профиль"""
         result = await self.session.execute(
-            select(UserModel.user_id)
+            select(ProjectMemberModel.user_id)
             .where(ProjectMemberModel.project_id == project_id, 
                    ProjectMemberModel.user_id != user_id)
             .order_by(ProjectMemberModel.joined_date, ProjectMemberModel.user_id)
