@@ -76,7 +76,8 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
             else:
                 await repo_project.automatically_assign_admin(project.project_id, current_user_id)
     if await repo.delete_user(current_user_id) is True:
-        await delete_cache_by_pattern(user_cache_patterns(current_user_id))
+        for pattern in user_cache_patterns(current_user_id):
+            await delete_cache_by_pattern(pattern)
         return {'message': 'Профиль удален!'}
     else:
         raise AppException(500, 'Не удалось удалить профиль!')

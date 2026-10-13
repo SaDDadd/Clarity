@@ -45,7 +45,7 @@ async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[P
     return await repo.get_invitation_by_user(current_user_id)
 
 
-async def get_project_invitations(db, project_id: int,
+async def get_project_invitations(db: AsyncSession, project_id: int,
                                   current_user_id: int) -> list[ProjectInvitationModel]:
     """Возвращает список приглашений проекта (только для администратора)."""
     repo = ProjectInvitationRepository(db)

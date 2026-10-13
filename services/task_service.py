@@ -3,7 +3,7 @@ import datetime
 from core.exceptions import InvalidDeadlineException, NotFoundException, \
     PermissionDeniedException
 from models.task import TaskModel
-from schemas.task import TaskResponse
+from schemas.task import TaskResponse, TaskCreate, TaskUpdate
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cache.cache_keys import project_tasks_key, user_tasks_key, task_key, TTL_TASK, TTL_TASK_LIST
 from cache.cache_service import get_cache, delete_cache, set_cache
 
-async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task) -> TaskModel:
+async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task: TaskCreate) -> TaskModel:
     """Создаёт задачу в проекте."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -80,7 +80,7 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[dict]:
     return answer
 
 
-async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, task) -> dict:
+async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, task: TaskUpdate) -> dict:
     """Обновляет задачу."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -92,6 +92,10 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if not await repo_proj.is_user_admin(project_id, current_user_id):
+        raise PermissionDeniedException('Не админ не может обновлять задачу!')
+    if not await repo.is_user_task_performer(task_id, current_user_id):
+        raise PermissionDeniedException('Не исполнитель не может обновлять задачу!')
     if 'deadline' in slov and slov['deadline'] is not None:
         if slov['deadline'] < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')

@@ -3,12 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.dependencies import current_user, get_db
 from models.user import UserModel
-from schemas.task import TaskCreate, TaskStatusUpdate, TaskUpdate, TaskResponse
+from schemas.task import TaskCreate, TaskStatusUpdate, TaskUpdate
 from services.task_service import (change_status, create_task, delete_task,
                                    get_project_tasks, get_task_info, get_tasks_user,
                                    update_task)
-from cache.cache_keys import user_tasks_key, TTL_TASK_LIST
-from cache.cache_service import get_cache, set_cache
 router = APIRouter()
 
 

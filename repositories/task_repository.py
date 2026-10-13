@@ -2,13 +2,14 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.task import TaskModel
+from schemas.task import TaskCreate
 
 
 class TaskRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_task(self, project_id: int, task) -> TaskModel:
+    async def create_task(self, project_id: int, task: TaskCreate) -> TaskModel:
         """Создать задачу."""
         result = TaskModel(
             title=task.title,
@@ -43,7 +44,10 @@ class TaskRepository:
     async def get_project_tasks(self, project_id: int) -> list[TaskModel] | None:
         """Получить все задачи проекта."""
         result = await self.session.execute(
-            select(TaskModel).where(TaskModel.project_id == project_id)
+            select(TaskModel)
+            .where(
+                TaskModel.project_id == project_id
+            )
         )
         tasks = result.scalars().all()
         return tasks
@@ -51,7 +55,8 @@ class TaskRepository:
     async def is_task_in_project(self, project_id: int, task_id: int) -> bool:
         """Проверить, принадлежит ли задача проекту."""
         result = await self.session.execute(
-            select(TaskModel).where(
+            select(TaskModel)
+            .where(
                 TaskModel.project_id == project_id,
                 TaskModel.task_id == task_id,
             )
@@ -114,3 +119,16 @@ class TaskRepository:
             await self.session.commit()
             return True
         return False
+
+    async def is_user_task_performer(self, task_id: int, user_id: int) -> bool:
+        """Проверка является ли пользователь исполнителем задачи."""
+        result = self.session.execute(
+            select(TaskModel)
+            .where(TaskModel.task_id == task_id)
+        )
+        task = result.scalar_one_or_none()
+        if task.assigned_to != user_id or task is None:
+            return False 
+        else:
+            return True
+        

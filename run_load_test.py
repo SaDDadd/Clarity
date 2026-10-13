@@ -44,7 +44,7 @@ def main():
     env["ENV"] = "test"
     server_proc = subprocess.Popen(
         ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", 
-         "workers", "4"],
+         "--workers", "4"],
         cwd=PROJECT_ROOT,
         env=env,
         stdout=subprocess.PIPE,

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import current_user, get_db
 from models.user import UserModel
 from schemas.common import ProjectRole
-from schemas.project import AddMemberRequest, ProjectCreate, ProjectUpdate, UserProjectResponse, ProjectResponse
+from schemas.project import AddMemberRequest, ProjectCreate, ProjectUpdate, UserProjectResponse
 from services.project_members_service import update_member_role
 from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,

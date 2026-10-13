@@ -5,7 +5,7 @@ from schemas.common import TaskStatus, TaskPriority
 from pydantic import ConfigDict
 
 class TaskBase(BaseModel):
-    title: str = Field(max_length=150)
+    title: str = Field(min_length=1, max_length=150)
     task_description: str | None = None
     task_status: TaskStatus = Field(default=TaskStatus.PENDING)
     task_priority: TaskPriority = Field(default=TaskPriority.LOW)
@@ -16,7 +16,7 @@ class TaskCreate(TaskBase):
     assigned_to: int | None = None
 
 class TaskUpdate(BaseModel):
-    title: str | None = None
+    title: str = Field(min_length=1, max_length=150)
     task_description: str | None = None
     task_status: TaskStatus | None = None
     task_priority: TaskPriority | None = None
