@@ -3,6 +3,7 @@ import datetime
 from core.exceptions import InvalidDeadlineException, NotFoundException, \
     PermissionDeniedException
 from models.task import TaskModel
+from schemas.task import TaskResponse
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
@@ -30,7 +31,7 @@ async def create_task(db: AsyncSession, project_id: int, current_user_id: int, t
     return result
 
 
-async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: int) -> list[dict] | None:
+async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: int) -> list[dict]:
     """Возвращает все задачи проекта."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -41,19 +42,7 @@ async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: 
     if cached is not None:
         return cached
     data = await repo.get_project_tasks(project_id)
-    answer = [
-        {
-            'task_id':i.task_id,
-            'project_id':i.project_id,
-            'title':i.title,
-            'description':i.task_description,
-            'status':i.task_status,
-            'assigned_to':i.assigned_to,
-            'deadline':i.deadline,
-            'created_at':i.created_date.isoformat() if i.created_date else None,
-        } 
-        for i in data
-    ]
+    answer = [TaskResponse.model_validate(i).model_dump(mode='json') for i in data]
     await set_cache(key, answer, TTL_TASK_LIST)
     return answer
 
@@ -73,21 +62,12 @@ async def get_task_info(db: AsyncSession, project_id: int, current_user_id: int,
     if cached is not None:
         return cached
     data = await repo.get_task_by_id(task_id)
-    answer ={
-            'task_id':data.task_id,
-            'project_id':data.project_id,
-            'title':data.title, 
-            'description':data.task_description,
-            'status':data.task_status,
-            'assigned_to':data.assigned_to,
-            'deadline':data.deadline.isoformat() if data.deadline else None,
-            'created_at':data.created_date.isoformat() if data.created_date else None,
-        }
+    answer = TaskResponse.model_validate(data).model_dump(mode='json')
     await set_cache(key, answer, TTL_TASK)
     return answer
 
 
-async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[TaskModel]:
+async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[dict]:
     """Возвращает все задачи, назначенные на пользователя."""
     repo = TaskRepository(db)
     key = user_tasks_key(current_user_id, 'all')
@@ -95,18 +75,7 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[TaskMod
     if cached is not None:
         return cached
     data = await repo.get_tasks_by_user(current_user_id)
-    answer = [
-        {
-            'task_id':i.task_id,
-            'project_id':i.project_id,
-            'title':i.title,
-            'description':i.task_description,
-            'status':i.task_status,
-            'deadline':i.deadline.isoformat() if i.deadline else None,
-            'created_at':i.created_date.isoformat() if i.created_date else None,
-        } 
-        for i in data
-    ]
+    answer = [TaskResponse.model_validate(i).model_dump(mode='json') for i in data]
     await set_cache(key, answer, TTL_TASK_LIST)
     return answer
 

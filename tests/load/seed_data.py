@@ -40,7 +40,8 @@ def truncate_tables():
     with engine.connect() as conn:
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
         for table in reversed(Base.metadata.sorted_tables):
-            conn.execute(text(f"TRUNCATE TABLE {table.name}"))
+            conn.execute(text(f"DELETE FROM {table.name}"))
+            conn.execute(text(f"ALTER TABLE {table.name} AUTO_INCREMENT = 1"))
         conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
         conn.commit()
     engine.dispose()

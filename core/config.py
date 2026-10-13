@@ -3,6 +3,9 @@ from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+def resolve_env_file() -> str:
+    """Выбирает .env-файл в зависимости от переменной ENV."""
+    return '.env.test' if os.getenv('ENV', '').lower() == 'test' else '.env'
 
 class Settings(BaseSettings):
     DB_HOST: str = 'localhost'
@@ -28,12 +31,6 @@ class Settings(BaseSettings):
             return []
         return [item.strip() for item in self.CORS_ORIGINS.split(',') if item.strip()]
 
-    model_config = SettingsConfigDict(
-        env_file='.env.test' if os.getenv('ENV') == 'test' else '.env',
-        env_file_encoding='utf-8',
-        extra='ignore'
-    )
-
     REDIS_HOST: str = 'localhost'
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = ''
@@ -45,5 +42,15 @@ class Settings(BaseSettings):
             return f'redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}' 
         return f'redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}'
 
+    @property
+    def is_test_env(self) -> bool:
+        """True, если активен тестовый сценарий (pytest или нагрузочные тесты)."""
+        return os.getenv('ENV', '').lower() == 'test'
+    
+    model_config = SettingsConfigDict(
+            env_file=resolve_env_file(),
+            env_file_encoding='utf-8',
+            extra='ignore'
+        )
 
 settings = Settings()

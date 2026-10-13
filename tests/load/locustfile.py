@@ -4,7 +4,6 @@ import csv
 import random
 from locust import HttpUser, task, between, events
 
-# Импортируем truncate_tables вместо drop_tables
 from seed_data import truncate_tables
 
 

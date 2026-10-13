@@ -1,13 +1,6 @@
 import os
 
 os.environ["ENV"] = "test"
-os.environ["DB_HOST"] = "localhost"
-os.environ["DB_PORT"] = "3306"
-os.environ["DB_USER"] = "root"
-os.environ["DB_PASSWORD"] = "2007"
-os.environ["DB_NAME"] = "task_to_do_test"
-os.environ["JWT_SECRET_KEY"] = "your_very_secret_key_here_32_chars_min"
-os.environ["CORS_ORIGINS"] = "http://localhost:3000,http://127.0.0.1:3000"
 
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -24,20 +17,26 @@ import uuid
 import time
 from schemas.task import TaskCreate
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from core.database import Base
-
-# Явно устанавливаем ENV=test
-print("JWT_SECRET_KEY in tests:", settings.JWT_SECRET_KEY)
 
 @pytest.fixture(scope='session')
 def sync_engine():
-    # Теперь settings уже содержит тестовый URL
+    """Создаёт движок pymysql, все таблицы, а по завершении сессии
+    полностью очищает тестовую БД (TRUNCATE + сброс автоинкремента)."""
     raw_url = settings.DATABASE_URL
     sync_url = raw_url.replace('+aiomysql', '+pymysql')
     engine = create_engine(sync_url)
     Base.metadata.create_all(engine)
+
     yield engine
+
+    with engine.connect() as conn:
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+        for table in reversed(Base.metadata.sorted_tables):
+            conn.execute(text(f"TRUNCATE TABLE {table.name}"))
+        conn.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
+        conn.commit()
     engine.dispose()
 
 @pytest_asyncio.fixture
@@ -74,7 +73,6 @@ async def create_test_user(db_session, password='qwertyui'):
     """Вспомогательная функция для создания пользователя с уникальными полями."""
     repo = UserRepository(db_session)
     hashed_password = hash_password(password)
-    timestamp = time.time_ns()
     uui = uuid.uuid4()
     user = await repo.create_user(
         f'test_{uui.hex[:8]}',
@@ -86,7 +84,6 @@ async def create_test_user(db_session, password='qwertyui'):
 @pytest_asyncio.fixture(scope='function')
 async def test_users(db_session):
     """Создаёт трёх пользователей: admin, member, outsider."""
-    # Создаём пользователей через репозиторий напрямую, а не через фикстуру
     repo = UserRepository(db_session)
     hashed_password = hash_password('qwertyui')
     
@@ -119,7 +116,6 @@ async def test_users(db_session):
 
 @pytest_asyncio.fixture(scope='function')
 async def auth_headers(async_client, test_users):
-    """Возвращает заголовки авторизации для администратора проекта (через логин)."""
     admin = test_users['admin']
     response = await async_client.post('/api/v1/auth/login', json={
         'username_or_email': admin.username,
@@ -127,13 +123,6 @@ async def auth_headers(async_client, test_users):
     })
     assert response.status_code == 200, f"Login failed: {response.text}"
     token = response.json()['access_token']
-    from core.security import decode_access_token
-    token = response.json()['access_token']
-    try:
-        decoded = decode_access_token(token)
-        print("[DEBUG] Token decoded in fixture:", decoded)
-    except Exception as e:
-        print("[DEBUG] Token decode failed in fixture:", e)
     return {'Authorization': f'Bearer {token}'}
 
 @pytest_asyncio.fixture(scope='function')
