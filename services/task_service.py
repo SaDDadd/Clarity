@@ -1,8 +1,9 @@
 import datetime
 
 from core.exceptions import InvalidDeadlineException, NotFoundException, \
-    PermissionDeniedException
+    PermissionDeniedException, LackOfInformationException
 from models.task import TaskModel
+from models.task_comments import TaskCommentsModel
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
@@ -92,9 +93,10 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if (not await repo.is_user_task_performer(task_id, current_user_id) or 
-        not await repo_proj.is_user_admin(project_id, current_user_id)):
-        raise PermissionDeniedException('Задачу могут обновлять только админ и назначенный на нее!')
+    is_performer = await repo.is_user_task_performer(task_id, current_user_id)
+    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    if not (is_performer or is_admin):
+        raise PermissionDeniedException('Задачу могут обновлять только админ или назначенный исполнитель!')
     if 'deadline' in slov and slov['deadline'] is not None:
         if slov['deadline'] < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
@@ -159,3 +161,64 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
     if assignee:
         await delete_cache(user_tasks_key(assignee, 'all'))
     return {'message': 'Задача удалена из проекта!'}
+
+
+async def create_task_comment(db: AsyncSession, project_id: int, 
+                              task_id: int, message: str, current_user_id: int) -> TaskCommentsModel:
+    """Создание комментария к задаче."""
+    repo = TaskRepository(db)
+    repo_proj = ProjectRepository(db)
+    if await repo_proj.get_project_by_id(project_id) is None:
+        raise PermissionDeniedException('Данного проекта не существует!')
+    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if not await repo.is_task_in_project(project_id, task_id):
+        raise NotFoundException('Задачи нет в проекте!')
+    result = await repo.create_comment(project_id, task_id, current_user_id, message)
+    return result
+
+
+async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, comment_id: int, 
+                              current_user_id: int) -> dict:
+    """Удалить комментарий у задачи."""
+    repo = TaskRepository(db)
+    repo_proj = ProjectRepository(db)
+    if await repo_proj.get_project_by_id(project_id) is None:
+        raise PermissionDeniedException('Данного проекта не существует!')
+    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if not await repo.is_task_in_project(project_id, task_id):
+        raise NotFoundException('Задачи нет в проекте!')
+    author = await repo.get_comment_author(project_id, task_id, comment_id)
+    if author is None:
+        raise NotFoundException('Комментарий не найден!')
+    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    if not (is_admin or author == current_user_id):
+        raise PermissionDeniedException('Не админ и не создатель комментария не может его удалить!')
+    if not await repo.delete_comment(comment_id):
+        raise NotFoundException('Не удалось удалить комментарий!')
+    return {'message': 'Комментарий удален!'}
+
+
+async def update_comment(db: AsyncSession, project_id: int, task_id: int, comment_id: int,
+                        message: str, current_user_id: int) -> dict:
+    """Обновить комментарий."""
+    repo = TaskRepository(db)
+    repo_proj = ProjectRepository(db)
+    if await repo_proj.get_project_by_id(project_id) is None:
+        raise PermissionDeniedException('Данного проекта не существует!')
+    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if not await repo.is_task_in_project(project_id, task_id):
+        raise PermissionDeniedException('Задачи нет в проекте!')
+    author = await repo.get_comment_author(project_id, task_id, comment_id)
+    if author is None:
+        raise NotFoundException('Комментарий не найден!')
+    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    if not (is_admin or author == current_user_id):
+        raise PermissionDeniedException('Только админ или автор может изменить комментарий!')
+    if len(message) > 1000:
+        raise LackOfInformationException('Длина комментария не может быть больше 1000 символов!')
+    if not await repo.update_comment(comment_id, message):
+        raise NotFoundException('Не удалось обновить комментарий!')
+    return {'message': 'Комментарий обновлен!'}

@@ -2,7 +2,8 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.task import TaskModel
-from schemas.task import TaskCreate
+from models.task_comments import TaskCommentsModel
+from schemas.task import TaskCreate, TaskCommentResponse
 
 
 class TaskRepository:
@@ -127,7 +128,56 @@ class TaskRepository:
             .where(TaskModel.task_id == task_id)
         )
         task = result.scalar_one_or_none()
-        if task is None or task.assigned_to == user_id:
+        if task is None or task.assigned_to != user_id:
             return False 
         return True
-        
+
+    async def create_comment(self, project_id: int, task_id: int, user_id: int, message: str) -> TaskCommentsModel:
+        """Создание комментария для задачи в проекте."""
+        comment = TaskCommentsModel(
+            task_id=task_id,
+            project_id=project_id,
+            author_id=user_id,
+            comment_text=message
+        )
+        self.session.add(comment)
+        await self.session.commit()
+        return comment
+
+    async def get_comment_author(self, project_id: int, task_id: int, comment_id: int) -> int | None:
+        """Получить автора комментария у задачи."""
+        result = await self.session.execute(
+            select(TaskCommentsModel.author_id)
+            .where(TaskCommentsModel.project_id == project_id,
+                   TaskCommentsModel.task_id == task_id,
+                   TaskCommentsModel.comment_id == comment_id)
+        )
+        comment = result.scalar_one_or_none()
+        return comment
+
+    async def get_comment_by_id(self, comment_id: int) -> TaskCommentsModel | None:
+        """Получить комментарий по ID."""
+        result = await self.session.execute(
+            select(TaskCommentsModel)
+            .where(TaskCommentsModel.comment_id == comment_id)
+        )
+        comment = result.scalar_one_or_none()
+        return comment
+
+    async def delete_comment(self, comment_id: int) -> bool:
+        """Удалить комментарий."""
+        comment = await self.get_comment_by_id(comment_id)
+        if comment:
+            await self.session.delete(comment)
+            await self.session.commit()
+            return True
+        return False
+
+    async def update_comment(self, comment_id: int, message: str) -> bool:
+        result = await self.session.execute(
+            update(TaskCommentsModel)
+            .where(TaskCommentsModel.comment_id == comment_id)
+            .values(comment_text=message)
+        )
+        await self.session.commit()
+        return result.rowcount > 0

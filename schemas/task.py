@@ -33,3 +33,15 @@ class TaskResponse(TaskBase):
     assigned_to: int | None
     created_date: datetime.datetime
     model_config = ConfigDict(from_attributes=True)
+
+class TaskCommentCreate(BaseModel):
+    comment_text: str = Field(min_length=1, max_length=1000)
+
+class TaskCommentResponse(BaseModel):
+    comment_id: int
+    task_id: int
+    author_id: int
+    comment_text: str
+    created_date: datetime.datetime
+    update_date: datetime.datetime
+    model_config = ConfigDict(from_attributes=True)
