@@ -57,7 +57,7 @@ async def search_users(search_user: str, current_user: UserModel = Depends(curre
                        db: AsyncSession = Depends(get_db)):
     return await search_by_username(db, search_user, current_user.username)
 
-@router.delete('/profile', tags=['Именения профиля'], summary='Удаление профиля')
+@router.delete('/profile', tags=['Изменения профиля'], summary='Удаление профиля')
 async def delete_profile_endpoint(current_user: UserModel = Depends(current_user), 
                                   db: AsyncSession = Depends(get_db)):
     return await delete_profile(db, current_user.user_id)

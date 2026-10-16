@@ -6,31 +6,27 @@ from schemas.auth import Token, UserLogin, UserRegister
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def register_user(db: AsyncSession, user_date: UserRegister) -> dict:
+async def register_user(db: AsyncSession, user_data: UserRegister) -> dict:
     repo = UserRepository(db)
-    if len(user_date.username) == 0 or len(user_date.email) == 0:
+    if len(user_data.username) == 0 or len(user_data.email) == 0 or len(user_data.password) < 8:
         raise LackOfInformationException('Нехватка информации!')
-    if await repo.check_user_exists_by_username(user_date.username):
+    if await repo.check_user_exists_by_username(user_data.username):
         raise ConflictException('Имя пользователя уже существует!')
-    elif await repo.check_user_exists_by_email(user_date.email):
+    elif await repo.check_user_exists_by_email(user_data.email):
         raise ConflictException('Email пользователя уже существует!')
     else:
-        if len(user_date.password) < 8:
-            raise LackOfInformationException('Пароль короткий, должен быть больше 8 символов!')
-        # Асинхронное хеширование
-        hashed_password = await async_hash_password(user_date.password)
-        await repo.create_user(user_date.username, user_date.email, hashed_password)
+        hashed_password = await async_hash_password(user_data.password)
+        await repo.create_user(user_data.username, user_data.email, hashed_password)
         return {'message': 'Пользователь создан'}
 
 
-async def login_user(db: AsyncSession, user_date: UserLogin) -> Token:
+async def login_user(db: AsyncSession, user_data: UserLogin) -> Token:
     repo = UserRepository(db)
-    if len(user_date.username_or_email) == 0 or len(user_date.password) == 0:
+    if len(user_data.username_or_email) == 0 or len(user_data.password) == 0:
         raise LackOfInformationException('Нехватка информации!')
-    user = await repo.get_by_username(user_date.username_or_email)
+    user = await repo.get_by_username(user_data.username_or_email)
     if user:
-        # Асинхронная проверка пароля
-        if await async_verify_password(user_date.password, user.password_hash):
+        if await async_verify_password(user_data.password, user.password_hash):
             token = create_access_token({'sub': user.user_id})
             return Token(
                 access_token=token,
@@ -40,9 +36,9 @@ async def login_user(db: AsyncSession, user_date: UserLogin) -> Token:
         else:
             raise AuthenticationException('Неверные учётные данные!')
     else:
-        user = await repo.get_by_email(user_date.username_or_email)
+        user = await repo.get_by_email(user_data.username_or_email)
         if user:
-            if await async_verify_password(user_date.password, user.password_hash):
+            if await async_verify_password(user_data.password, user.password_hash):
                 token = create_access_token({'sub': user.user_id})
                 return Token(
                     access_token=token,

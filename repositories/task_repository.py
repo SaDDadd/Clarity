@@ -41,7 +41,7 @@ class TaskRepository:
         task = result.scalar_one_or_none()
         return task
 
-    async def get_project_tasks(self, project_id: int) -> list[TaskModel] | None:
+    async def get_project_tasks(self, project_id: int) -> list[TaskModel]:
         """Получить все задачи проекта."""
         result = await self.session.execute(
             select(TaskModel)
@@ -122,13 +122,12 @@ class TaskRepository:
 
     async def is_user_task_performer(self, task_id: int, user_id: int) -> bool:
         """Проверка является ли пользователь исполнителем задачи."""
-        result = self.session.execute(
+        result = await self.session.execute(
             select(TaskModel)
             .where(TaskModel.task_id == task_id)
         )
         task = result.scalar_one_or_none()
-        if task.assigned_to != user_id or task is None:
+        if task is None or task.assigned_to == user_id:
             return False 
-        else:
-            return True
+        return True
         

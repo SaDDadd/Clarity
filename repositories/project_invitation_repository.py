@@ -31,7 +31,7 @@ class ProjectInvitationRepository:
         result = task.scalar_one_or_none()
         return result
 
-    async def get_invitation_by_user(self, user_id: int) -> list[ProjectInvitationModel] | None:
+    async def get_invitation_by_user(self, user_id: int) -> list[ProjectInvitationModel]:
         """Список, где пользователь приглашённый."""
         task = await self.session.execute(
             select(ProjectInvitationModel).where(
@@ -42,7 +42,7 @@ class ProjectInvitationRepository:
         result = task.scalars().all()
         return result
 
-    async def get_invitation_for_project(self, project_id: int) -> list[ProjectInvitationModel] | None:
+    async def get_invitation_for_project(self, project_id: int) -> list[ProjectInvitationModel]:
         """Список приглашённых у проекта."""
         task = await self.session.execute(
             select(ProjectInvitationModel).where(

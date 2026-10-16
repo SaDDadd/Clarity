@@ -92,10 +92,9 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if not await repo_proj.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Не админ не может обновлять задачу!')
-    if not await repo.is_user_task_performer(task_id, current_user_id):
-        raise PermissionDeniedException('Не исполнитель не может обновлять задачу!')
+    if (not await repo.is_user_task_performer(task_id, current_user_id) or 
+        not await repo_proj.is_user_admin(project_id, current_user_id)):
+        raise PermissionDeniedException('Задачу могут обновлять только админ и назначенный на нее!')
     if 'deadline' in slov and slov['deadline'] is not None:
         if slov['deadline'] < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')

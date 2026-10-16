@@ -43,12 +43,13 @@ class ProjectRepository:
         else:
             return False
 
-    async def get_projects_by_admin(self, admin_id: int) -> list[ProjectMemberModel]:
+    async def get_projects_by_admin(self, admin_id: int) -> list[ProjectModel]:
         """Получить все проекты админа."""
         result = await self.session.execute(
-            select(ProjectMemberModel)
+            select(ProjectModel).join(ProjectMemberModel)
             .where(
-                ProjectMemberModel.admin_id == admin_id
+                ProjectMemberModel.user_id == admin_id, 
+                ProjectMemberModel.role_project == 'admin'
                 )
         )
         tasks = result.scalars().all()
@@ -112,7 +113,7 @@ class ProjectRepository:
             .values(role_project='admin')
         )
         await self.session.commit()
-        return (True if result_2.role_project == 'admin' else False)
+        return (True if result_2.rowcount > 0 else False)
 
     async def get_admins_list(self, project_id: int) -> list[ProjectMemberModel]:
         """Получить всех администраторов проекта."""
