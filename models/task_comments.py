@@ -9,7 +9,7 @@ class TaskCommentsModel(Base):
     comment_id: Mapped[int] = mapped_column(primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey('projects.project_id', ondelete='CASCADE'))
     task_id: Mapped[int] = mapped_column(ForeignKey('tasks.task_id', ondelete='CASCADE'), nullable=False)
-    author_id: Mapped[int] = mapped_column(ForeignKey('users.user_id'), nullable=False)
+    author_id: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='SET NUUL'), nullable=True)
     comment_text: Mapped[str] = mapped_column(Text, nullable=False)
     created_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())
     update_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())

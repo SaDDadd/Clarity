@@ -6,9 +6,9 @@ from pydantic import ConfigDict
 
 class TaskBase(BaseModel):
     title: str = Field(min_length=1, max_length=150)
-    task_description: str | None = None
+    task_description: str | None = Field(default=None, max_length=1000)
     task_status: TaskStatus = Field(default=TaskStatus.PENDING)
-    task_priority: TaskPriority = Field(default=TaskPriority.LOW)
+    task_priority: TaskPriority = Field(default=TaskPriority.MEDIUM)
     task_favorite: bool = Field(default=False)
     deadline: datetime.date | None = Field(default=None)
 
@@ -16,8 +16,8 @@ class TaskCreate(TaskBase):
     assigned_to: int | None = None
 
 class TaskUpdate(BaseModel):
-    title: str | None = None
-    task_description: str | None = None
+    title: str = Field(min_length=1, max_length=150)
+    task_description: str | None = Field(default=None, max_length=1000)
     task_status: TaskStatus | None = None
     task_priority: TaskPriority | None = None
     task_favorite: bool | None = None

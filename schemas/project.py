@@ -5,33 +5,21 @@ from schemas.user import UserResponse
 
 class ProjectBase(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
-    project_description: str | None = None
+    project_description: str | None = Field(min_length=1, max_length=1000)
 
 class ProjectCreate(ProjectBase):
-    pass
+    project_name: str = Field(min_length=1, max_length=100)
+    project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectUpdate(BaseModel):
-    project_name: str | None = None
-    project_description: str | None = None
-
-class ProjectMember(BaseModel):
-    user_id: int
-    role: ProjectRole
+    project_name: str | None = Field(min_length=1, max_length=100)
+    project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectMemberCheck(BaseModel):
     project_id: int
     user_id: int
 
-class ProjectResponse(ProjectBase):
-    project_id: int
-    admin_id: int
-    members: list[UserResponse]
-    model_config = ConfigDict(from_attributes=True)
-
 class AddMemberRequest(BaseModel):
-    user_id: int
-
-class DeleteMemberRequest(BaseModel):
     user_id: int
 
 class UserProjectResponse(BaseModel):

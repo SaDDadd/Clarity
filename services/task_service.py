@@ -128,12 +128,10 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    if not await repo_proj.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Не админ не может менять статус задачи!')
-    assignee = task.assigned_to if task else None 
-    if current_user_id != assignee:
-        raise PermissionDeniedException('Не назначенный на задачу пользователь не может менять статус задачи!')
     task = await repo.get_task_by_id(task_id)
+    assignee = task.assigned_to if task else None 
+    if not await repo_proj.is_user_admin(project_id, current_user_id) or current_user_id != assignee:
+        raise PermissionDeniedException('Не админ и не назначенный на задачу не может менять статус задачи!')
     if await repo.update_task_status(project_id, task_id, task_status.value):
         await delete_cache(task_key(project_id, task_id))
         await delete_cache(project_tasks_key(project_id))
@@ -223,7 +221,7 @@ async def update_comment(db: AsyncSession, project_id: int, task_id: int, commen
         raise PermissionDeniedException('Только админ или автор может изменить комментарий!')
     if len(message) > 1000:
         raise LackOfInformationException('Длина комментария не может быть больше 1000 символов!')
-    comment_old = repo.get_comment_by_id(comment_id)
+    comment_old = await repo.get_comment_by_id(comment_id)
     if message == comment_old.comment_text:
         return {'message': 'Комментарий не изменился!'}
     if not await repo.update_comment(comment_id, message):
