@@ -22,7 +22,7 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int, cu
     if current_user_id == user_id:
         raise PermissionDeniedException('Нельзя изменить свою собственную роль')
     current_role = await repo.get_user_role_in_project(project_id, user_id)
-    if current_role.value == role_project:
+    if current_role == role_project:
         return {'message': 'Роль уже установлена'}
     if current_role == 'admin' and role_project != 'admin':
         admins_count = len(await repo.get_admins_list(project_id))

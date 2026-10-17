@@ -16,7 +16,7 @@ class TaskCreate(TaskBase):
     assigned_to: int | None = None
 
 class TaskUpdate(BaseModel):
-    title: str = Field(min_length=1, max_length=150)
+    title: str | None = None
     task_description: str | None = None
     task_status: TaskStatus | None = None
     task_priority: TaskPriority | None = None
