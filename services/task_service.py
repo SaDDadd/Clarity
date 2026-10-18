@@ -18,7 +18,7 @@ async def create_task(db: AsyncSession, project_id: int, current_user_id: int, t
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
-        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+        raise NotFoundException('Текущего пользователя нет в проекте!')
     if task.deadline is not None:
         if task.deadline < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
@@ -87,8 +87,10 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
     slov = task.model_dump(exclude_unset=True)
-    if len(slov) == 0:
+    if not slov:
         return {'message': 'Нет данных для обновления!'}
+    if 'title' in slov and slov['title'] is None:
+        raise LackOfInformationException('Название задачи не может быть пустым!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
@@ -129,8 +131,10 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     task = await repo.get_task_by_id(task_id)
-    assignee = task.assigned_to if task else None 
-    if not await repo_proj.is_user_admin(project_id, current_user_id) or current_user_id != assignee:
+    assignee = task.assigned_to if task else None
+    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    is_assignee = current_user_id == assignee
+    if not (is_admin or is_assignee):
         raise PermissionDeniedException('Не админ и не назначенный на задачу не может менять статус задачи!')
     if await repo.update_task_status(project_id, task_id, task_status.value):
         await delete_cache(task_key(project_id, task_id))
@@ -138,8 +142,7 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         if assignee:
             await delete_cache(user_tasks_key(assignee, 'all'))
         return {'message': 'Статус обновлен!'}
-    else:
-        return {'message': 'Статус уже установлен'}
+    return {'message': 'Статус уже установлен'}
 
 
 async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int) -> dict:
@@ -208,7 +211,7 @@ async def update_comment(db: AsyncSession, project_id: int, task_id: int, commen
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
-        raise PermissionDeniedException('Данного проекта не существует!')
+        raise NotFoundException('Данного проекта не существует!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):

@@ -8,6 +8,7 @@ from repositories.project_invitation_repository import ProjectInvitationReposito
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationRole, InvitationResponse
+from schemas.common import InvitationAction
 from sqlalchemy.ext.asyncio import AsyncSession
 from cache.cache_keys import user_invitations_key, user_projects_key, project_invitations_key,project_key, \
                                 TTL_INVITATION_LIST
@@ -85,7 +86,7 @@ async def response_to_invitation(db: AsyncSession, invitation_id: int, action: I
     updated = await repo.update_invitation_status(invitation_id, new_status)
     if not updated:
         raise AppException(500, 'Не удалось обновить статус приглашения')
-    if action == InvitationRole.ACCEPTED:
+    if action == InvitationAction.ACCEPTED:
         await repo_proj.add_user(project_id, invitee_id)
         await delete_cache(user_projects_key(invitee_id))
     await delete_cache(user_invitations_key(invitee_id, 'all'))

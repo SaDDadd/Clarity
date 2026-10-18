@@ -18,4 +18,4 @@ class UpdateEmailRequest(BaseModel):
     email: EmailStr = Field(max_length=100)
 
 class UpdatePasswordRequest(BaseModel):
-    password: str = Field(min_length=8, max_length=100)
+    password: str = Field(min_length=8, max_length=50)

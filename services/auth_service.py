@@ -8,8 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 async def register_user(db: AsyncSession, user_data: UserRegister) -> dict:
     repo = UserRepository(db)
-    if len(user_data.username) == 0 or len(user_data.email) == 0 or len(user_data.password) < 8:
-        raise LackOfInformationException('Нехватка информации!')
     if await repo.check_user_exists_by_username(user_data.username):
         raise ConflictException('Имя пользователя уже существует!')
     elif await repo.check_user_exists_by_email(user_data.email):

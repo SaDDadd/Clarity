@@ -10,7 +10,7 @@ from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
                                       get_project_info, get_user_projects, update_project)
 from cache.cache_keys import user_projects_key, TTL_PROJECT_LIST
-from cache.cache_service import get_cache, set_cache 
+from cache.cache_service import get_cache, set_cache
 
 router = APIRouter()
 
@@ -20,16 +20,14 @@ router = APIRouter()
 async def create_project_endpoint(project: ProjectCreate,
                                   user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
-    """Создаёт новый проект и назначает текущего пользователя администратором."""
     return await create_project(db, project, user.user_id)
 
 
 @router.post('/projects/{project_id}/members', tags=['Проекты'],
-             summary='Добавить участника в проект', status_code=201)
+             summary='Добавить участника в проект')
 async def add_member_endpoint(project_id: int, request: AddMemberRequest,
                               current_user: UserModel = Depends(current_user),
                               db: AsyncSession = Depends(get_db)):
-    """Добавляет пользователя в проект (только администратор)."""
     return await add_user(db, project_id, current_user.user_id, request.user_id)
 
 
@@ -38,15 +36,12 @@ async def add_member_endpoint(project_id: int, request: AddMemberRequest,
 async def update_member_role_endpoint(project_id: int, user_id: int, role: ProjectRole,
                                       current_user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
-    """Изменяет роль участника проекта (только администратор)."""
-    return await update_member_role(db, user_id, project_id, current_user.user_id, role)
+    return await update_member_role(db, user_id, project_id, current_user.user_id, role.value)
 
 
-@router.get('/projects/all', response_model=list[UserProjectResponse], tags=['Проекты'],
-            summary='Вывод проектов, где пользователь участвует (как админ и участник)')
+@router.get('/projects/all', tags=['Проекты'], summary='Проекты, где пользователь участвует (owner/admin/member)')
 async def get_member_projects_endpoint(current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
-    """Возвращает все проекты, в которых состоит текущий пользователь."""
     key = user_projects_key(current_user.user_id)
     cached = await get_cache(key)
     if cached is not None:
@@ -57,11 +52,9 @@ async def get_member_projects_endpoint(current_user: UserModel = Depends(current
     return data
 
 
-@router.get('/projects', tags=['Проекты'],
-            summary='Вывод проектов пользователя, где он админ')
+@router.get('/projects', tags=['Проекты'], summary='Проекты пользователя, где он owner или admin')
 async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
-    """Возвращает проекты, где пользователь является администратором."""
     key = user_projects_key(user.user_id, 'admin')
     cached = await get_cache(key)
     if cached is not None:
@@ -71,37 +64,30 @@ async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
     await set_cache(key, data, TTL_PROJECT_LIST)
     return data
 
-@router.get('/projects/{project_id}', tags=['Проекты'],
-            summary='Получить информацию о проекте')
+
+@router.get('/projects/{project_id}', tags=['Проекты'], summary='Получить информацию о проекте')
 async def get_project_info_endpoint(project_id: int,
                                     user: UserModel = Depends(current_user),
                                     db: AsyncSession = Depends(get_db)):
-    """Возвращает полную информацию о проекте (включая список участников)."""
     return await get_project_info(db, project_id, user.user_id)
 
 
-@router.put('/projects/{project_id}', tags=['Проекты'],
-            summary='Обновить описание проекта')
+@router.put('/projects/{project_id}', tags=['Проекты'], summary='Обновить проект')
 async def update_project_description_endpoint(project_id: int, project: ProjectUpdate,
                                               user: UserModel = Depends(current_user),
                                               db: AsyncSession = Depends(get_db)):
-    """Обновляет название и/или описание проекта (только администратор)."""
     return await update_project(db, project_id, user.user_id, project)
 
 
-@router.delete('/projects/{project_id}', tags=['Проекты'],
-               summary='Удалить проект')
+@router.delete('/projects/{project_id}', tags=['Проекты'], summary='Удалить проект')
 async def delete_project_endpoint(project_id: int,
                                   user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
-    """Удаляет проект (только администратор)."""
     return await delete_project(db, project_id, user.user_id)
 
 
-@router.delete('/projects/{project_id}/members/{user_id}', tags=['Проекты'],
-               summary='Удалить участника из проекта')
+@router.delete('/projects/{project_id}/members/{user_id}', tags=['Проекты'], summary='Удалить участника из проекта')
 async def delete_project_member_endpoint(project_id: int, user_id: int,
                                          current_user: UserModel = Depends(current_user),
                                          db: AsyncSession = Depends(get_db)):
-    """Удаляет участника из проекта (только администратор)."""
     return await delete_project_user(db, project_id, current_user.user_id, user_id)

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from schemas.common import InvitationRole
+from schemas.common import InvitationRole, InvitationAction
 from datetime import datetime
 from pydantic import ConfigDict
 
@@ -8,7 +8,7 @@ class InvitationBase(BaseModel):
     message : str | None = Field(default=None, max_length=1000)
 
 class InvitationStatusUpdate(BaseModel):
-    action : InvitationRole
+    action : InvitationAction
 
 class InvitationResponse(InvitationBase):
     invitation_id: int 

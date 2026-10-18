@@ -5,14 +5,14 @@ from schemas.user import UserResponse
 
 class ProjectBase(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
-    project_description: str | None = Field(min_length=1, max_length=1000)
+    project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectCreate(ProjectBase):
     project_name: str = Field(min_length=1, max_length=100)
     project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectUpdate(BaseModel):
-    project_name: str | None = Field(min_length=1, max_length=100)
+    project_name: str | None = Field(default=None, min_length=1, max_length=100)
     project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectMemberCheck(BaseModel):
@@ -26,5 +26,6 @@ class UserProjectResponse(BaseModel):
     project_id: int
     project_name: str
     project_description: str | None
+    owner_id: int
     role: ProjectRole | None = None
     model_config = ConfigDict(from_attributes=True, extra='ignore')

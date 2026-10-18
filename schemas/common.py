@@ -6,11 +6,16 @@ class TaskStatus(str, Enum):
     COMPLETED = 'completed'
 
 class ProjectRole(str, Enum):
+    OWNER = 'owner'
     ADMIN = 'admin'
     MEMBER = 'member'
 
 class InvitationRole(str, Enum):
     PENDING = 'pending'
+    ACCEPTED = 'accepted'
+    DECLINED = 'declined'
+
+class InvitationAction(str, Enum):
     ACCEPTED = 'accepted'
     DECLINED = 'declined'
 
