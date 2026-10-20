@@ -26,22 +26,22 @@ class ProjectRepository:
             role_project="owner"
         )
         self.session.add(member)
-        await self.session.commit()
+        await self.session.flush()
         return project
 
     async def add_user(self, project_id: int, user_id_to_add: int) -> bool:
-        """"""
+        """Добавить пользователя в проект."""
         member = ProjectMemberModel(
             project_id=project_id,
             user_id=user_id_to_add,
             role_project="member"
         )
         self.session.add(member)
-        await self.session.commit()
+        await self.session.flush()
         return member is not None
 
     async def get_projects_by_admin(self, admin_id: int) -> list[ProjectModel]:
-        """Проекты, где пользователь — владелец или администратор."""
+        """Проекты, где пользователь - владелец или администратор."""
         result = await self.session.execute(
             select(ProjectModel)
             .join(ProjectMemberModel)
@@ -65,7 +65,7 @@ class ProjectRepository:
         return result.scalars().all()
 
     async def is_user_in_project(self, project_id: int, user_id: int) -> bool:
-        """"""
+        """Проверка есть ли пользователь в проекте."""
         result = await self.session.execute(
             select(ProjectMemberModel).where(
                 ProjectMemberModel.project_id == project_id,
@@ -75,6 +75,7 @@ class ProjectRepository:
         return result.scalar_one_or_none() is not None
 
     async def get_user_role_in_project(self, project_id: int, user_id: int) -> str | None:
+        """Получить роль пользователя в проекте."""
         result = await self.session.execute(
             select(ProjectMemberModel.role_project).where(
                 ProjectMemberModel.project_id == project_id,
@@ -84,12 +85,14 @@ class ProjectRepository:
         return result.scalar_one_or_none()
 
     async def get_project_by_id(self, project_id: int) -> ProjectModel | None:
+        """Получить проект по ID."""
         result = await self.session.execute(
             select(ProjectModel).where(ProjectModel.project_id == project_id)
         )
         return result.scalar_one_or_none()
 
     async def get_project_all_info(self, project_id: int) -> dict | None:
+        """Получить всю информацию проекта."""
         project_object = await self.get_project_by_id(project_id)
         result = await self.session.execute(
             select(ProjectMemberModel).where(
@@ -113,7 +116,7 @@ class ProjectRepository:
             )
             .values(role_project='owner')
         )
-        await self.session.commit()
+        await self.session.flush()
         return result_member.rowcount > 0 and result_project.rowcount > 0
 
     async def automatically_assign_owner(self, project_id: int, leaving_user_id: int) -> int | None:
@@ -155,7 +158,7 @@ class ProjectRepository:
             .where(ProjectModel.project_id == project_id)
             .values(owner_id=new_owner_id)
         )
-        await self.session.commit()
+        await self.session.flush()
         return new_owner_id
 
     async def get_admins_list(self, project_id: int) -> list[ProjectMemberModel]:
@@ -180,6 +183,7 @@ class ProjectRepository:
         return result.scalar_one_or_none() is not None
 
     async def is_user_owner(self, project_id: int, user_id: int) -> bool:
+        """Проверка, является ли пользователь главой проекта."""
         result = await self.session.execute(
             select(ProjectMemberModel).where(
                 ProjectMemberModel.project_id == project_id,
@@ -190,6 +194,7 @@ class ProjectRepository:
         return result.scalar_one_or_none() is not None
 
     async def get_user_projects(self, user_id: int) -> list[ProjectModel]:
+        """Получить все проекты пользователя."""
         result = await self.session.execute(
             select(ProjectModel)
             .join(
@@ -201,24 +206,27 @@ class ProjectRepository:
         return result.scalars().all()
 
     async def update_project_description(self, new_description: str, project_id: int) -> bool:
+        """Обновление описание проекта."""
         result = await self.session.execute(
             update(ProjectModel)
             .values(project_description=new_description)
             .where(ProjectModel.project_id == project_id)
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount > 0
 
     async def update_project_name(self, new_name: str, project_id: int) -> bool:
+        """Обновление названия проекта."""
         result = await self.session.execute(
             update(ProjectModel)
             .values(project_name=new_name)
             .where(ProjectModel.project_id == project_id)
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount > 0
 
     async def update_user_role(self, project_id: int, user_id: int, role: str) -> bool:
+        """Обновление роли пользователя из проекта."""
         result = await self.session.execute(
             update(ProjectMemberModel)
             .values(role_project=role)
@@ -227,44 +235,42 @@ class ProjectRepository:
                 ProjectMemberModel.user_id == user_id
             )
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount > 0
 
     async def delete_project(self, project_id: int) -> bool:
-        try:
-            await self.session.execute(
-                delete(ProjectMemberModel).where(
-                    ProjectMemberModel.project_id == project_id
-                )
+        """Удаление проекта."""
+        await self.session.execute(
+            delete(ProjectMemberModel).where(
+                ProjectMemberModel.project_id == project_id
             )
-            await self.session.execute(
-                delete(TaskModel).where(TaskModel.project_id == project_id)
+        )
+        await self.session.execute(
+            delete(TaskModel).where(TaskModel.project_id == project_id)
+        )
+        await self.session.execute(
+            delete(ProjectInvitationModel).where(
+                ProjectInvitationModel.project_id == project_id
             )
-            await self.session.execute(
-                delete(ProjectInvitationModel).where(
-                    ProjectInvitationModel.project_id == project_id
-                )
-            )
-            await self.session.execute(
-                delete(TaskCommentsModel).where(TaskCommentsModel.project_id == project_id)
-            )
-            result = await self.session.execute(
-                delete(ProjectModel).where(ProjectModel.project_id == project_id)
-            )
-            await self.session.commit()
-            return result.rowcount > 0
-        except Exception:
-            await self.session.rollback()
-            return False
+        )
+        await self.session.execute(
+            delete(TaskCommentsModel).where(TaskCommentsModel.project_id == project_id)
+        )
+        result = await self.session.execute(
+            delete(ProjectModel).where(ProjectModel.project_id == project_id)
+        )
+        await self.session.flush()
+        return result.rowcount > 0
 
     async def delete_user_from_project(self, project_id: int, user_id_to_del: int) -> bool:
+        """Удаление пользователя из проекта."""
         result = await self.session.execute(
             delete(ProjectMemberModel).where(
                 ProjectMemberModel.project_id == project_id,
                 ProjectMemberModel.user_id == user_id_to_del
             )
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount > 0
 
     async def unassign_user_tasks_in_project(self, project_id: int, user_id: int) -> int:
@@ -277,7 +283,7 @@ class ProjectRepository:
             )
             .values(assigned_to=None)
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount
 
     async def unassign_all_tasks_from_user(self, user_id: int) -> int:
@@ -287,10 +293,11 @@ class ProjectRepository:
             .where(TaskModel.assigned_to == user_id)
             .values(assigned_to=None)
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount
 
     async def get_number_admins(self, project_id: int) -> int:
+        """Получить количество кураторов проекта."""
         result = await self.session.execute(
             select(func.count())
             .select_from(ProjectMemberModel)
@@ -302,6 +309,7 @@ class ProjectRepository:
         return result.scalar() or 0
 
     async def get_number_members(self, project_id: int) -> int | None:
+        """Получить количество участников проекта."""
         result = await self.session.execute(
             select(func.count())
             .select_from(ProjectMemberModel)

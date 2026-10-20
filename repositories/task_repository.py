@@ -23,7 +23,7 @@ class TaskRepository:
             deadline=task.deadline,
         )
         self.session.add(result)
-        await self.session.commit()
+        await self.session.flush()
         return result
 
     async def get_tasks_by_user(self, assigned_to: int) -> list[TaskModel]:
@@ -77,7 +77,7 @@ class TaskRepository:
                 .values(assigned_to=user_id)
                 .where(TaskModel.task_id == task_id)
             )
-            await self.session.commit()
+            await self.session.flush()
             return True
         return False
 
@@ -93,7 +93,7 @@ class TaskRepository:
                     TaskModel.task_id == task_id,
                 )
             )
-            await self.session.commit()
+            await self.session.flush()
             return True
         else:
             return False
@@ -109,7 +109,7 @@ class TaskRepository:
                 TaskModel.task_status != task_status,
             )
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount > 0
 
     async def delete_task(self, task_id: int) -> bool:
@@ -117,7 +117,7 @@ class TaskRepository:
         result = await self.get_task_by_id(task_id)
         if result:
             await self.session.delete(result)
-            await self.session.commit()
+            await self.session.flush()
             return True
         return False
 
@@ -141,7 +141,7 @@ class TaskRepository:
             comment_text=message
         )
         self.session.add(comment)
-        await self.session.commit()
+        await self.session.flush()
         return comment
 
     async def get_comment_author(self, project_id: int, task_id: int, comment_id: int) -> int | None:
@@ -169,15 +169,16 @@ class TaskRepository:
         comment = await self.get_comment_by_id(comment_id)
         if comment:
             await self.session.delete(comment)
-            await self.session.commit()
+            await self.session.flush()
             return True
         return False
 
     async def update_comment(self, comment_id: int, message: str) -> bool:
+        """Обновить комментарий."""
         result = await self.session.execute(
             update(TaskCommentsModel)
             .where(TaskCommentsModel.comment_id == comment_id)
             .values(comment_text=message)
         )
-        await self.session.commit()
+        await self.session.flush()
         return result.rowcount > 0

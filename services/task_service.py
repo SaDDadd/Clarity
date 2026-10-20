@@ -1,7 +1,7 @@
 import datetime
 
 from core.exceptions import InvalidDeadlineException, NotFoundException, \
-    PermissionDeniedException, LackOfInformationException
+    PermissionDeniedException, LackOfInformationException, AppException
 from models.task import TaskModel
 from models.task_comments import TaskCommentsModel
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate
@@ -18,14 +18,19 @@ async def create_task(db: AsyncSession, project_id: int, current_user_id: int, t
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
-        raise NotFoundException('Текущего пользователя нет в проекте!')
+        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if task.deadline is not None:
         if task.deadline < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
     if task.assigned_to is not None:
         if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
-    result = await repo.create_task(project_id, task)
+    try:
+        result = await repo.create_task(project_id, task)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось создать задачу.')
     await delete_cache(project_tasks_key(project_id))
     if task.assigned_to is not None:
         await delete_cache(user_tasks_key(task.assigned_to, 'all'))
@@ -109,8 +114,12 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     old_info = await repo.get_task_by_id(task_id)
     previous_performer = old_info.assigned_to
-    if await repo.update_task_by_id(project_id, task_id, slov) is False:
-        raise NotFoundException('Задача не найдена!')
+    try:
+        await repo.update_task_by_id(project_id, task_id, slov)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось обновить задачу.')
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     if 'assigned_to' in slov and slov['assigned_to'] is not None:
@@ -136,13 +145,19 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
     is_assignee = current_user_id == assignee
     if not (is_admin or is_assignee):
         raise PermissionDeniedException('Не админ и не назначенный на задачу не может менять статус задачи!')
-    if await repo.update_task_status(project_id, task_id, task_status.value):
-        await delete_cache(task_key(project_id, task_id))
-        await delete_cache(project_tasks_key(project_id))
-        if assignee:
-            await delete_cache(user_tasks_key(assignee, 'all'))
-        return {'message': 'Статус обновлен!'}
-    return {'message': 'Статус уже установлен'}
+    try:
+        changed = await repo.update_task_status(project_id, task_id, task_status.value)
+        await db.commit()           
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось изменить статус задачи.')
+    if not changed:
+        return {'message': 'Статус уже установлен'}
+    await delete_cache(task_key(project_id, task_id))
+    await delete_cache(project_tasks_key(project_id))
+    if assignee:
+        await delete_cache(user_tasks_key(assignee, 'all'))
+    return {'message': 'Статус обновлен!'}
 
 
 async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int) -> dict:
@@ -159,8 +174,12 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
         raise PermissionDeniedException('Не админ не может удалить задачу!')
     task = await repo.get_task_by_id(task_id)
     assignee = task.assigned_to if task else None
-    if not await repo.delete_task(task_id):
-        raise NotFoundException('Не удалось удалить задачу')
+    try:
+        await repo.delete_task(task_id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось удалить задачу.')
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     if assignee:
@@ -179,7 +198,12 @@ async def create_task_comment(db: AsyncSession, project_id: int,
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    result = await repo.create_comment(project_id, task_id, current_user_id, message)
+    try:
+        result = await repo.create_comment(project_id, task_id, current_user_id, message)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось создать комментарий.')
     return result
 
 
@@ -200,8 +224,12 @@ async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, c
     is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
     if not (is_admin or author == current_user_id):
         raise PermissionDeniedException('Не админ и не создатель комментария не может его удалить!')
-    if not await repo.delete_comment(comment_id):
-        raise NotFoundException('Не удалось удалить комментарий!')
+    try:
+        await repo.delete_comment(comment_id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось удалить комментарий.')
     return {'message': 'Комментарий удален!'}
 
 
@@ -227,6 +255,10 @@ async def update_comment(db: AsyncSession, project_id: int, task_id: int, commen
     comment_old = await repo.get_comment_by_id(comment_id)
     if message == comment_old.comment_text:
         return {'message': 'Комментарий не изменился!'}
-    if not await repo.update_comment(comment_id, message):
-        raise NotFoundException('Не удалось обновить комментарий!')
+    try:
+        await repo.update_comment(comment_id, message)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось обновить комментарий.')
     return {'message': 'Комментарий обновлен!'}

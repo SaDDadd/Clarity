@@ -33,7 +33,12 @@ async def send_invitation(db: AsyncSession, project_id: int, user_id: int, curre
         raise MemberAlreadyInProjectException('Пользователь уже является участником проекта!')
     if await repo.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
-    result = await repo.create_invitation(project_id, current_user_id, user_id, message)
+    try:
+        result = await repo.create_invitation(project_id, current_user_id, user_id, message)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось отправить приглашение.')
     if result:
         await delete_cache(user_invitations_key(user_id, 'all'))
         await delete_cache(project_invitations_key(project_id, 'admin'))
@@ -82,17 +87,18 @@ async def response_to_invitation(db: AsyncSession, invitation_id: int, action: I
         raise InvitationAlreadyProcessedException('Приглашение уже было принято или отклонено')
     if await repo_proj.is_user_in_project(project_id, invitee_id):
         raise MemberAlreadyInProjectException('Пользователь уже является участником проекта')
-    new_status = action.value
-    updated = await repo.update_invitation_status(invitation_id, new_status)
-    if not updated:
-        raise AppException(500, 'Не удалось обновить статус приглашения')
-    if action == InvitationAction.ACCEPTED:
-        await repo_proj.add_user(project_id, invitee_id)
-        await delete_cache(user_projects_key(invitee_id))
+    try:
+        await repo.update_invitation_status(invitation_id, action.value)
+        if action == InvitationAction.ACCEPTED:
+            await repo_proj.add_user(project_id, invitee_id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось получить ответ на приглашение в проект.')
     await delete_cache(user_invitations_key(invitee_id, 'all'))
     await delete_cache(project_key(project_id))
     await delete_cache(project_invitations_key(project_id, 'admin'))
-    return {'message': f'Приглашение {new_status}'}
+    return {'message': f'Приглашение {action.value}'}
 
 
 async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_id: int) -> dict:
@@ -109,9 +115,12 @@ async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_i
     is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
     if not (is_admin or inviter_id == current_user_id):
         raise PermissionDeniedException('Только администратор проекта или отправитель может отменить приглашение')
-    deleted = await repo.delete_invitation(invitation_id)
-    if not deleted:
-        raise NotFoundException('Не удалось удалить приглашение (возможно, оно уже удалено)')
+    try:
+        await repo.delete_invitation(invitation_id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось отменить приглашение в проект.')
     await delete_cache(user_invitations_key(invitation.invitee_id, 'all'))
     await delete_cache(project_invitations_key(project_id, 'admin'))
     return {'message': 'Приглашение отменено'}

@@ -30,9 +30,12 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
         raise PermissionDeniedException('Передача владения выполняется отдельным сценарием')
     if current_role == role_project:
         return {'message': 'Роль уже установлена'}
-    updated = await repo.update_user_role(project_id, user_id, role_project)
-    if not updated:
-        raise AppException(500, 'Не удалось обновить роль')
+    try:
+        await repo.update_user_role(project_id, user_id, role_project)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось обновить роль участника.')
     await delete_cache(project_key(project_id))
     await delete_cache(user_projects_key(user_id, 'all'))
     await delete_cache(user_projects_key(user_id, 'admin'))

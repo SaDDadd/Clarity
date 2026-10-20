@@ -14,7 +14,7 @@ class UserRepository:
         """Создать пользователя."""
         user = UserModel(username=username, email=email, password_hash=password_hash)
         self.session.add(user)
-        await self.session.commit()
+        await self.session.flush()
         return user
 
     async def get_by_id(self, user_id: int) -> UserModel | None:
@@ -109,7 +109,7 @@ class UserRepository:
             .where(UserModel.user_id == current_user_id)
         )
         numb_result = task.rowcount
-        await self.session.commit()
+        await self.session.flush()
         if numb_result == 0:
             return False
         else:
@@ -123,7 +123,7 @@ class UserRepository:
             .where(UserModel.user_id == current_user_id)
         )
         numb_result = task.rowcount
-        await self.session.commit()
+        await self.session.flush()
         if numb_result == 0:
             return False
         else:
@@ -135,7 +135,7 @@ class UserRepository:
         if user is None:
             return False
         await self.session.delete(user)
-        await self.session.commit()
+        await self.session.flush()
         return True
 
     async def update_password(self, user_id: int, password: str) -> bool:
@@ -146,7 +146,7 @@ class UserRepository:
             .where(UserModel.user_id == user_id)
         )
         numb_result = task.rowcount
-        await self.session.commit()
+        await self.session.flush()
         if numb_result == 0:
             return False
         else:

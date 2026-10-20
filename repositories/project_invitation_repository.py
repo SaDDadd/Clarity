@@ -18,7 +18,7 @@ class ProjectInvitationRepository:
             message=message,
         )
         self.session.add(task)
-        await self.session.commit()
+        await self.session.flush()
         return task
 
     async def get_invitation_by_id(self, invitation_id: int) -> ProjectInvitationModel | None:
@@ -62,7 +62,7 @@ class ProjectInvitationRepository:
                 .values(status_invited=status_invited, update_date=func.now())
                 .where(ProjectInvitationModel.invitation_id == invitation_id)
             )
-            await self.session.commit()
+            await self.session.flush()
             return True
         else:
             return False
@@ -76,7 +76,7 @@ class ProjectInvitationRepository:
                     ProjectInvitationModel.invitation_id == invitation_id
                 )
             )
-            await self.session.commit()
+            await self.session.flush()
             return True
         else:
             return False
