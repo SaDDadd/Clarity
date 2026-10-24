@@ -23,7 +23,6 @@
   - [Пользователи](#пользователи)
 - [Тестирование](#тестирование)
 - [Нагрузочное тестирование](#нагрузочное-тестирование)
-- [Инструкция для фронтенда](#инструкция-для-фронтенда)
 - [Структура проекта](#структура-проекта)
 - [Планы на доработку](#планы-на-доработку)
 
@@ -31,9 +30,10 @@
 
 - Регистрация и аутентификация пользователей (JWT).
 - Управление проектами (создание, просмотр, обновление, удаление).
-- Ролевая модель: **admin** и **member** в рамках проекта.
+- Ролевая модель: **admin**, **curator** и **member** в рамках проекта.
 - Управление задачами внутри проектов (CRUD, смена статуса).
 - Приоритет задачи (low / medium / high) и флаг «избранное».
+- Комментирование задач (создание, редактирование и удаление комментариев).
 - Приглашения пользователей в проекты.
 - Профиль пользователя (смена имени, email, пароля и получение данных профиля).
 - Поиск пользователей по нику.
@@ -47,26 +47,28 @@
 
 ## Разграничение прав пользователей
 
-В проекте предусмотрены две роли в рамках каждого проекта:
+В проекте предусмотрены три роли в рамках каждого проекта: **admin**, **curator** и **member**.
 
-| Действие | Обычный пользователь (`member`) | Администратор (`admin`) |
-|----------|--------------------------------|-------------------------|
-| **Просмотр проекта** (GET `/projects/{project_id}`) | ✅ (только если состоит в проекте) | ✅ |
-| **Просмотр списка задач проекта** (GET `/projects/{project_id}/tasks`) | ✅ | ✅ |
-| **Просмотр деталей задачи** (GET `/projects/{project_id}/tasks/{task_id}`) | ✅ | ✅ |
-| **Создание задачи** (POST `/projects/{project_id}/tasks`) | ✅ | ✅ |
-| **Обновление задачи** (PUT `/projects/{project_id}/tasks/{task_id}`) | ✅ | ✅ |
-| **Изменение статуса задачи** (PATCH `/projects/{project_id}/tasks/{task_id}/status`) | ✅ | ✅ |
-| **Удаление задачи** (DELETE `/projects/{project_id}/tasks/{task_id}`) | ❌ | ✅ |
-| **Обновление проекта** (PUT `/projects/{project_id}`) | ❌ | ✅ |
-| **Удаление проекта** (DELETE `/projects/{project_id}`) | ❌ | ✅ |
-| **Добавление участника** (POST `/projects/{project_id}/members`) | ❌ | ✅ |
-| **Удаление участника** (DELETE `/projects/{project_id}/members/{user_id}`) | ❌ | ✅ |
-| **Изменение роли участника** (PATCH `/projects/{project_id}/members/{user_id}/role`) | ❌ | ✅ |
-| **Отправка приглашения** (POST `/projects/{project_id}/invitations`) | ❌ | ✅ |
-| **Просмотр приглашений проекта** (GET `/invitations/project/{project_id}`) | ❌ | ✅ |
-| **Отмена приглашения** (DELETE `/invitations/{invitation_id}`) | ❌ (только если он — пригласивший) | ✅ (только если он — пригласивший) |
-| **Ответ на приглашение** (PATCH `/invitations/{invitation_id}`) | ✅ (только для адресата) | ✅ (только для адресата) |
+| Действие | Кто может |
+|----------|-----------|
+| Просмотр проекта | Все участники проекта |
+| Просмотр списка задач проекта | Все участники проекта |
+| Просмотр деталей задачи | Все участники проекта |
+| Создание задачи | Все участники проекта |
+| Обновление задачи | Все; member — только если он исполнитель задачи |
+| Смена статуса задачи | Все; member — только если он исполнитель задачи |
+| Удаление задачи | Только admin/curator |
+| Создание комментариев | Все участники проекта |
+| Редактирование/удаление комментария | Все; member — только свой комментарий |
+| Ответ на приглашение | Все, но фактически только адресат приглашения |
+| Отправка приглашения | Все участники проекта |
+| Отмена приглашения | Все; member — только если он отправитель приглашения |
+| Просмотр приглашений проекта | Все участники проекта |
+| Обновление проекта | Только admin/curator |
+| Добавление участника | Только admin/curator |
+| Удаление участника | Только admin/curator; нельзя удалить admin |
+| Изменение роли участника | Только admin/curator; можно менять роль любого участника, кроме admin; роль admin никто менять не может |
+| Удаление проекта | Только admin |
 
 ## Используемые технологии
 
@@ -127,9 +129,10 @@
 
 5. **Запустите MySQL** (локально или в контейнере) и создайте базу данных.
 
-6. **Примените миграции:**
+6. **Создайте (при необходимости) и примените миграции Alembic:**
 
    ```bash
+   alembic revision --autogenerate -m "имя миграции"
    alembic upgrade head
    ```
 
@@ -159,7 +162,13 @@ API будет доступно по адресу `http://localhost:8000`.
    - База данных MySQL будет доступна на порту `3307` хоста (внутри контейнера – `3306`).
    - При старте контейнера бэкенда автоматически выполняются миграции (скрипт `entrypoint.sh`).
 
-4. Остановка:
+4. Для локальной раздачи статического фронтенда (если он находится в корне проекта) в отдельном терминале:
+
+   ```bash
+   python -m http.server 5500
+   ```
+
+5. Остановка:
 
    ```bash
    docker-compose down
@@ -235,10 +244,14 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 
 > **Важно:** перед созданием миграции убедитесь, что ваши модели импортированы в `env.py`, чтобы Alembic мог их обнаружить.
 
-В проекте уже есть две миграции:
+В проекте есть следующие миграции:
 
 - `4ed2a0e57d1c_init.py` — начальная миграция (создаёт таблицы `users`, `projects`, `project_members`, `tasks`, `project_invitations`).
 - `38152136d0e1_add_task_favorite.py` — добавляет поле `tasks.task_favorite` и обновляет `server_default` для `created_date`, `update_date`, `joined_date`.
+- `80c4be0200f2_update_columns.py` — обновляет `server_default` и `NOT NULL` для полей дат и `status_invited`.
+- `68e4603380d9_add_ondelete_cascade_in_project_.py` — добавляет `ON DELETE CASCADE` для внешних ключей в `project_invitations` и `project_members`.
+- `93875e2f15c8_add_task_comments_and_update_admin_id_.py` — создаёт таблицу `task_comments`, переименовывает поле `admin_id` в `owner_id` в таблице `projects`.
+- `ec45a763898f_updating_the_role_model_in_the_project.py` — обновляет ролевую модель в проекте, возвращает поле `admin_id` (переименовывает `owner_id` обратно в `admin_id`) и создаёт `task_comments` (если ещё не создана).
 
 ## Описание таблиц базы данных
 
@@ -269,7 +282,7 @@ CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
 |------|-----|-------------|----------|
 | `project_id` | `int` | NOT NULL, FOREIGN KEY | ID проекта |
 | `user_id` | `int` | NOT NULL, FOREIGN KEY | ID пользователя |
-| `role_project` | `enum` | NOT NULL, DEFAULT 'member' | Роль (`admin` или `member`) |
+| `role_project` | `enum` | NOT NULL, DEFAULT 'member' | Роль (`admin`, `curator` или `member`) |
 | `joined_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата присоединения |
 
 ### Таблица `tasks` (задачи)
@@ -407,12 +420,12 @@ username=john_doe&password=securepassword123
 | POST | `/projects` | Создать проект | ✅ | - |
 | GET | `/projects` | Список проектов, где пользователь — админ | ✅ | - |
 | GET | `/projects/all` | Список всех проектов, где пользователь участвует | ✅ | - |
-| GET | `/projects/{project_id}` | Получить информацию о проекте | ✅ | member/admin |
-| PUT | `/projects/{project_id}` | Обновить проект | ✅ | admin |
+| GET | `/projects/{project_id}` | Получить информацию о проекте | ✅ | member/admin/curator |
+| PUT | `/projects/{project_id}` | Обновить проект | ✅ | admin/curator |
 | DELETE | `/projects/{project_id}` | Удалить проект | ✅ | admin |
-| POST | `/projects/{project_id}/members` | Добавить участника в проект | ✅ | admin |
-| DELETE | `/projects/{project_id}/members/{user_id}` | Удалить участника из проекта | ✅ | admin |
-| PATCH | `/projects/{project_id}/members/{user_id}/role` | Изменить роль участника | ✅ | admin |
+| POST | `/projects/{project_id}/members` | Добавить участника в проект | ✅ | admin/curator |
+| DELETE | `/projects/{project_id}/members/{user_id}` | Удалить участника из проекта | ✅ | admin/curator |
+| PATCH | `/projects/{project_id}/members/{user_id}/role` | Изменить роль участника | ✅ | admin/curator |
 
 #### Создание проекта
 
@@ -560,7 +573,7 @@ Content-Type: application/json
 
 **Ошибки:**
 
-- `403 Forbidden` — пользователь не админ проекта.
+- `403 Forbidden` — пользователь не админ/куратор проекта.
 - `404 Not Found` — проект не найден.
 
 #### Удаление проекта
@@ -610,7 +623,7 @@ Content-Type: application/json
 **Ошибки:**
 
 - `400 Bad Request` — попытка добавить самого себя.
-- `403 Forbidden` — пользователь не админ проекта.
+- `403 Forbidden` — пользователь не админ/куратор проекта.
 - `404 Not Found` — пользователь не найден.
 - `409 Conflict` — пользователь уже состоит в проекте.
 
@@ -634,7 +647,7 @@ Authorization: Bearer <token>
 **Ошибки:**
 
 - `400 Bad Request` — попытка удалить самого себя (единственного админа).
-- `403 Forbidden` — пользователь не админ проекта.
+- `403 Forbidden` — пользователь не админ/куратор проекта.
 - `409 Conflict` — пользователь не состоит в проекте.
 
 #### Изменение роли участника
@@ -657,19 +670,21 @@ Authorization: Bearer <token>
 **Ошибки:**
 
 - `400 Bad Request` — попытка понизить единственного админа.
-- `403 Forbidden` — пользователь не админ проекта.
+- `403 Forbidden` — пользователь не админ/куратор проекта.
 
 ### Задачи
 
 | Метод | Эндпоинт | Описание | Требует аутентификации | Роль |
 |-------|----------|----------|------------------------|------|
 | GET | `/tasks` | Получить задачи, назначенные текущему пользователю | ✅ | - |
-| GET | `/projects/{project_id}/tasks` | Получить все задачи проекта | ✅ | member/admin |
-| GET | `/projects/{project_id}/tasks/{task_id}` | Получить детали задачи | ✅ | member/admin |
-| POST | `/projects/{project_id}/tasks` | Создать задачу в проекте | ✅ | member/admin |
-| PUT | `/projects/{project_id}/tasks/{task_id}` | Обновить задачу | ✅ | member/admin |
-| PATCH | `/projects/{project_id}/tasks/{task_id}/status` | Изменить статус задачи | ✅ | member/admin |
-| DELETE | `/projects/{project_id}/tasks/{task_id}` | Удалить задачу | ✅ | admin |
+| GET | `/projects/{project_id}/tasks` | Получить все задачи проекта | ✅ | member/admin/curator |
+| GET | `/projects/{project_id}/tasks/{task_id}` | Получить детали задачи | ✅ | member/admin/curator |
+| POST | `/projects/{project_id}/tasks` | Создать задачу в проекте | ✅ | member/admin/curator |
+| PUT | `/projects/{project_id}/tasks/{task_id}` | Обновить задачу | ✅ | member/admin/curator* |
+| PATCH | `/projects/{project_id}/tasks/{task_id}/status` | Изменить статус задачи | ✅ | member/admin/curator* |
+| DELETE | `/projects/{project_id}/tasks/{task_id}` | Удалить задачу | ✅ | admin/curator |
+
+> \* member может обновлять задачу и менять её статус только если он назначен исполнителем этой задачи.
 
 #### Создание задачи
 
@@ -828,7 +843,7 @@ Authorization: Bearer <token>
 
 **Ошибки:**
 
-- `403 Forbidden` — пользователь не админ проекта.
+- `403 Forbidden` — пользователь не админ/куратор проекта.
 
 #### Получение задач, назначенных текущему пользователю
 
@@ -857,11 +872,13 @@ Authorization: Bearer <token>
 
 | Метод | Эндпоинт | Описание | Требует аутентификации | Роль |
 |-------|----------|----------|------------------------|------|
-| POST | `/projects/{project_id}/invitations` | Отправить приглашение в проект | ✅ | admin |
+| POST | `/projects/{project_id}/invitations` | Отправить приглашение в проект | ✅ | member/admin/curator |
 | GET | `/invitations` | Список входящих приглашений для пользователя | ✅ | - |
-| GET | `/invitations/project/{project_id}` | Список приглашений проекта | ✅ | admin |
-| PATCH | `/invitations/{invitation_id}` | Принять/отклонить приглашение | ✅ | invitee |
-| DELETE | `/invitations/{invitation_id}` | Отменить приглашение | ✅ | admin/inviter |
+| GET | `/invitations/project/{project_id}` | Список приглашений проекта | ✅ | member/admin/curator |
+| PATCH | `/invitations/{invitation_id}` | Принять/отклонить приглашение | ✅ | invitee (адресат) |
+| DELETE | `/invitations/{invitation_id}` | Отменить приглашение | ✅ | member/admin/curator** |
+
+> \*\* member может отменить приглашение, только если он является его отправителем; admin/curator могут отменить любое приглашение проекта.
 
 #### Отправка приглашения
 
@@ -1342,19 +1359,19 @@ tests/
 Этот скрипт запускает FastAPI-сервер в фоновом режиме, заполняет базу данных тестовыми данными и запускает Locust.
 
 ```bash
-python run_load_test.py
+run_load_test
 ```
 
 По умолчанию запускается в **интерактивном режиме** (открывается веб-интерфейс Locust). Чтобы запустить в **headless-режиме** (без UI), передайте любой аргумент, например:
 
 ```bash
-python run_load_test.py --headless
+run_load_test --headless
 ```
 
 Можно также настроить параметры нагрузки, передав их в командной строке:
 
 ```bash
-python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
+run_load_test --headless --users 200 --spawn-rate 20 --run-time 10m
 ```
 
 Скрипт автоматически:
@@ -1401,137 +1418,18 @@ python run_load_test.py --headless --users 200 --spawn-rate 20 --run-time 10m
 
 > **Примечание:** Нагрузочное тестирование предназначено для проверки производительности и не должно использоваться на продакшн-базе данных.
 
-## Инструкция для фронтенда
-
-### 1. Базовый URL
-
-Все запросы отправляются на `http://localhost:8000/api/v1` (в продакшене – ваш домен).
-
-### 2. Аутентификация
-
-- После успешного логина сервер возвращает `access_token`.
-- Этот токен необходимо отправлять с каждым защищённым запросом в заголовке:
-
-  ```
-  Authorization: Bearer <token>
-  ```
-
-- Токен действителен **30 минут** (настраивается в `.env`). По истечении срока пользователь должен повторно войти.
-
-### 3. Форматы данных
-
-- Все даты передаются в формате ISO 8601:
-  - `YYYY-MM-DD` для дат без времени.
-  - `YYYY-MM-DDTHH:MM:SS` для datetime.
-- Enum-поля (статусы задач, роли, приоритеты) передаются строками:
-  - `task_status`: `"pending"`, `"in_progress"`, `"completed"`
-  - `task_priority`: `"low"`, `"medium"`, `"high"`
-  - `role_project` (в запросах/ответах): `"admin"`, `"member"`
-  - `status_invited`: `"pending"`, `"accepted"`, `"declined"`
-
-### 4. Обработка ошибок
-
-Все ошибки приходят в формате:
-
-```json
-{
-  "detail": "Текст ошибки"
-}
-```
-
-HTTP-статусы соответствуют стандартам:
-
-- `200` – успех
-- `201` – создано
-- `400` – плохой запрос
-- `401` – не авторизован
-- `403` – доступ запрещён
-- `404` – не найдено
-- `409` – конфликт (например, дубликат)
-- `422` – ошибка валидации
-
-### 5. CORS
-
-Настроен CORS для всех источников (в разработке). Для продакшена укажите конкретные домены через переменную `CORS_ORIGINS` в `.env` (через запятую). Список доменов парсится свойством `cors_origins_list` в `Settings`.
-
-### 6. Пример работы с API на фронтенде (JavaScript)
-
-```javascript
-// Логин
-const login = async (usernameOrEmail, password) => {
-  const res = await fetch('http://localhost:8000/api/v1/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username_or_email: usernameOrEmail, password })
-  });
-  const data = await res.json();
-  localStorage.setItem('token', data.access_token);
-};
-
-// Запрос защищённого ресурса
-const getProjects = async () => {
-  const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:8000/api/v1/projects', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return res.json();
-};
-
-// Отправить приглашение
-const sendInvitation = async (projectId, userId, message) => {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`http://localhost:8000/api/v1/projects/${projectId}/invitations`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ user_id: userId, message })
-  });
-  return res.json();
-};
-
-// Получение профиля
-const getProfile = async () => {
-  const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:8000/api/v1/profile', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return res.json();
-};
-
-// Обновление пароля
-const updatePassword = async (newPassword) => {
-  const token = localStorage.getItem('token');
-  const res = await fetch('http://localhost:8000/api/v1/profile/password', {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({ password: newPassword })
-  });
-  return res.json();
-};
-
-// Поиск пользователя
-const searchUsers = async (query) => {
-  const token = localStorage.getItem('token');
-  const res = await fetch(`http://localhost:8000/api/v1/users/search?search_user=${encodeURIComponent(query)}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return res.json();
-};
-```
-
 ## Структура проекта
 
 ```
 Clarity/
 ├── alembic/                     # Миграции Alembic
 │   ├── versions/
-│   │   ├── 4ed2a0e57d1c_init.py                 # Начальная миграция
-│   │   └── 38152136d0e1_add_task_favorite.py    # Добавлено поле task_favorite
+│   │   ├── 4ed2a0e57d1c_init.py                              # Начальная миграция
+│   │   ├── 38152136d0e1_add_task_favorite.py                 # Добавлено поле task_favorite
+│   │   ├── 80c4be0200f2_update_columns.py                    # Обновлены server_default и NOT NULL
+│   │   ├── 68e4603380d9_add_ondelete_cascade_in_project_.py  # Добавлены ON DELETE CASCADE
+│   │   ├── 93875e2f15c8_add_task_comments_and_update_admin_id_.py  # Создана task_comments
+│   │   └── ec45a763898f_updating_the_role_model_in_the_project.py  # Обновлена ролевая модель
 │   ├── env.py                    # Конфигурация окружения Alembic
 │   └── script.py.mako            # Шаблон для генерации миграций
 ├── api/
@@ -1626,10 +1524,8 @@ Clarity/
 
 - **Пагинации** — пагинация не реализована. Будет добавлено подробное описание с примерами запросов в будущем.
 - **WebSocket-уведомления** — добавление реального времени: уведомления о новых задачах, изменениях статуса, приглашениях и комментариях.
-- **Комментарии к задачам** — возможность обсуждать задачи прямо в системе.
 - **Фильтрация и поиск** — расширенные возможности поиска задач по названию, статусу, исполнителю, приоритету и дедлайну.
 - **Завершение кэширования на Redis** — в `cache/` сейчас реализованы только `get/set/delete` и заготовки ключей; нужно доделать инвалидацию (`delete_cache_by_pattern`) и комбинированный `get_or_set`, а также подключить кэш к роутерам.
-- **Метрики и мониторинг** — интеграция с Prometheus для сбора метрик производительности и здоровья сервиса.
 - **CI/CD пайплайн** — настройка автоматического тестирования и деплоя через GitHub Actions.
 - **Поддержка других БД** — добавление поддержки PostgreSQL для упрощения локальной разработки и тестирования.
 - **Swagger/OpenAPI улучшения** — детальное описание всех эндпоинтов, схем и возможных ошибок для улучшения Developer Experience.
