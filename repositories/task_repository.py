@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.task import TaskModel
 from models.task_comments import TaskCommentsModel
-from schemas.task import TaskCreate, TaskCommentResponse
+from schemas.task import TaskCreate
 
 
 class TaskRepository:
@@ -15,8 +15,8 @@ class TaskRepository:
         result = TaskModel(
             title=task.title,
             task_description=task.task_description,
-            task_status=task.task_status,
-            task_priority=task.task_priority,
+            task_status=task.task_status.value,
+            task_priority=task.task_priority.value,
             task_favorite=task.task_favorite,
             project_id=project_id,
             assigned_to=task.assigned_to,

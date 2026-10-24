@@ -6,8 +6,8 @@ class TaskStatus(str, Enum):
     COMPLETED = 'completed'
 
 class ProjectRole(str, Enum):
-    OWNER = 'owner'
     ADMIN = 'admin'
+    CURATOR = 'curator'
     MEMBER = 'member'
 
 class InvitationRole(str, Enum):

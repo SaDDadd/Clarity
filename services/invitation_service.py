@@ -10,7 +10,7 @@ from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationRole, InvitationResponse
 from schemas.common import InvitationAction
 from sqlalchemy.ext.asyncio import AsyncSession
-from cache.cache_keys import user_invitations_key, user_projects_key, project_invitations_key,project_key, \
+from cache.cache_keys import user_invitations_key, project_invitations_key,project_key, \
                                 TTL_INVITATION_LIST
 from cache.cache_service import get_cache, delete_cache, set_cache
 
@@ -23,10 +23,10 @@ async def send_invitation(db: AsyncSession, project_id: int, user_id: int, curre
     repo_user = UserRepository(db)
     if not await repo_proj.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
+    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Вы не состоите в проекте!')
     if not await repo_user.get_by_id(user_id):
         raise NotFoundException('Пользователь не найден!')
-    if not await repo_proj.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Только администратор может приглашать!')
     if current_user_id == user_id:
         raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
     if await repo_proj.is_user_in_project(project_id, user_id):
@@ -58,9 +58,9 @@ async def get_project_invitations(db: AsyncSession, project_id: int,
     repo_proj = ProjectRepository(db)
     if not await repo_proj.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
-    if not await repo_proj.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Только администратор может просматривать приглашения проекта!')
-    key = project_invitations_key(project_id, 'admin')
+    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Данного пользователя нет в проекте!')
+    key = project_invitations_key(project_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
@@ -112,7 +112,7 @@ async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_i
         raise InvitationAlreadyProcessedException('Приглашение уже обработано')
     project_id = invitation.project_id
     inviter_id = invitation.inviter_id
-    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    is_admin = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
     if not (is_admin or inviter_id == current_user_id):
         raise PermissionDeniedException('Только администратор проекта или отправитель может отменить приглашение')
     try:

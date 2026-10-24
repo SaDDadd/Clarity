@@ -33,6 +33,7 @@ async def async_verify_password(plain_password: str, hashed_password: str) -> bo
     )
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
+    """Создание токена доступ."""
     to_encode = data.copy()
     if expires_delta is None:
         expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -44,11 +45,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
 
 
 def decode_access_token(token: str) -> dict:
+    """Декодирование токена доступа."""
     try:
-        print(f"[DEBUG] Decoding with secret: {settings.JWT_SECRET_KEY[:10]}...")
         decoded = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        print("[DEBUG] Decoded OK")
         return decoded
     except JWTError as error:
-        print(f"[DEBUG] JWT decode error: {error}")
         raise error

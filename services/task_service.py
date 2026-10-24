@@ -1,7 +1,8 @@
 import datetime
 
 from core.exceptions import InvalidDeadlineException, NotFoundException, \
-    PermissionDeniedException, LackOfInformationException, AppException
+    PermissionDeniedException, LackOfInformationException, AppException, \
+    ConflictException
 from models.task import TaskModel
 from models.task_comments import TaskCommentsModel
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate
@@ -17,6 +18,8 @@ async def create_task(db: AsyncSession, project_id: int, current_user_id: int, t
     """Создаёт задачу в проекте."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
+    if await repo_proj.get_project_by_id(project_id) is None:
+        raise NotFoundException('Данного проекта не существует! ')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if task.deadline is not None:
@@ -41,6 +44,8 @@ async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: 
     """Возвращает все задачи проекта."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
+    if await repo_proj.get_project_by_id(project_id) is None:
+        raise NotFoundException('Данного проекта не существует!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Пользователя нет в проекте!')
     key = project_tasks_key(project_id)
@@ -86,7 +91,8 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[dict]:
     return answer
 
 
-async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, task: TaskUpdate) -> dict:
+async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, 
+                        task: TaskUpdate) -> dict:
     """Обновляет задачу."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
@@ -101,9 +107,14 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     is_performer = await repo.is_user_task_performer(task_id, current_user_id)
-    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    is_admin = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
     if not (is_performer or is_admin):
-        raise PermissionDeniedException('Задачу могут обновлять только админ или назначенный исполнитель!')
+        raise PermissionDeniedException('Задачу могут обновлять только админ, куратор или назначенный исполнитель!')
+    if not is_admin:
+        restricted = {'deadline', 'assigned_to', 'task_priority'} & set(slov.keys())
+        if restricted:
+            raise PermissionDeniedException('Только администратор или куратор может менять дедлайн, '
+                'исполнителя и приоритет задачи!')
     if 'deadline' in slov and slov['deadline'] is not None:
         if slov['deadline'] < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
@@ -141,7 +152,7 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         raise NotFoundException('Задачи нет в проекте!')
     task = await repo.get_task_by_id(task_id)
     assignee = task.assigned_to if task else None
-    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    is_admin = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
     is_assignee = current_user_id == assignee
     if not (is_admin or is_assignee):
         raise PermissionDeniedException('Не админ и не назначенный на задачу не может менять статус задачи!')
@@ -170,8 +181,8 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    if not await repo_proj.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Не админ не может удалить задачу!')
+    if not await repo_proj.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Только создатель или куратор может удалить задачу.')
     task = await repo.get_task_by_id(task_id)
     assignee = task.assigned_to if task else None
     try:
@@ -193,7 +204,7 @@ async def create_task_comment(db: AsyncSession, project_id: int,
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
-        raise PermissionDeniedException('Данного проекта не существует!')
+        raise NotFoundException('Данного проекта не существует!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
@@ -213,15 +224,18 @@ async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, c
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
-        raise PermissionDeniedException('Данного проекта не существует!')
+        raise NotFoundException('Данного проекта не существует!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
-    author = await repo.get_comment_author(project_id, task_id, comment_id)
-    if author is None:
+    if await repo.get_comment_by_id(comment_id) is None:
         raise NotFoundException('Комментарий не найден!')
-    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    comment_info = await repo.get_comment_by_id(comment_id)
+    if comment_info.project_id != project_id or comment_info.task_id != task_id:
+        raise ConflictException('Данные не подходят!')
+    author = await repo.get_comment_author(project_id, task_id, comment_id)
+    is_admin = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
     if not (is_admin or author == current_user_id):
         raise PermissionDeniedException('Не админ и не создатель комментария не может его удалить!')
     try:
@@ -243,11 +257,11 @@ async def update_comment(db: AsyncSession, project_id: int, task_id: int, commen
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await repo.is_task_in_project(project_id, task_id):
-        raise PermissionDeniedException('Задачи нет в проекте!')
+        raise NotFoundException('Задачи нет в проекте!')
     author = await repo.get_comment_author(project_id, task_id, comment_id)
     if author is None:
         raise NotFoundException('Комментарий не найден!')
-    is_admin = await repo_proj.is_user_admin(project_id, current_user_id)
+    is_admin = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
     if not (is_admin or author == current_user_id):
         raise PermissionDeniedException('Только админ или автор может изменить комментарий!')
     if len(message) > 1000:

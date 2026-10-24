@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from core.config import settings
 from core.database import Base
-from core.security import async_hash_password  # <-- импортируем асинхронную функцию
+from core.security import async_hash_password
 from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository

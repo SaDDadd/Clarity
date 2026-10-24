@@ -35,9 +35,7 @@ async def login_user(db: AsyncSession, user_data: UserLogin) -> Token:
         if await async_verify_password(user_data.password, user.password_hash):
             try:
                 token = create_access_token({'sub': user.user_id})
-                await db.commit()
             except Exception:
-                await db.rollback()
                 raise AppException(500, 'Не удалось войти в профиль.')
             return Token(
                 access_token=token,
@@ -52,9 +50,7 @@ async def login_user(db: AsyncSession, user_data: UserLogin) -> Token:
             if await async_verify_password(user_data.password, user.password_hash):
                 try:
                     token = create_access_token({'sub': user.user_id})
-                    await db.commit()
                 except Exception:
-                    await db.rollback()
                     raise AppException(500, 'Не удалось войти в профиль.')
                 return Token(
                     access_token=token,

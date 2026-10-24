@@ -13,7 +13,8 @@ from models.user import UserModel
 from models.project import ProjectModel
 from models.task import TaskModel
 from models.project_members import ProjectMemberModel
-from models.project_invitations import ProjectInvitationModel  # или перечислите все файлы: from models import user, project, task, ...
+from models.project_invitations import ProjectInvitationModel
+from models.task_comments import TaskCommentsModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

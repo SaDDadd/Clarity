@@ -6,7 +6,7 @@ from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from cache.cache_keys import (project_key, user_projects_key, project_tasks_key,
+from cache.cache_keys import (project_key, user_tasks_key, user_projects_key, project_tasks_key,
                               project_invitations_key, TTL_PROJECT, PROJECT_PREFIX)
 from cache.cache_service import (get_cache, set_cache, delete_cache,
                                  delete_cache_by_pattern)
@@ -37,8 +37,8 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
     project = await repo.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
-    if not await repo.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ проекта!')
+    if not await repo.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ и не куратор проекта!')
     if current_user_id == user_id_to_add:
         raise InvalidInvitationStateException('Нельзя добавить самого себя!')
     if not await repo_user.check_user_exists(user_id_to_add):
@@ -60,24 +60,19 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
 
 
 async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[UserProjectResponse]:
-    """Проекты, где пользователь owner или admin."""
+    """Проекты, где пользователь admin."""
     repo = ProjectRepository(db)
-    projects = await repo.get_projects_by_admin(admin_id)
+    projects = await repo.get_managed_projects(admin_id)
     result: list[UserProjectResponse] = []
-    try:
-        for project in projects:
-            role = await repo.get_user_role_in_project(project.project_id, admin_id)
-            result.append(UserProjectResponse(
-                project_id=project.project_id,
-                project_name=project.project_name,
-                project_description=project.project_description or '',
-                owner_id=project.owner_id,
-                role=role
-            ))
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        raise AppException(500, 'Не удалось получить проекты.')
+    for project in projects:
+        role = await repo.get_user_role_in_project(project.project_id, admin_id)
+        result.append(UserProjectResponse(
+            project_id=project.project_id,
+            project_name=project.project_name,
+            project_description=project.project_description or '',
+            admin_id=project.admin_id,
+            role=role
+        ))
     return result
 
 
@@ -109,7 +104,7 @@ async def get_project_info(db: AsyncSession, project_id: int, user_id: int) -> d
         'project_id': info.project_id,
         'project_name': info.project_name,
         'project_description': info.project_description,
-        'owner_id': info.owner_id,
+        'admin_id': info.admin_id,
         'members': [
             {
                 'user_id': member.user_id,
@@ -136,46 +131,42 @@ async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[User
             project_id=project.project_id,
             project_name=project.project_name,
             project_description=project.project_description or '',
-            owner_id=project.owner_id,
+            admin_id=project.admin_id,
             role=role
         ))
     return result
 
 
-async def update_project(db: AsyncSession, project_id: int, user_id: int, project_date: ProjectUpdate) -> dict:
+async def update_project(db: AsyncSession, project_id: int, user_id: int,
+                         project_data: ProjectUpdate) -> dict:
     """Обновление проекта."""
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
-    if not await repo.is_user_admin(project_id, user_id):
-        raise PermissionDeniedException('Пользователь не может менять проект, он не админ/владелец!')
-    if project_date.project_description is None and project_date.project_name is None:
+    if not await repo.is_user_admin_or_curator(project_id, user_id):
+        raise PermissionDeniedException('Пользователь не может менять проект, он не админ/куратор!')
+    name_changed = (
+        project_data.project_name is not None
+        and project_data.project_name != project.project_name
+    )
+    description_changed = (
+        project_data.project_description is not None
+        and project_data.project_description != project.project_description
+    )
+    if not name_changed and not description_changed:
         return {'message': 'Ничего не изменилось!'}
     project_info = await repo.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
-    if project_date.project_description is None:
-        try:
-            await repo.update_project_name(project_date.project_name, project_id)
-            await db.commit()
-        except Exception:
-            await db.rollback()
-            raise AppException(500, 'Не удалось обновить проект.')
-    elif project_date.project_name is None:
-        try:
-            await repo.update_project_description(project_date.project_description, project_id)
-            await db.commit()
-        except Exception:
-            await db.rollback()
-            raise AppException(500, 'Не удалось обновить проект.')
-    else:
-        try:
-            await repo.update_project_description(project_date.project_description, project_id)
-            await repo.update_project_name(project_date.project_name, project_id)
-            await db.commit()
-        except Exception:
-            await db.rollback()
-            raise AppException(500, 'Не удалось обновить проект.')
+    try:
+        if name_changed:
+            await repo.update_project_name(project_data.project_name, project_id)
+        if description_changed:
+            await repo.update_project_description(project_data.project_description, project_id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось обновить проект!')
     await delete_cache(project_key(project_id))
     for i in member_ids:
         await delete_cache(user_projects_key(i, 'all'))
@@ -213,14 +204,16 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
     """Удаляет участника из проекта."""
     repo = ProjectRepository(db)
     repo_user = UserRepository(db)
+    if await repo.get_project_by_id(project_id) is None:
+        raise NotFoundException('Проект не найден!')
     if not await repo_user.check_user_exists(user_id_to_del):
         raise NotFoundException('Нельзя удалить пользователя: его не существует!')
-    if not await repo.is_user_admin(project_id, current_user_id):
+    if not await repo.is_user_admin_or_curator(project_id, current_user_id):
         raise PermissionDeniedException('Нельзя удалить пользователя: вы не админ проекта!')
     if not await repo.is_user_in_project(project_id, user_id_to_del):
         raise ConflictException('Пользователь не состоит в проекте!')
-    if await repo.is_user_owner(project_id, user_id_to_del):
-        raise PermissionDeniedException('Нельзя удалить владельца проекта. Сначала передайте владение.')
+    if await repo.is_user_admin(project_id, user_id_to_del):
+        raise PermissionDeniedException('Нельзя удалить создателя проекта. Сначала передайте роль.')
     try:
         await repo.unassign_user_tasks_in_project(project_id, user_id_to_del)
         await repo.delete_user_from_project(project_id, user_id_to_del)
@@ -236,3 +229,45 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
     await delete_cache(user_projects_key(current_user_id, 'admin'))
     await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{project_id}:task*")
     return {'message': 'Пользователь удален из проекта!'}
+
+
+async def leave_from_project(db: AsyncSession, project_id: int, current_user_id: int) -> dict:
+    """Выйти из проекта."""
+    repo = ProjectRepository(db)
+    if await repo.get_project_by_id(project_id) is None:
+        raise NotFoundException('Проект не найден!')
+    if not await repo.is_user_in_project(project_id, current_user_id):
+        raise ConflictException('Пользователь не состоит в проекте!')
+    project_info = await repo.get_project_all_info(project_id)
+    member_ids = [i.user_id for i in project_info['members']]
+    is_admin = await repo.is_user_admin(project_id, current_user_id)
+    try:
+        if is_admin:
+            new_admin_id = await repo.automatically_assign_admin(project_id, current_user_id)
+            if new_admin_id is None:
+                await repo.delete_project(project_id)
+            else:
+                await repo.unassign_user_tasks_in_project(project_id, current_user_id)
+                await repo.delete_user_from_project(project_id, current_user_id)
+        else:
+            await repo.unassign_user_tasks_in_project(project_id, current_user_id)
+            await repo.delete_user_from_project(project_id, current_user_id)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise AppException(500, 'Не удалось выйти из проекта!')
+    await delete_cache(project_key(project_id))
+    await delete_cache(project_tasks_key(project_id))
+    await delete_cache(project_invitations_key(project_id, 'admin'))
+    await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{project_id}:task*")
+    await delete_cache(user_projects_key(current_user_id, 'all'))
+    await delete_cache(user_projects_key(current_user_id, 'admin'))
+    await delete_cache(user_tasks_key(current_user_id, 'all'))
+    for member_id in member_ids:
+        if member_id == current_user_id:
+            continue
+        await delete_cache(user_projects_key(member_id, 'all'))
+        await delete_cache(user_projects_key(member_id, 'admin'))
+        if is_admin and new_admin_id is None:
+            await delete_cache(user_tasks_key(member_id, 'all'))
+    return {'message': 'Вы вышли из проекта!'}

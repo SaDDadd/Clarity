@@ -86,6 +86,7 @@ async def create_task_comment_endpoint(message: TaskCommentCreate, project_id: i
 async def delete_task_comment_endpoint(project_id: int, task_id: int, comment_id: int,  
                                       current_user: UserModel = Depends(current_user), 
                                       db: AsyncSession = Depends(get_db)):
+    """Удаление комментария задачи."""
     return await delete_task_comment(db, project_id, task_id, comment_id, current_user.user_id)
 
 @router.put('/projects/{project_id}/tasks/{task_id}/comments/{comment_id}', tags=['Комментарии'], 
@@ -93,4 +94,5 @@ async def delete_task_comment_endpoint(project_id: int, task_id: int, comment_id
 async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int, 
                                   comment_id: int, current_user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
+    """Обновление комментария."""
     return await update_comment(db, project_id, task_id, comment_id, message.comment_text, current_user.user_id)

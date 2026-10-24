@@ -1,7 +1,6 @@
 from core.exceptions import (AppException, NotFoundException,
                              PermissionDeniedException)
 from repositories.project_repository import ProjectRepository
-from repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.common import ProjectRole
 from cache.cache_keys import project_key, user_projects_key
@@ -16,18 +15,18 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
-        raise NotFoundException('Проект не найден')
+        raise NotFoundException('Проект не найден.')
     if not await repo.is_user_in_project(project_id, user_id):
-        raise PermissionDeniedException('Пользователь не состоит в проекте')
-    if not await repo.is_user_admin(project_id, current_user_id):
-        raise PermissionDeniedException('Текущий пользователь не администратор проекта')
+        raise PermissionDeniedException('Пользователь не состоит в проекте.')
+    if not await repo.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Текущий пользователь не администратор проекта.')
     if current_user_id == user_id:
-        raise PermissionDeniedException('Нельзя изменить свою собственную роль')
+        raise PermissionDeniedException('Нельзя изменить свою собственную роль.')
     current_role = await repo.get_user_role_in_project(project_id, user_id)
-    if current_role == 'owner':
-        raise PermissionDeniedException('Нельзя изменить роль владельца проекта')
-    if role_project == 'owner':
-        raise PermissionDeniedException('Передача владения выполняется отдельным сценарием')
+    if current_role == 'admin':
+        raise PermissionDeniedException('Нельзя изменить роль создателя проекта.')
+    if role_project == 'admin':
+        raise PermissionDeniedException('Передача владельца происходит только при выходе из проекта.')
     if current_role == role_project:
         return {'message': 'Роль уже установлена'}
     try:

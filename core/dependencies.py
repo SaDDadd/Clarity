@@ -10,22 +10,23 @@ from core.security import decode_access_token as decode_token
 from models.user import UserModel
 from repositories.user_repository import UserRepository
 
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
-# Для проверки в Swagger
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+
+#Для проверки в Swagger
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Получить сессию."""
     async with AsyncSessionLocal() as session:
         yield session
 
 
 async def current_user(token: str = Depends(oauth2_scheme),
                        db: AsyncSession = Depends(get_db)) -> UserModel:
+    """Получить актуального пользователя."""
     try:
-        print(f"[DEBUG] Received token: {token[:20]}...")
         payload = decode_token(token)
-        print(f"[DEBUG] Decoded payload: {payload}")
         user_id = payload.get('sub')
         if user_id is None:
             raise AuthenticationException('Недействительный токен')

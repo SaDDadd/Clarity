@@ -1,4 +1,3 @@
-# schemas/user.py
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 import datetime
 

@@ -8,7 +8,8 @@ from schemas.project import AddMemberRequest, ProjectCreate, ProjectUpdate, User
 from services.project_members_service import update_member_role
 from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
-                                      get_project_info, get_user_projects, update_project)
+                                      get_project_info, get_user_projects, update_project, 
+                                      leave_from_project)
 from cache.cache_keys import user_projects_key, TTL_PROJECT_LIST
 from cache.cache_service import get_cache, set_cache
 
@@ -20,6 +21,7 @@ router = APIRouter()
 async def create_project_endpoint(project: ProjectCreate,
                                   user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
+    """Создание проекта."""
     return await create_project(db, project, user.user_id)
 
 
@@ -28,6 +30,7 @@ async def create_project_endpoint(project: ProjectCreate,
 async def add_member_endpoint(project_id: int, request: AddMemberRequest,
                               current_user: UserModel = Depends(current_user),
                               db: AsyncSession = Depends(get_db)):
+    """Добавление пользователя в проект."""
     return await add_user(db, project_id, current_user.user_id, request.user_id)
 
 
@@ -36,12 +39,14 @@ async def add_member_endpoint(project_id: int, request: AddMemberRequest,
 async def update_member_role_endpoint(project_id: int, user_id: int, role: ProjectRole,
                                       current_user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
+    """Обновление роли пользователя в проекте."""
     return await update_member_role(db, user_id, project_id, current_user.user_id, role.value)
 
 
 @router.get('/projects/all', tags=['Проекты'], summary='Проекты, где пользователь участвует (owner/admin/member)')
 async def get_member_projects_endpoint(current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
+    """Получить всех участников проекта."""
     key = user_projects_key(current_user.user_id)
     cached = await get_cache(key)
     if cached is not None:
@@ -52,9 +57,10 @@ async def get_member_projects_endpoint(current_user: UserModel = Depends(current
     return data
 
 
-@router.get('/projects', tags=['Проекты'], summary='Проекты пользователя, где он owner или admin')
+@router.get('/projects', tags=['Проекты'], summary='Проекты пользователя, где он admin.')
 async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
+    """Получить проекты пользователя, где он admin."""
     key = user_projects_key(user.user_id, 'admin')
     cached = await get_cache(key)
     if cached is not None:
@@ -69,6 +75,7 @@ async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
 async def get_project_info_endpoint(project_id: int,
                                     user: UserModel = Depends(current_user),
                                     db: AsyncSession = Depends(get_db)):
+    """Получить всю информацию про проект."""
     return await get_project_info(db, project_id, user.user_id)
 
 
@@ -76,6 +83,7 @@ async def get_project_info_endpoint(project_id: int,
 async def update_project_description_endpoint(project_id: int, project: ProjectUpdate,
                                               user: UserModel = Depends(current_user),
                                               db: AsyncSession = Depends(get_db)):
+    """Обновление проекта."""
     return await update_project(db, project_id, user.user_id, project)
 
 
@@ -83,6 +91,7 @@ async def update_project_description_endpoint(project_id: int, project: ProjectU
 async def delete_project_endpoint(project_id: int,
                                   user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
+    """Удаление проекта."""
     return await delete_project(db, project_id, user.user_id)
 
 
@@ -90,4 +99,17 @@ async def delete_project_endpoint(project_id: int,
 async def delete_project_member_endpoint(project_id: int, user_id: int,
                                          current_user: UserModel = Depends(current_user),
                                          db: AsyncSession = Depends(get_db)):
+    """Удалить участника проекта."""
     return await delete_project_user(db, project_id, current_user.user_id, user_id)
+
+@router.delete('/projects/{project_id}/leave', tags=['Проекты'], 
+               summary='Выйти из проекта')
+async def leave_from_project_endpoint(project_id: int, 
+                                      user: UserModel = Depends(current_user), 
+                                      db: AsyncSession = Depends(get_db)):
+    """Выход из проекта."""
+    return await leave_from_project(db, project_id, user.user_id)
+
+# @router.patch(tags=['Проекты'], summary='Обновление роли участника проекта.')
+# async def update_role_endpoint():
+#     """Обновление роли пользователя в проекте."""

@@ -1,7 +1,5 @@
-# schemas/project.py
 from pydantic import BaseModel, ConfigDict, Field
 from schemas.common import ProjectRole
-from schemas.user import UserResponse
 
 class ProjectBase(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
@@ -14,6 +12,7 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseModel):
     project_name: str | None = Field(default=None, min_length=1, max_length=100)
     project_description: str | None = Field(default=None, max_length=1000)
+    
 
 class ProjectMemberCheck(BaseModel):
     project_id: int
@@ -26,6 +25,6 @@ class UserProjectResponse(BaseModel):
     project_id: int
     project_name: str
     project_description: str | None
-    owner_id: int
+    admin_id: int
     role: ProjectRole | None = None
     model_config = ConfigDict(from_attributes=True, extra='ignore')

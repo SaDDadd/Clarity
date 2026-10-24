@@ -48,7 +48,7 @@ async def update_user_password(db: AsyncSession, password: str, current_user_id:
     """Изменить пароль пользователя."""
     repo = UserRepository(db)
     if len(password) < 8 or len(password) > 50:
-        raise LackOfInformationException('Пароль не может быть пустым или превышать 100 символов!')
+        raise LackOfInformationException('Пароль не может быть пустым или превышать 50 символов!')
     hashed_password = await async_hash_password(password)
     try:
         await repo.update_password(current_user_id, hashed_password)
@@ -80,11 +80,11 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
     user = await repo.get_by_id(current_user_id)
     if user is None:
         raise NotFoundException('Пользователь не найден!')
-    owned_projects = await repo_project.get_projects_by_owner(current_user_id)
+    admin_projects = await repo_project.get_projects_by_creator(current_user_id)
     member_projects = await repo_project.get_user_projects(current_user_id)
     try:
-        for project in owned_projects:
-            new_owner_id = await repo_project.automatically_assign_owner(
+        for project in admin_projects:
+            new_owner_id = await repo_project.automatically_assign_admin(
                 project.project_id, current_user_id
             )
             if new_owner_id is None:
@@ -95,7 +95,7 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось удалить профиль!')
-    for project in owned_projects:
+    for project in admin_projects:
         await delete_cache(project_key(project.project_id))
         await delete_cache(project_tasks_key(project.project_id))
         await delete_cache(project_invitations_key(project.project_id, 'admin'))

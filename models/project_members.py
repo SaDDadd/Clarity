@@ -9,5 +9,5 @@ class ProjectMemberModel(Base):
 
     project_id: Mapped[int] = mapped_column(ForeignKey('projects.project_id', ondelete='CASCADE'), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
-    role_project: Mapped[str] = mapped_column(Enum('owner', 'admin', 'member'), nullable=False, server_default='member')
+    role_project: Mapped[str] = mapped_column(Enum('admin', 'curator', 'member'), nullable=False, server_default='member')
     joined_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())

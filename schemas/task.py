@@ -1,4 +1,3 @@
-# schemas/task.py
 from pydantic import BaseModel, Field
 import datetime
 from schemas.common import TaskStatus, TaskPriority
@@ -42,7 +41,7 @@ class TaskCommentResponse(BaseModel):
     comment_id: int
     task_id: int
     author_id: int
-    comment_text: str
+    comment_text: str = Field(min_length=1, max_length=1000)
     created_date: datetime.datetime
     update_date: datetime.datetime
     model_config = ConfigDict(from_attributes=True)

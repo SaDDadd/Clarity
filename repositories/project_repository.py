@@ -11,19 +11,19 @@ class ProjectRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_project_with_admin(self, name: str, description: str | None, owner_id: int) -> ProjectModel:
-        """Создаёт проект и назначает создателя владельцем (role='owner')."""
+    async def create_project_with_admin(self, name: str, description: str | None, admin_id: int) -> ProjectModel:
+        """Создаёт проект и назначает создателя владельцем (role='admin')."""
         project = ProjectModel(
             project_name=name,
             project_description=description,
-            owner_id=owner_id
+            admin_id=admin_id
         )
         self.session.add(project)
         await self.session.flush()
         member = ProjectMemberModel(
             project_id=project.project_id,
-            user_id=owner_id,
-            role_project="owner"
+            user_id=admin_id,
+            role_project="admin"
         )
         self.session.add(member)
         await self.session.flush()
@@ -40,26 +40,26 @@ class ProjectRepository:
         await self.session.flush()
         return member is not None
 
-    async def get_projects_by_admin(self, admin_id: int) -> list[ProjectModel]:
+    async def get_managed_projects(self, admin_id: int) -> list[ProjectModel]:
         """Проекты, где пользователь - владелец или администратор."""
         result = await self.session.execute(
             select(ProjectModel)
             .join(ProjectMemberModel)
             .where(
                 ProjectMemberModel.user_id == admin_id,
-                ProjectMemberModel.role_project.in_(['owner', 'admin'])
+                ProjectMemberModel.role_project.in_(['admin', 'curator'])
             )
         )
         return result.scalars().all()
 
-    async def get_projects_by_owner(self, owner_id: int) -> list[ProjectModel]:
+    async def get_projects_by_creator(self, admin_id: int) -> list[ProjectModel]:
         """Проекты, где пользователь именно владелец."""
         result = await self.session.execute(
             select(ProjectModel)
             .join(ProjectMemberModel)
             .where(
-                ProjectMemberModel.user_id == owner_id,
-                ProjectMemberModel.role_project == 'owner'
+                ProjectMemberModel.user_id == admin_id,
+                ProjectMemberModel.role_project == 'admin'
             )
         )
         return result.scalars().all()
@@ -101,94 +101,102 @@ class ProjectRepository:
         )
         return {"project": project_object, "members": result.scalars().all()}
 
-    async def reassign_admin(self, project_id: int, new_owner_id: int) -> bool:
-        """Передаёт владение: role='owner' + projects.owner_id."""
+    async def reassign_admin(self, project_id: int, new_admin_id: int) -> bool:
+        """Передаёт владение."""
+        old_admin = await self.get_project_by_id(project_id)
         result_project = await self.session.execute(
             update(ProjectModel)
             .where(ProjectModel.project_id == project_id)
-            .values(owner_id=new_owner_id)
+            .values(admin_id=new_admin_id)
+        )
+        down_role = await self.session.execute(
+            update(ProjectMemberModel)
+            .where(ProjectMemberModel.project_id == project_id, 
+                   ProjectMemberModel.user_id == old_admin.admin_id)
+            .values(role_project='curator')
         )
         result_member = await self.session.execute(
             update(ProjectMemberModel)
             .where(
                 ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.user_id == new_owner_id
+                ProjectMemberModel.user_id == new_admin_id
             )
-            .values(role_project='owner')
+            .values(role_project='admin')
         )
         await self.session.flush()
-        return result_member.rowcount > 0 and result_project.rowcount > 0
+        return result_member.rowcount > 0 and result_project.rowcount > 0 and down_role.rowcount == 1
 
-    async def automatically_assign_owner(self, project_id: int, leaving_user_id: int) -> int | None:
+    async def automatically_assign_admin(self, project_id: int, leaving_user_id: int) -> int | None:
         """Подбирает нового владельца при уходе текущего."""
         result = await self.session.execute(
             select(ProjectMemberModel.user_id)
             .where(
                 ProjectMemberModel.project_id == project_id,
                 ProjectMemberModel.user_id != leaving_user_id,
-                ProjectMemberModel.role_project == 'admin'
+                ProjectMemberModel.role_project == 'curator'
             )
             .order_by(ProjectMemberModel.joined_date, ProjectMemberModel.user_id)
             .limit(1)
         )
-        new_owner_id = result.scalar()
-        if new_owner_id is None:
+        new_admin_id = result.scalar()
+        if new_admin_id is None:
             result = await self.session.execute(
                 select(ProjectMemberModel.user_id)
                 .where(
                     ProjectMemberModel.project_id == project_id,
-                    ProjectMemberModel.user_id != leaving_user_id
+                    ProjectMemberModel.user_id != leaving_user_id,
+                    ProjectMemberModel.role_project == 'member'
                 )
                 .order_by(ProjectMemberModel.joined_date, ProjectMemberModel.user_id)
                 .limit(1)
             )
-            new_owner_id = result.scalar()
-        if new_owner_id is None:
+            new_admin_id = result.scalar()
+        if new_admin_id is None:
             return None
         await self.session.execute(
             update(ProjectMemberModel)
             .where(
                 ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.user_id == new_owner_id
+                ProjectMemberModel.user_id == new_admin_id
             )
-            .values(role_project='owner')
+            .values(role_project='admin')
         )
         await self.session.execute(
             update(ProjectModel)
             .where(ProjectModel.project_id == project_id)
-            .values(owner_id=new_owner_id)
+            .values(admin_id=new_admin_id)
         )
         await self.session.flush()
-        return new_owner_id
+        return new_admin_id
 
-    async def get_admins_list(self, project_id: int) -> list[ProjectMemberModel]:
-        """Строго администраторы (без владельца)."""
+    async def get_curators_list(self, project_id: int) -> list[ProjectMemberModel]:
+        """Строго кураторы (без владельца)."""
         result = await self.session.execute(
             select(ProjectMemberModel).where(
                 ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.role_project == "admin"
+                ProjectMemberModel.role_project == "curator"
             )
         )
         return result.scalars().all()
 
-    async def is_user_admin(self, project_id: int, user_id: int) -> bool:
-        """Владелец ИЛИ администратор."""
+    async def is_user_admin_or_curator(self, project_id: int, user_id: int) -> bool:
+        """Владелец или куратор."""
         result = await self.session.execute(
             select(ProjectMemberModel).where(
                 ProjectMemberModel.project_id == project_id,
                 ProjectMemberModel.user_id == user_id,
-                ProjectMemberModel.role_project.in_(['owner', 'admin'])
+                ProjectMemberModel.role_project.in_(['admin', 'curator'])
             )
         )
         return result.scalar_one_or_none() is not None
 
-    async def is_user_owner(self, project_id: int, user_id: int) -> bool:
+    async def is_user_admin(self, project_id: int, user_id: int) -> bool:
         """Проверка, является ли пользователь главой проекта."""
         result = await self.session.execute(
             select(ProjectMemberModel).where(
                 ProjectMemberModel.project_id == project_id,
                 ProjectMemberModel.user_id == user_id,
-                ProjectMemberModel.role_project == 'owner'
+                ProjectMemberModel.role_project == 'admin'
             )
         )
         return result.scalar_one_or_none() is not None
@@ -296,14 +304,14 @@ class ProjectRepository:
         await self.session.flush()
         return result.rowcount
 
-    async def get_number_admins(self, project_id: int) -> int:
+    async def get_number_curators(self, project_id: int) -> int:
         """Получить количество кураторов проекта."""
         result = await self.session.execute(
             select(func.count())
             .select_from(ProjectMemberModel)
             .where(
                 ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.role_project == "admin"
+                ProjectMemberModel.role_project == "curator"
             )
         )
         return result.scalar() or 0
