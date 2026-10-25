@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.task import TaskModel
@@ -81,13 +81,13 @@ class TaskRepository:
             return True
         return False
 
-    async def update_task_by_id(self, project_id: int, task_id: int, slov: dict) -> bool:
+    async def update_task_by_id(self, project_id: int, task_id: int, data: dict) -> bool:
         """Обновить задачу по ID."""
         result = await self.get_task_by_id(task_id)
         if result:
             await self.session.execute(
                 update(TaskModel)
-                .values(slov)
+                .values(data)
                 .where(
                     TaskModel.project_id == project_id,
                     TaskModel.task_id == task_id,
@@ -124,13 +124,11 @@ class TaskRepository:
     async def is_user_task_performer(self, task_id: int, user_id: int) -> bool:
         """Проверка является ли пользователь исполнителем задачи."""
         result = await self.session.execute(
-            select(TaskModel)
+            select(TaskModel.assigned_to)
             .where(TaskModel.task_id == task_id)
         )
-        task = result.scalar_one_or_none()
-        if task is None or task.assigned_to != user_id:
-            return False 
-        return True
+        assigned_to = result.scalar_one_or_none()
+        return assigned_to == user_id
 
     async def create_comment(self, project_id: int, task_id: int, user_id: int, message: str) -> TaskCommentsModel:
         """Создание комментария для задачи в проекте."""
@@ -178,7 +176,7 @@ class TaskRepository:
         result = await self.session.execute(
             update(TaskCommentsModel)
             .where(TaskCommentsModel.comment_id == comment_id)
-            .values(comment_text=message)
+            .values(comment_text=message, update_date=func.now())
         )
         await self.session.flush()
         return result.rowcount > 0

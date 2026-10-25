@@ -1,5 +1,5 @@
 from core.exceptions import (AppException, NotFoundException,
-                             PermissionDeniedException)
+                             PermissionDeniedException, ConflictException)
 from repositories.project_repository import ProjectRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.common import ProjectRole
@@ -8,33 +8,56 @@ from cache.cache_service import delete_cache
 
 
 async def update_member_role(db: AsyncSession, user_id: int, project_id: int, 
-                             current_user_id: int, role_project) -> dict:
+                             current_user_id: int, role_project: str) -> dict:
     """Обновление роли участника. Владельца менять нельзя."""
     if isinstance(role_project, ProjectRole):
         role_project = role_project.value
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
-        raise NotFoundException('Проект не найден.')
+        raise NotFoundException('Проект не найден!')
     if not await repo.is_user_in_project(project_id, user_id):
-        raise PermissionDeniedException('Пользователь не состоит в проекте.')
-    if not await repo.is_user_admin_or_curator(project_id, current_user_id):
-        raise PermissionDeniedException('Текущий пользователь не администратор проекта.')
-    if current_user_id == user_id:
-        raise PermissionDeniedException('Нельзя изменить свою собственную роль.')
+        raise NotFoundException('Пользователь не состоит в проекте!')
+    is_admin = await repo.is_user_admin(project_id, current_user_id)
+    is_admin_or_curator = await repo.is_user_admin_or_curator(project_id, current_user_id)
+    if not is_admin_or_curator:
+        raise PermissionDeniedException('Только администратор или куратор может менять роли!')
     current_role = await repo.get_user_role_in_project(project_id, user_id)
-    if current_role == 'admin':
-        raise PermissionDeniedException('Нельзя изменить роль создателя проекта.')
     if role_project == 'admin':
-        raise PermissionDeniedException('Передача владельца происходит только при выходе из проекта.')
+        if not is_admin:
+            raise PermissionDeniedException('Только действующий администратор может передать роль администратора!')
+        if current_user_id == user_id:
+            raise PermissionDeniedException('Вы уже администратор проекта!')
+        try:
+            result = await repo.reassign_admin(project_id, user_id)
+            if not result:
+                raise AppException(500, 'Не удалось передать роль администратора!')
+            await db.commit()
+        except AppException:
+            await db.rollback()
+            raise
+        except Exception:
+            await db.rollback()
+            raise AppException(500, 'Не удалось передать роль администратора!')
+        await delete_cache(project_key(project_id))
+        for uid in (current_user_id, user_id):
+            await delete_cache(user_projects_key(uid, 'all'))
+            await delete_cache(user_projects_key(uid, 'admin'))
+        return {'message': 'Роль администратора передана!'}
+    if current_user_id == user_id:
+        raise PermissionDeniedException('Нельзя изменить свою собственную роль!')
+    if current_role == 'admin':
+        raise PermissionDeniedException('Нельзя изменить роль администратора. Сначала передайте роль другому участнику!')
     if current_role == role_project:
-        return {'message': 'Роль уже установлена'}
+        return {'message': 'Роль уже установлена!'}
+    if role_project not in ('curator', 'member'):
+        raise PermissionDeniedException('Недопустимая роль!')
     try:
         await repo.update_user_role(project_id, user_id, role_project)
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось обновить роль участника.')
+        raise AppException(500, 'Не удалось обновить роль участника!')
     await delete_cache(project_key(project_id))
     await delete_cache(user_projects_key(user_id, 'all'))
     await delete_cache(user_projects_key(user_id, 'admin'))

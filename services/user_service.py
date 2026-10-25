@@ -48,7 +48,7 @@ async def update_user_password(db: AsyncSession, password: str, current_user_id:
     """Изменить пароль пользователя."""
     repo = UserRepository(db)
     if len(password) < 8 or len(password) > 50:
-        raise LackOfInformationException('Пароль не может быть пустым или превышать 50 символов!')
+        raise LackOfInformationException('Пароль должен быть от 8 до 50 символов!')
     hashed_password = await async_hash_password(password)
     try:
         await repo.update_password(current_user_id, hashed_password)

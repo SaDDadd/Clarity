@@ -10,16 +10,16 @@ class ProjectInvitationRepository:
 
     async def create_invitation(self, project_id: int, inviter_id: int, invitee_id: int, message: str) -> ProjectInvitationModel:
         """Создать приглашение."""
-        task = ProjectInvitationModel(
+        invitation = ProjectInvitationModel(
             project_id=project_id,
             inviter_id=inviter_id,
             invitee_id=invitee_id,
             status_invited="pending",
             message=message,
         )
-        self.session.add(task)
+        self.session.add(invitation)
         await self.session.flush()
-        return task
+        return invitation
 
     async def get_invitation_by_id(self, invitation_id: int) -> ProjectInvitationModel | None:
         """Получить приглашение по ID."""

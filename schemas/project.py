@@ -6,7 +6,6 @@ class ProjectBase(BaseModel):
     project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectCreate(ProjectBase):
-    project_name: str = Field(min_length=1, max_length=100)
     project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectUpdate(BaseModel):

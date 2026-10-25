@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import aiobcrypt
@@ -14,9 +14,11 @@ def hash_password(password: str) -> str:
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
     return hashed
 
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Синхронная проверка пароля."""
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
 
 async def async_hash_password(password: str) -> str:
     """Асинхронно хеширует пароль с помощью aiobcrypt."""
@@ -32,12 +34,13 @@ async def async_verify_password(plain_password: str, hashed_password: str) -> bo
         hashed_password.encode('utf-8')
     )
 
+
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Создание токена доступ."""
     to_encode = data.copy()
     if expires_delta is None:
         expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    expire = datetime.now() + expires_delta
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     if 'sub' in to_encode:
         to_encode['sub'] = str(to_encode['sub'])

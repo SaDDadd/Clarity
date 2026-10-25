@@ -109,7 +109,3 @@ async def leave_from_project_endpoint(project_id: int,
                                       db: AsyncSession = Depends(get_db)):
     """Выход из проекта."""
     return await leave_from_project(db, project_id, user.user_id)
-
-# @router.patch(tags=['Проекты'], summary='Обновление роли участника проекта.')
-# async def update_role_endpoint():
-#     """Обновление роли пользователя в проекте."""

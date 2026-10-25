@@ -62,7 +62,7 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
 async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[UserProjectResponse]:
     """Проекты, где пользователь admin."""
     repo = ProjectRepository(db)
-    projects = await repo.get_managed_projects(admin_id)
+    projects = await repo.get_projects_by_creator(admin_id)
     result: list[UserProjectResponse] = []
     for project in projects:
         role = await repo.get_user_role_in_project(project.project_id, admin_id)
@@ -76,10 +76,10 @@ async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[UserProjec
     return result
 
 
-async def checking_rights_project(db: AsyncSession, project_date: ProjectMemberCheck) -> str:
+async def checking_rights_project(db: AsyncSession, project_data: ProjectMemberCheck) -> str:
     """Проверка прав проекта."""
     repo = ProjectRepository(db)
-    result = await repo.get_user_role_in_project(project_date.project_id, project_date.user_id)
+    result = await repo.get_user_role_in_project(project_data.project_id, project_data.user_id)
     if result is None:
         raise PermissionDeniedException('Пользователь не состоит в проекте!')
     return result
@@ -212,8 +212,10 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
         raise PermissionDeniedException('Нельзя удалить пользователя: вы не админ проекта!')
     if not await repo.is_user_in_project(project_id, user_id_to_del):
         raise ConflictException('Пользователь не состоит в проекте!')
+    if current_user_id == user_id_to_del:
+        raise PermissionDeniedException('Нельзя удалить самого себя!')
     if await repo.is_user_admin(project_id, user_id_to_del):
-        raise PermissionDeniedException('Нельзя удалить создателя проекта. Сначала передайте роль.')
+        raise PermissionDeniedException('Нельзя удалить создателя проекта. Сначала передайте роль!')
     try:
         await repo.unassign_user_tasks_in_project(project_id, user_id_to_del)
         await repo.delete_user_from_project(project_id, user_id_to_del)
@@ -227,6 +229,7 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
     await delete_cache(user_projects_key(user_id_to_del, 'all'))
     await delete_cache(user_projects_key(user_id_to_del, 'admin'))
     await delete_cache(user_projects_key(current_user_id, 'admin'))
+    await delete_cache(user_tasks_key(user_id_to_del, 'all'))
     await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{project_id}:task*")
     return {'message': 'Пользователь удален из проекта!'}
 
@@ -241,6 +244,7 @@ async def leave_from_project(db: AsyncSession, project_id: int, current_user_id:
     project_info = await repo.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
     is_admin = await repo.is_user_admin(project_id, current_user_id)
+    new_admin_id = None
     try:
         if is_admin:
             new_admin_id = await repo.automatically_assign_admin(project_id, current_user_id)

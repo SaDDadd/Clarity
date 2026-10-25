@@ -7,16 +7,16 @@ from models.project_invitations import ProjectInvitationModel
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
-from schemas.invitation import InvitationRole, InvitationResponse
+from schemas.invitation import InvitationResponse
 from schemas.common import InvitationAction
 from sqlalchemy.ext.asyncio import AsyncSession
 from cache.cache_keys import user_invitations_key, project_invitations_key,project_key, \
-                                TTL_INVITATION_LIST
+                                user_projects_key, TTL_INVITATION_LIST
 from cache.cache_service import get_cache, delete_cache, set_cache
 
 
 async def send_invitation(db: AsyncSession, project_id: int, user_id: int, current_user_id: int,
-                          message: str) -> ProjectInvitationModel:
+                          message: str | None) -> ProjectInvitationModel:
     """Отправляет приглашение в проект."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
@@ -53,7 +53,7 @@ async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[P
 
 async def get_project_invitations(db: AsyncSession, project_id: int,
                                   current_user_id: int) -> list[ProjectInvitationModel]:
-    """Возвращает список приглашений проекта (только для администратора)."""
+    """Возвращает список приглашений проекта."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     if not await repo_proj.get_project_by_id(project_id):
@@ -70,7 +70,7 @@ async def get_project_invitations(db: AsyncSession, project_id: int,
     return serialized
 
 
-async def response_to_invitation(db: AsyncSession, invitation_id: int, action: InvitationRole,
+async def response_to_invitation(db: AsyncSession, invitation_id: int, action: InvitationAction,
                                  current_user_id: int) -> dict:
     """Обрабатывает ответ на приглашение (принять/отклонить)."""
     repo = ProjectInvitationRepository(db)
@@ -98,6 +98,8 @@ async def response_to_invitation(db: AsyncSession, invitation_id: int, action: I
     await delete_cache(user_invitations_key(invitee_id, 'all'))
     await delete_cache(project_key(project_id))
     await delete_cache(project_invitations_key(project_id, 'admin'))
+    await delete_cache(user_projects_key(invitee_id, 'all'))
+    await delete_cache(user_projects_key(invitee_id, 'admin'))
     return {'message': f'Приглашение {action.value}'}
 
 

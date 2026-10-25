@@ -152,7 +152,7 @@ class UserRepository:
         else:
             return True
 
-    async def search_by_username(self, username: str) -> list[UserResponse] | None:
+    async def search_by_username(self, username: str) -> list[UserResponse]:
         """Поиск пользователей по имени."""
         task = await self.session.execute(
             select(

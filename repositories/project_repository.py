@@ -91,7 +91,7 @@ class ProjectRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_project_all_info(self, project_id: int) -> dict | None:
+    async def get_project_all_info(self, project_id: int) -> dict:
         """Получить всю информацию проекта."""
         project_object = await self.get_project_by_id(project_id)
         result = await self.session.execute(
@@ -102,8 +102,12 @@ class ProjectRepository:
         return {"project": project_object, "members": result.scalars().all()}
 
     async def reassign_admin(self, project_id: int, new_admin_id: int) -> bool:
-        """Передаёт владение."""
+        """Передаёт владение проектом."""
         old_admin = await self.get_project_by_id(project_id)
+        if old_admin is None:
+            return False
+        if old_admin.admin_id == new_admin_id:
+            return False
         result_project = await self.session.execute(
             update(ProjectModel)
             .where(ProjectModel.project_id == project_id)
@@ -111,15 +115,17 @@ class ProjectRepository:
         )
         down_role = await self.session.execute(
             update(ProjectMemberModel)
-            .where(ProjectMemberModel.project_id == project_id, 
-                   ProjectMemberModel.user_id == old_admin.admin_id)
+            .where(
+                ProjectMemberModel.project_id == project_id,
+                ProjectMemberModel.user_id == old_admin.admin_id,
+            )
             .values(role_project='curator')
         )
         result_member = await self.session.execute(
             update(ProjectMemberModel)
             .where(
                 ProjectMemberModel.project_id == project_id,
-                ProjectMemberModel.user_id == new_admin_id
+                ProjectMemberModel.user_id == new_admin_id,
             )
             .values(role_project='admin')
         )
@@ -316,7 +322,7 @@ class ProjectRepository:
         )
         return result.scalar() or 0
 
-    async def get_number_members(self, project_id: int) -> int | None:
+    async def get_number_members(self, project_id: int) -> int:
         """Получить количество участников проекта."""
         result = await self.session.execute(
             select(func.count())
