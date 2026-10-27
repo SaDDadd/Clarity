@@ -7,7 +7,7 @@ from schemas.task import TaskCreate, TaskStatusUpdate, TaskUpdate, TaskCommentCr
 from services.task_service import (change_status, create_task, delete_task,
                                    get_project_tasks, get_task_info, get_tasks_user,
                                    update_task, create_task_comment, delete_task_comment,
-                                   update_comment)
+                                   update_comment, get_task_comments)
 router = APIRouter()
 
 
@@ -96,3 +96,10 @@ async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, t
                                   db: AsyncSession = Depends(get_db)):
     """Обновление комментария."""
     return await update_comment(db, project_id, task_id, comment_id, message.comment_text, current_user.user_id)
+
+@router.get('/projects/{project_id}/tasks/{task_id}/comments', tags=['Комментарии'],
+            summary='Получить комментарии задачи')
+async def get_task_comments_endpoint(project_id: int, task_id: int,
+                                     current_user: UserModel = Depends(current_user),
+                                     db: AsyncSession = Depends(get_db)):
+    return await get_task_comments(db, project_id, task_id, current_user.user_id)

@@ -13,6 +13,7 @@ class InvitationStatusUpdate(BaseModel):
 class InvitationResponse(InvitationBase):
     invitation_id: int 
     project_id : int
+    project_name: str | None = None
     inviter_id : int
     status_invited : InvitationRole | None
     created_date: datetime | None

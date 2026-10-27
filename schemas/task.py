@@ -4,10 +4,10 @@ from schemas.common import TaskStatus, TaskPriority
 from pydantic import ConfigDict
 
 class TaskBase(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=150)
+    title: str = Field(min_length=1, max_length=150)
     task_description: str | None = Field(default=None, max_length=1000)
     task_status: TaskStatus = Field(default=TaskStatus.PENDING)
-    task_priority: TaskPriority = Field(default=TaskPriority.MEDIUM)
+    task_priority: TaskPriority = Field(default=TaskPriority.LOW)
     task_favorite: bool = Field(default=False)
     deadline: datetime.date | None = Field(default=None)
 
@@ -40,7 +40,7 @@ class TaskCommentCreate(BaseModel):
 class TaskCommentResponse(BaseModel):
     comment_id: int
     task_id: int
-    author_id: int
+    author_id: int | None
     comment_text: str = Field(min_length=1, max_length=1000)
     created_date: datetime.datetime
     update_date: datetime.datetime

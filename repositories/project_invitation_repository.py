@@ -1,6 +1,7 @@
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.project import ProjectModel
 from models.project_invitations import ProjectInvitationModel
 
 
@@ -8,7 +9,8 @@ class ProjectInvitationRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def create_invitation(self, project_id: int, inviter_id: int, invitee_id: int, message: str) -> ProjectInvitationModel:
+    async def create_invitation(self, project_id: int, inviter_id: int, 
+                                invitee_id: int, message: str | None) -> ProjectInvitationModel:
         """Создать приглашение."""
         invitation = ProjectInvitationModel(
             project_id=project_id,
@@ -95,3 +97,28 @@ class ProjectInvitationRepository:
             return True
         else:
             return False
+
+    async def get_pending_invitations_by_inviter(self, inviter_id: int) -> list[ProjectInvitationModel]:
+        """Все pending-приглашения, отправленные пользователем."""
+        result = await self.session.execute(
+            select(ProjectInvitationModel)
+            .where(
+                ProjectInvitationModel.inviter_id == inviter_id,
+                ProjectInvitationModel.status_invited == 'pending'
+            )
+        )
+        return result.scalars().all()
+
+    async def get_invitation_by_user_with_project(self, user_id: int) -> list[tuple[ProjectInvitationModel, str]]:
+        """Входящие приглашения + имя проекта."""
+        result = await self.session.execute(
+            select(ProjectInvitationModel, ProjectModel.project_name)
+            .join(ProjectModel,
+                  ProjectModel.project_id == ProjectInvitationModel.project_id
+            )
+            .where(
+                ProjectInvitationModel.invitee_id == user_id,
+                ProjectInvitationModel.status_invited == "pending",
+            )
+        )
+        return result.all()

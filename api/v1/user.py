@@ -17,8 +17,7 @@ router = APIRouter()
 async def update_username_endpoint(request: UpdateUsernameRequest,
                                    current_user: UserModel = Depends(current_user),
                                    db: AsyncSession = Depends(get_db)):
-    """Обновляет имя пользователя."""
-    return await update_user_username(db, request.username, current_user.user_id)
+    return await update_user_username(db, request, current_user.user_id)
 
 
 @router.put('/profile/email', tags=['Изменения профиля'],
@@ -26,8 +25,7 @@ async def update_username_endpoint(request: UpdateUsernameRequest,
 async def update_email_endpoint(request: UpdateEmailRequest,
                                 current_user: UserModel = Depends(current_user),
                                 db: AsyncSession = Depends(get_db)):
-    """Обновляет email пользователя."""
-    return await update_user_email(db, request.email, current_user.user_id)
+    return await update_user_email(db, request, current_user.user_id)
 
 
 @router.get('/profile', tags=['Изменения профиля'],
@@ -44,13 +42,12 @@ async def get_profile_endpoint(current_user: UserModel = Depends(current_user)) 
     await set_cache(key, data, TTL_USER)
     return data
 
-@router.patch('/profile/password', tags=['Изменения профиля'], 
-            summary='Обновить пароль пользователя')
-async def update_password_endpoint(request: UpdatePasswordRequest, 
+@router.patch('/profile/password', tags=['Изменения профиля'],
+              summary='Обновить пароль пользователя')
+async def update_password_endpoint(request: UpdatePasswordRequest,
                                    current_user: UserModel = Depends(current_user),
                                    db: AsyncSession = Depends(get_db)):
-    """Обновление пароля пользователя."""
-    return await update_user_password(db, request.password, current_user.user_id)
+    return await update_user_password(db, request, current_user.user_id)
 
 @router.get('/users/search', tags=['Пользователи'], summary='Поиск пользователя по нику')
 async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 

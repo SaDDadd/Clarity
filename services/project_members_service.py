@@ -10,8 +10,6 @@ from cache.cache_service import delete_cache
 async def update_member_role(db: AsyncSession, user_id: int, project_id: int, 
                              current_user_id: int, role_project: str) -> dict:
     """Обновление роли участника. Владельца менять нельзя."""
-    if isinstance(role_project, ProjectRole):
-        role_project = role_project.value
     repo = ProjectRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
@@ -33,16 +31,14 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
             if not result:
                 raise AppException(500, 'Не удалось передать роль администратора!')
             await db.commit()
-        except AppException:
-            await db.rollback()
-            raise
         except Exception:
             await db.rollback()
             raise AppException(500, 'Не удалось передать роль администратора!')
         await delete_cache(project_key(project_id))
-        for uid in (current_user_id, user_id):
-            await delete_cache(user_projects_key(uid, 'all'))
-            await delete_cache(user_projects_key(uid, 'admin'))
+        project_info = await repo.get_project_all_info(project_id)
+        for mid in (m.user_id for m in project_info['members']):
+            await delete_cache(user_projects_key(mid, 'all'))
+            await delete_cache(user_projects_key(mid, 'admin'))
         return {'message': 'Роль администратора передана!'}
     if current_user_id == user_id:
         raise PermissionDeniedException('Нельзя изменить свою собственную роль!')
@@ -61,4 +57,9 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
     await delete_cache(project_key(project_id))
     await delete_cache(user_projects_key(user_id, 'all'))
     await delete_cache(user_projects_key(user_id, 'admin'))
+    project_info = await repo.get_project_all_info(project_id)
+    member_ids = [m.user_id for m in project_info['members']]
+    for mid in member_ids:
+        await delete_cache(user_projects_key(mid, 'all'))
+        await delete_cache(user_projects_key(mid, 'admin'))
     return {'message': 'Роль обновлена'}

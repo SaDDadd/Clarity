@@ -83,20 +83,17 @@ class TaskRepository:
 
     async def update_task_by_id(self, project_id: int, task_id: int, data: dict) -> bool:
         """Обновить задачу по ID."""
-        result = await self.get_task_by_id(task_id)
-        if result:
-            await self.session.execute(
-                update(TaskModel)
-                .values(data)
-                .where(
-                    TaskModel.project_id == project_id,
-                    TaskModel.task_id == task_id,
-                )
+        result = await self.session.execute(
+            update(TaskModel)
+            .values(data)
+            .where(
+                TaskModel.project_id == project_id,
+                TaskModel.task_id == task_id,
             )
-            await self.session.flush()
-            return True
-        else:
-            return False
+        )
+        await self.session.flush()
+        return result.rowcount > 0 
+
 
     async def update_task_status(self, project_id: int, task_id: int, task_status: str) -> bool:
         """Обновить статус задачи."""
@@ -180,3 +177,14 @@ class TaskRepository:
         )
         await self.session.flush()
         return result.rowcount > 0
+
+    async def get_task_comments(self, project_id: int, task_id: int) -> list[TaskCommentsModel]:
+        result = await self.session.execute(
+            select(TaskCommentsModel)
+            .where(
+                TaskCommentsModel.project_id == project_id,
+                TaskCommentsModel.task_id == task_id,
+            )
+            .order_by(TaskCommentsModel.created_date)
+        )
+        return result.scalars().all()

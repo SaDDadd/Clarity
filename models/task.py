@@ -8,12 +8,12 @@ class TaskModel(Base):
 
     task_id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(String(150), nullable=False)
-    task_description: Mapped[str] = mapped_column(Text, nullable=True)
+    task_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     task_status: Mapped[str] = mapped_column(Enum('pending', 'in_progress', 'completed'), \
                                      nullable=False, server_default='pending')
     task_priority: Mapped[str] = mapped_column(Enum('low', 'medium', 'high'), nullable=False, server_default='low')
     task_favorite: Mapped[bool] = mapped_column(default=False, server_default='0', nullable=False)
     project_id: Mapped[int] = mapped_column(ForeignKey('projects.project_id', ondelete='CASCADE'), nullable=False)
-    assigned_to: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
-    deadline: Mapped[datetime.date] = mapped_column(nullable=True)
+    assigned_to: Mapped[int | None] = mapped_column(ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
+    deadline: Mapped[datetime.date | None] = mapped_column(nullable=True)
     created_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())

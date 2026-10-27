@@ -13,4 +13,4 @@ class ProjectInvitationModel(Base):
     status_invited: Mapped[str] = mapped_column(Enum('pending', 'accepted', 'declined'), nullable=False, server_default='pending')
     created_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())
     update_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now(), onupdate=func.now())
-    message: Mapped[str] = mapped_column(Text, nullable=True)
+    message: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -3,41 +3,42 @@ import datetime
 from core.exceptions import InvalidDeadlineException, NotFoundException, \
     PermissionDeniedException, LackOfInformationException, AppException, \
     ConflictException
-from models.task import TaskModel
-from models.task_comments import TaskCommentsModel
-from schemas.task import TaskResponse, TaskCreate, TaskUpdate
+from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentResponse
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 from schemas.common import TaskStatus
 from sqlalchemy.ext.asyncio import AsyncSession 
-from cache.cache_keys import project_tasks_key, user_tasks_key, task_key, TTL_TASK, TTL_TASK_LIST
-from cache.cache_service import get_cache, delete_cache, set_cache
+from cache.cache_keys import project_tasks_key, user_tasks_key, task_key, task_comment_key, \
+    task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST, TTL_TASK_COMMENT_LIST
+from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
 
-async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task: TaskCreate) -> TaskModel:
-    """Создаёт задачу в проекте."""
+async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task: TaskCreate) -> dict:
+    """Создаёт задачу. Паттерн как в create_project."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
         raise NotFoundException('Данного проекта не существует! ')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if task.deadline is not None:
-        if task.deadline < datetime.date.today():
-            raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
+    if task.deadline is not None and task.deadline < datetime.date.today():
+        raise InvalidDeadlineException(
+            'Время дэдлайна не может быть меньше сегодняшнего дня!')
     if task.assigned_to is not None:
         if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     try:
         result = await repo.create_task(project_id, task)
+        await db.refresh(result)
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось создать задачу.')
+        raise AppException(500, 'Не удалось создать задачу!')
+    answer = TaskResponse.model_validate(result).model_dump(mode='json')
     await delete_cache(project_tasks_key(project_id))
     if task.assigned_to is not None:
-        await delete_cache(user_tasks_key(task.assigned_to, 'all'))
-    return result
+        await delete_cache(user_tasks_key(task.assigned_to))
+    return answer
 
 
 async def get_project_tasks(db: AsyncSession, project_id: int, current_user_id: int) -> list[dict]:
@@ -92,15 +93,21 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[dict]:
 
 
 async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, 
-                        task: TaskUpdate) -> dict:
+                      task: TaskUpdate) -> dict:
     """Обновляет задачу."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     repo_user = UserRepository(db)
     update_data = task.model_dump(exclude_unset=True)
-    if 'task_status' in update_data and update_data['task_status'] is not None:
+    if 'task_favorite' in update_data and update_data['task_favorite'] is None:
+        raise LackOfInformationException('Флаг избранного не может быть null!')
+    if 'task_status' in update_data:
+        if update_data['task_status'] is None:
+            raise LackOfInformationException('Статус задачи не может быть null!')
         update_data['task_status'] = task.task_status.value
-    if 'task_priority' in update_data and update_data['task_priority'] is not None:
+    if 'task_priority' in update_data:
+        if update_data['task_priority'] is None:
+            raise LackOfInformationException('Приоритет не может быть null!')
         update_data['task_priority'] = task.task_priority.value
     if not update_data:
         return {'message': 'Нет данных для обновления!'}
@@ -111,14 +118,13 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     is_performer = await repo.is_user_task_performer(task_id, current_user_id)
-    is_admin_or_curator  = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
-    if not (is_performer or is_admin_or_curator ):
+    is_admin_or_curator = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
+    if not (is_performer or is_admin_or_curator):
         raise PermissionDeniedException('Задачу могут обновлять только админ, куратор или назначенный исполнитель!')
-    if not is_admin_or_curator :
+    if not is_admin_or_curator:
         restricted = {'deadline', 'assigned_to', 'task_priority'} & set(update_data.keys())
         if restricted:
-            raise PermissionDeniedException('Только администратор или куратор может менять дедлайн, '
-                'исполнителя и приоритет задачи!')
+            raise PermissionDeniedException('Только администратор или куратор может менять дедлайн, исполнителя и приоритет задачи!')
     if 'deadline' in update_data and update_data['deadline'] is not None:
         if update_data['deadline'] < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
@@ -128,19 +134,22 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
         if not await repo_proj.is_user_in_project(project_id, update_data['assigned_to']):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     old_info = await repo.get_task_by_id(task_id)
-    previous_performer = old_info.assigned_to
+    previous_performer = old_info.assigned_to if old_info else None
     try:
         await repo.update_task_by_id(project_id, task_id, update_data)
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось обновить задачу.')
+        raise AppException(500, 'Не удалось обновить задачу!')
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
-    if 'assigned_to' in update_data and update_data['assigned_to'] is not None:
-        await delete_cache(user_tasks_key(update_data['assigned_to'], 'all'))
+    if previous_performer is not None:
         await delete_cache(user_tasks_key(previous_performer, 'all'))
-    return {'message': 'Задача обновилась!'}
+    if 'assigned_to' in update_data:
+        new_performer = update_data['assigned_to']
+        if new_performer is not None and new_performer != previous_performer:
+            await delete_cache(user_tasks_key(new_performer, 'all'))
+    return {'message': 'Задача обновилась!',}
 
 
 async def change_status(db: AsyncSession, project_id: int, task_id: int, current_user_id: int,
@@ -199,12 +208,13 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
     await delete_cache(project_tasks_key(project_id))
     if assignee:
         await delete_cache(user_tasks_key(assignee, 'all'))
+    await delete_cache_by_pattern(task_comments_pattern(project_id, task_id))
     return {'message': 'Задача удалена из проекта!'}
 
 
-async def create_task_comment(db: AsyncSession, project_id: int, 
-                              task_id: int, message: str, current_user_id: int) -> TaskCommentsModel:
-    """Создание комментария к задаче."""
+async def create_task_comment(db: AsyncSession, project_id: int, task_id: int,
+                              message: str, current_user_id: int) -> dict:
+    """Создаёт комментарий."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
@@ -215,12 +225,14 @@ async def create_task_comment(db: AsyncSession, project_id: int,
         raise NotFoundException('Задачи нет в проекте!')
     try:
         result = await repo.create_comment(project_id, task_id, current_user_id, message)
+        await db.refresh(result)
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось создать комментарий.')
-    return result
-
+        raise AppException(500, 'Не удалось создать комментарий!')
+    answer = TaskCommentResponse.model_validate(result).model_dump(mode='json')
+    await delete_cache(task_comments_list_key(project_id, task_id))
+    return answer
 
 async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, comment_id: int, 
                               current_user_id: int) -> dict:
@@ -248,6 +260,7 @@ async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, c
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось удалить комментарий.')
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Комментарий удален!'}
 
 
@@ -279,5 +292,27 @@ async def update_comment(db: AsyncSession, project_id: int, task_id: int, commen
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось обновить комментарий.')
+        raise AppException(500, 'Не удалось обновить комментарий!')
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Комментарий обновлен!'}
+
+
+async def get_task_comments(db: AsyncSession, project_id: int, task_id: int,
+                            current_user_id: int) -> list[dict]:
+    """Список комментариев задачи."""
+    repo = TaskRepository(db)
+    repo_proj = ProjectRepository(db)
+    if await repo_proj.get_project_by_id(project_id) is None:
+        raise NotFoundException('Данного проекта не существует!')
+    if not await repo_proj.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if not await repo.is_task_in_project(project_id, task_id):
+        raise NotFoundException('Задачи нет в проекте!')
+    key = task_comments_list_key(project_id, task_id)
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached
+    data = await repo.get_task_comments(project_id, task_id)
+    answer = [TaskCommentResponse.model_validate(c).model_dump(mode='json') for c in data]
+    await set_cache(key, answer, TTL_TASK_COMMENT_LIST)
+    return answer

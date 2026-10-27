@@ -8,6 +8,7 @@ class AppException(Exception): # Общий класс ошибок
     def __init__(self, code, detail):
         self.status_code = code # HTTP статус ошибки
         self.detail = detail # Сообщение для пользователя
+        super().__init__(detail)
 
 class NotFoundException(AppException): # Нет ресурсов
     def __init__(self, detail=None):

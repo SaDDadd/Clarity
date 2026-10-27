@@ -219,7 +219,7 @@ class ProjectRepository:
         )
         return result.scalars().all()
 
-    async def update_project_description(self, new_description: str, project_id: int) -> bool:
+    async def update_project_description(self, new_description: str | None, project_id: int) -> bool:
         """Обновление описание проекта."""
         result = await self.session.execute(
             update(ProjectModel)

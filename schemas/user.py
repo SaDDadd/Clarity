@@ -11,10 +11,10 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 class UpdateUsernameRequest(BaseModel):
-    username: str = Field(min_length=1, max_length=50)
+    username: str | None = Field(default=None, min_length=1, max_length=50)
 
 class UpdateEmailRequest(BaseModel):
-    email: EmailStr = Field(max_length=100)
+    email: EmailStr | None = Field(default=None, max_length=100)
 
 class UpdatePasswordRequest(BaseModel):
-    password: str = Field(min_length=8, max_length=50)
+    password: str | None = Field(default=None, min_length=8, max_length=50)
