@@ -1,8 +1,7 @@
 from core.exceptions import (AppException, NotFoundException,
-                             PermissionDeniedException, ConflictException)
+                             PermissionDeniedException)
 from repositories.project_repository import ProjectRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.common import ProjectRole
 from cache.cache_keys import project_key, user_projects_key
 from cache.cache_service import delete_cache
 
@@ -22,6 +21,7 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
         raise PermissionDeniedException('Только администратор или куратор может менять роли!')
     current_role = await repo.get_user_role_in_project(project_id, user_id)
     if role_project == 'admin':
+        """Обрабатываем передачу роли администратора."""
         if not is_admin:
             raise PermissionDeniedException('Только действующий администратор может передать роль администратора!')
         if current_user_id == user_id:
@@ -37,6 +37,7 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
         await delete_cache(project_key(project_id))
         project_info = await repo.get_project_all_info(project_id)
         for mid in (m.user_id for m in project_info['members']):
+            """Инвалидируем кэш проектов для каждого участника."""
             await delete_cache(user_projects_key(mid, 'all'))
             await delete_cache(user_projects_key(mid, 'admin'))
         return {'message': 'Роль администратора передана!'}
@@ -60,6 +61,7 @@ async def update_member_role(db: AsyncSession, user_id: int, project_id: int,
     project_info = await repo.get_project_all_info(project_id)
     member_ids = [m.user_id for m in project_info['members']]
     for mid in member_ids:
+        """Инвалидируем кэш проектов для всех участников."""
         await delete_cache(user_projects_key(mid, 'all'))
         await delete_cache(user_projects_key(mid, 'admin'))
-    return {'message': 'Роль обновлена'}
+    return {'message': 'Роль обновлена!'}

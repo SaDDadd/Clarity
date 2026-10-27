@@ -1,16 +1,16 @@
 import datetime
 
-from core.exceptions import InvalidDeadlineException, NotFoundException, \
-    PermissionDeniedException, LackOfInformationException, AppException, \
-    ConflictException
+from core.exceptions import (InvalidDeadlineException, NotFoundException, 
+    PermissionDeniedException, LackOfInformationException, AppException, 
+    ConflictException)
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentResponse
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 from schemas.common import TaskStatus
 from sqlalchemy.ext.asyncio import AsyncSession 
-from cache.cache_keys import project_tasks_key, user_tasks_key, task_key, task_comment_key, \
-    task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST, TTL_TASK_COMMENT_LIST
+from cache.cache_keys import (project_tasks_key, user_tasks_key, task_key, 
+    task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST, TTL_TASK_COMMENT_LIST)
 from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
 
 async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task: TaskCreate) -> dict:
@@ -100,12 +100,15 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     repo_user = UserRepository(db)
     update_data = task.model_dump(exclude_unset=True)
     if 'task_favorite' in update_data and update_data['task_favorite'] is None:
+        """Проверяем, что флаг избранного не равен null."""
         raise LackOfInformationException('Флаг избранного не может быть null!')
     if 'task_status' in update_data:
+        """Преобразуем статус задачи в строковое значение."""
         if update_data['task_status'] is None:
             raise LackOfInformationException('Статус задачи не может быть null!')
         update_data['task_status'] = task.task_status.value
     if 'task_priority' in update_data:
+        """Преобразуем приоритет задачи в строковое значение."""
         if update_data['task_priority'] is None:
             raise LackOfInformationException('Приоритет не может быть null!')
         update_data['task_priority'] = task.task_priority.value
@@ -122,13 +125,16 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     if not (is_performer or is_admin_or_curator):
         raise PermissionDeniedException('Задачу могут обновлять только админ, куратор или назначенный исполнитель!')
     if not is_admin_or_curator:
+        """Ограничиваем поля, доступные исполнителю без прав администратора."""
         restricted = {'deadline', 'assigned_to', 'task_priority'} & set(update_data.keys())
         if restricted:
             raise PermissionDeniedException('Только администратор или куратор может менять дедлайн, исполнителя и приоритет задачи!')
     if 'deadline' in update_data and update_data['deadline'] is not None:
+        """Проверяем, что новый дедлайн не в прошлом."""
         if update_data['deadline'] < datetime.date.today():
             raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
     if 'assigned_to' in update_data and update_data['assigned_to'] is not None:
+        """Проверяем существование и участие нового исполнителя."""
         if not await repo_user.check_user_exists(update_data['assigned_to']):
             raise NotFoundException('Такого пользователя не существует!')
         if not await repo_proj.is_user_in_project(project_id, update_data['assigned_to']):
@@ -144,12 +150,15 @@ async def update_task(db: AsyncSession, project_id: int, task_id: int, current_u
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     if previous_performer is not None:
+        """Инвалидируем кэш задач предыдущего исполнителя."""
         await delete_cache(user_tasks_key(previous_performer, 'all'))
     if 'assigned_to' in update_data:
+        """Инвалидируем кэш задач нового исполнителя при необходимости."""
         new_performer = update_data['assigned_to']
         if new_performer is not None and new_performer != previous_performer:
+            """Инвалидируем кэш, если исполнитель изменился."""
             await delete_cache(user_tasks_key(new_performer, 'all'))
-    return {'message': 'Задача обновилась!',}
+    return {'message': 'Задача обновилась!'}
 
 
 async def change_status(db: AsyncSession, project_id: int, task_id: int, current_user_id: int,
@@ -174,9 +183,9 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         await db.commit()           
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось изменить статус задачи.')
+        raise AppException(500, 'Не удалось изменить статус задачи!')
     if not changed:
-        return {'message': 'Статус уже установлен'}
+        return {'message': 'Статус уже установлен!'}
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     if assignee:
@@ -203,7 +212,7 @@ async def delete_task(db: AsyncSession, project_id: int, task_id: int, current_u
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось удалить задачу.')
+        raise AppException(500, 'Не удалось удалить задачу!')
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     if assignee:
@@ -259,7 +268,7 @@ async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, c
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось удалить комментарий.')
+        raise AppException(500, 'Не удалось удалить комментарий!')
     await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Комментарий удален!'}
 

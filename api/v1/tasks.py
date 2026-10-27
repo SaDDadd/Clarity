@@ -8,6 +8,7 @@ from services.task_service import (change_status, create_task, delete_task,
                                    get_project_tasks, get_task_info, get_tasks_user,
                                    update_task, create_task_comment, delete_task_comment,
                                    update_comment, get_task_comments)
+
 router = APIRouter()
 
 
@@ -73,33 +74,38 @@ async def delete_task_endpoint(project_id: int, task_id: int,
     """Удаляет задачу. Доступно участникам проекта."""
     return await delete_task(db, project_id, task_id, current_user.user_id)
 
+
 @router.post('/projects/{project_id}/tasks/{task_id}/comments', tags=['Комментарии'],
              summary='Написать комментарий к задаче.')
-async def create_task_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int, 
-                                       current_user: UserModel = Depends(current_user), 
+async def create_task_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int,
+                                       current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
     """Написать комментарий к задаче проекта."""
     return await create_task_comment(db, project_id, task_id, message.comment_text, current_user.user_id)
 
+
 @router.delete('/projects/{project_id}/tasks/{task_id}/comments/{comment_id}', tags=['Комментарии'],
                summary='Удалить комментарий к задаче.')
-async def delete_task_comment_endpoint(project_id: int, task_id: int, comment_id: int,  
-                                      current_user: UserModel = Depends(current_user), 
+async def delete_task_comment_endpoint(project_id: int, task_id: int, comment_id: int,
+                                      current_user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
     """Удаление комментария задачи."""
     return await delete_task_comment(db, project_id, task_id, comment_id, current_user.user_id)
 
-@router.put('/projects/{project_id}/tasks/{task_id}/comments/{comment_id}', tags=['Комментарии'], 
+
+@router.put('/projects/{project_id}/tasks/{task_id}/comments/{comment_id}', tags=['Комментарии'],
             summary='Обновление комментария задачи.')
-async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int, 
+async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int,
                                   comment_id: int, current_user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
     """Обновление комментария."""
     return await update_comment(db, project_id, task_id, comment_id, message.comment_text, current_user.user_id)
+
 
 @router.get('/projects/{project_id}/tasks/{task_id}/comments', tags=['Комментарии'],
             summary='Получить комментарии задачи')
 async def get_task_comments_endpoint(project_id: int, task_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      db: AsyncSession = Depends(get_db)):
+    """Возвращает комментарии задачи."""
     return await get_task_comments(db, project_id, task_id, current_user.user_id)

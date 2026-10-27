@@ -3,15 +3,14 @@ from core.exceptions import (AppException, ConflictException,
                              InvitationAlreadyProcessedException,
                              MemberAlreadyInProjectException, NotFoundException,
                              PermissionDeniedException)
-from models.project_invitations import ProjectInvitationModel
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationResponse
 from schemas.common import InvitationAction
 from sqlalchemy.ext.asyncio import AsyncSession
-from cache.cache_keys import user_invitations_key, project_invitations_key,project_key, \
-                                user_projects_key, TTL_INVITATION_LIST
+from cache.cache_keys import (user_invitations_key, project_invitations_key,project_key, 
+                                user_projects_key, TTL_INVITATION_LIST)
 from cache.cache_service import get_cache, delete_cache, set_cache
 
 
@@ -61,6 +60,7 @@ async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[d
 
 
 async def get_project_invitations(db: AsyncSession, project_id: int, current_user_id: int) -> list[dict]:
+    """Возвращает приглашения проекта с учётом прав доступа."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     if not await repo_proj.get_project_by_id(project_id):
@@ -99,14 +99,14 @@ async def response_to_invitation(db, invitation_id, action, current_user_id) -> 
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось получить ответ на приглашение в проект.')
+        raise AppException(500, 'Не удалось получить ответ на приглашение в проект!')
     await delete_cache(user_invitations_key(invitee_id, 'all'))
     await delete_cache(project_invitations_key(project_id, 'admin'))
     if action == InvitationAction.ACCEPTED:
         await delete_cache(project_key(project_id))
         await delete_cache(user_projects_key(invitee_id, 'all'))
         await delete_cache(user_projects_key(invitee_id, 'admin'))
-    return {'message': f'Приглашение {action.value}'}
+    return {'message': f'Приглашение {action.value}!'}
 
 
 async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_id: int) -> dict:
@@ -128,7 +128,7 @@ async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_i
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось отменить приглашение в проект.')
+        raise AppException(500, 'Не удалось отменить приглашение в проект!')
     await delete_cache(user_invitations_key(invitation.invitee_id))
     await delete_cache(project_invitations_key(project_id))
-    return {'message': 'Приглашение отменено'}
+    return {'message': 'Приглашение отменено!'}

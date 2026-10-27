@@ -8,7 +8,7 @@ from schemas.project import AddMemberRequest, ProjectCreate, ProjectUpdate, User
 from services.project_members_service import update_member_role
 from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
-                                      get_project_info, get_user_projects, update_project, 
+                                      get_project_info, get_user_projects, update_project,
                                       leave_from_project)
 from cache.cache_keys import user_projects_key, TTL_PROJECT_LIST
 from cache.cache_service import get_cache, set_cache
@@ -46,7 +46,7 @@ async def update_member_role_endpoint(project_id: int, user_id: int, role: Proje
 @router.get('/projects/all', tags=['Проекты'], summary='Проекты, где пользователь участвует (owner/admin/member)')
 async def get_member_projects_endpoint(current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
-    """Получить всех участников проекта."""
+    """Получить проекты пользователя, где он участвует."""
     key = user_projects_key(current_user.user_id)
     cached = await get_cache(key)
     if cached is not None:
@@ -102,10 +102,11 @@ async def delete_project_member_endpoint(project_id: int, user_id: int,
     """Удалить участника проекта."""
     return await delete_project_user(db, project_id, current_user.user_id, user_id)
 
-@router.delete('/projects/{project_id}/leave', tags=['Проекты'], 
+
+@router.delete('/projects/{project_id}/leave', tags=['Проекты'],
                summary='Выйти из проекта')
-async def leave_from_project_endpoint(project_id: int, 
-                                      user: UserModel = Depends(current_user), 
+async def leave_from_project_endpoint(project_id: int,
+                                      user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
     """Выход из проекта."""
     return await leave_from_project(db, project_id, user.user_id)

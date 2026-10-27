@@ -2,7 +2,6 @@ from core.exceptions import (AppException, ConflictException,
                              InvalidInvitationStateException,
                              NotFoundException, PermissionDeniedException, 
                              LackOfInformationException)
-from models.project import ProjectModel
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from repositories.project_invitation_repository import ProjectInvitationRepository
@@ -59,7 +58,7 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось добавить пользователя в проект.')
+        raise AppException(500, 'Не удалось добавить пользователя в проект!')
     await delete_cache(project_key(project_id))
     for i in member_ids:
         await delete_cache(user_projects_key(i, 'all'))
@@ -129,7 +128,7 @@ async def get_project_info(db: AsyncSession, project_id: int, user_id: int) -> d
 
 
 async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[UserProjectResponse]:
-    """Получить участников проекта."""
+    """Получить проекты пользователя."""
     repo = ProjectRepository(db)
     projects = await repo.get_user_projects(current_user_id)
     result = []
@@ -266,17 +265,19 @@ async def leave_from_project(db: AsyncSession, project_id: int, current_user_id:
     invitee_ids: list[int] = []
     try:
         if is_admin:
-            """"""
+            """Назначаем нового администратора или удаляем проект."""
             new_admin_id = await repo.automatically_assign_admin(project_id, current_user_id)
             if new_admin_id is None:
+                """Если участников не осталось, удаляем проект."""
                 pending = await repo_inv.get_invitation_for_project(project_id)
                 invitee_ids = list({inv.invitee_id for inv in pending})
                 await repo.delete_project(project_id)
             else:
+                """Снимаем задачи и удаляем администратора из проекта."""
                 await repo.unassign_user_tasks_in_project(project_id, current_user_id)
                 await repo.delete_user_from_project(project_id, current_user_id)
         else:
-            """"""
+            """Снимаем задачи и удаляем участника из проекта."""
             await repo.unassign_user_tasks_in_project(project_id, current_user_id)
             await repo.delete_user_from_project(project_id, current_user_id)
         await db.commit()
@@ -291,12 +292,16 @@ async def leave_from_project(db: AsyncSession, project_id: int, current_user_id:
     await delete_cache(user_projects_key(current_user_id, 'admin'))
     await delete_cache(user_tasks_key(current_user_id, 'all'))
     for member_id in member_ids:
+        """Инвалидируем кэш для остальных участников проекта."""
         if member_id == current_user_id:
+            """Пропускаем текущего пользователя."""
             continue
         await delete_cache(user_projects_key(member_id, 'all'))
         await delete_cache(user_projects_key(member_id, 'admin'))
         if is_admin and new_admin_id is None:
+            """Инвалидируем задачи участников, если проект удалён."""
             await delete_cache(user_tasks_key(member_id, 'all'))
     for iid in invitee_ids:
+        """Инвалидируем приглашения затронутых пользователей."""
         await delete_cache(user_invitations_key(iid, 'all'))
     return {'message': 'Вы вышли из проекта!'}

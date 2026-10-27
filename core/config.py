@@ -17,6 +17,7 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
+        """Формирует URL подключения к базе данных."""
         return f"mysql+{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     JWT_SECRET_KEY: str
@@ -27,6 +28,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
+        """Возвращает список разрешённых CORS-источников."""
         if not self.CORS_ORIGINS:
             return []
         return [item.strip() for item in self.CORS_ORIGINS.split(',') if item.strip()]
@@ -38,6 +40,7 @@ class Settings(BaseSettings):
 
     @property
     def REDIS_URL(self) -> str:
+        """Формирует URL подключения к Redis."""
         if self.REDIS_PASSWORD:
             return f'redis://:{self.REDIS_PASSWORD}@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}' 
         return f'redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}'

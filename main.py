@@ -15,6 +15,7 @@ from core.config import settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Управляет жизненным циклом приложения и освобождает ресурсы при остановке."""
     yield
     await close_redis_client()
     await engine.dispose()
@@ -25,6 +26,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get('/health', tags=['Сервер'], summary='Проверка работы redis')
 async def health():
+    """Возвращает статус доступности Redis."""
     return await redis_health()
 
 

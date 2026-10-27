@@ -3,8 +3,8 @@ from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.user import UserResponse, UpdateUsernameRequest, UpdateEmailRequest, \
-        UpdatePasswordRequest
+from schemas.user import (UserResponse, UpdateUsernameRequest, UpdateEmailRequest, 
+        UpdatePasswordRequest)
 from core.security import async_hash_password
 from cache.cache_keys import (user_key, user_cache_patterns, project_key,
                               project_tasks_key, project_invitations_key,
@@ -29,7 +29,7 @@ async def update_user_username(db: AsyncSession,  user_data: UpdateUsernameReque
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось изменить имя пользователя.')
+        raise AppException(500, 'Не удалось изменить имя пользователя!')
     await delete_cache(user_key(current_user_id))
     return {'message': 'Имя пользователя обновлено!'}
 
@@ -50,7 +50,7 @@ async def update_user_email(db: AsyncSession, user_data: UpdateEmailRequest, cur
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось изменить email.')
+        raise AppException(500, 'Не удалось изменить email!')
     await delete_cache(user_key(current_user_id))
     return {'message': 'Email пользователя обновлено!'}
 
@@ -70,7 +70,7 @@ async def update_user_password(db: AsyncSession, user_data: UpdatePasswordReques
         await db.commit()
     except Exception:
         await db.rollback()
-        raise AppException(500, 'Не удалось изменить пароль.')
+        raise AppException(500, 'Не удалось изменить пароль!')
     await delete_cache(user_key(current_user_id))
     return {'message': 'Пароль пользователя обновлен!'}
 
@@ -102,21 +102,24 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
     project_ids: set[int] = set()
     affected_invitee_ids: set[int] = set()
     for project in member_projects:
+        """Собираем проекты пользователя и участников для инвалидации кэша."""
         project_ids.add(project.project_id)
         info = await repo_project.get_project_all_info(project.project_id)
         project_members_map[project.project_id] = [
             m.user_id for m in info['members'] if m.user_id != current_user_id
         ]
     for pid in project_ids:
+        """Собираем пользователей с активными приглашениями по проектам."""
         pending = await repo_inv.get_invitation_for_project(pid)
         for inv in pending:
+            """Добавляем получателей приглашений в набор для инвалидации."""
             affected_invitee_ids.add(inv.invitee_id)
     try:
         for project in admin_projects:
-            new_owner_id = await repo_project.automatically_assign_admin(
-                project.project_id, current_user_id
-            )
+            """Передаём владение или удаляем проекты, где пользователь был администратором."""
+            new_owner_id = await repo_project.automatically_assign_admin(project.project_id, current_user_id)
             if new_owner_id is None:
+                """Удаляем проект, если нового владельца нет."""
                 await repo_project.delete_project(project.project_id)
         await repo_project.unassign_all_tasks_from_user(current_user_id)
         await repo.delete_user(current_user_id)
@@ -125,17 +128,22 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
         await db.rollback()
         raise AppException(500, 'Не удалось удалить профиль!')
     for pid in project_ids:
+        """Инвалидируем кэш проектов и связанных данных."""
         await delete_cache(project_key(pid))
         await delete_cache(project_tasks_key(pid))
         await delete_cache(project_invitations_key(pid)) 
         await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{pid}:task*")
         await delete_cache_by_pattern(project_invitations_pattern(pid))
     for members in project_members_map.values():
+        """Инвалидируем кэш проектов у оставшихся участников."""
         for mid in members:
+            """Удаляем кэш проектов конкретного участника."""
             await delete_cache(user_projects_key(mid, 'all'))
             await delete_cache(user_projects_key(mid, 'admin'))
     for iid in affected_invitee_ids:
+        """Инвалидируем кэш приглашений затронутых пользователей."""
         await delete_cache(user_invitations_key(iid, 'all'))
     for pattern in user_cache_patterns(current_user_id):
+        """Удаляем все кэшированные данные удалённого пользователя."""
         await delete_cache_by_pattern(pattern)
     return {'message': 'Профиль удален!'}

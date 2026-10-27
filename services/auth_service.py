@@ -21,11 +21,12 @@ async def register_user(db: AsyncSession, user_data: UserRegister) -> dict:
             await db.commit()
         except Exception:
             await db.rollback()
-            raise AppException(500, 'Не удалось зарегистрироваться.')
-    return {'message': 'Пользователь создан'}
+            raise AppException(500, 'Не удалось зарегистрироваться!')
+    return {'message': 'Пользователь создан!'}
 
 
 async def login_user(db: AsyncSession, user_data: UserLogin) -> Token:
+    """Аутентифицирует пользователя и возвращает токен."""
     repo = UserRepository(db)
     user = await repo.get_by_username(user_data.username_or_email)
     if user is None:
@@ -35,9 +36,9 @@ async def login_user(db: AsyncSession, user_data: UserLogin) -> Token:
     try:
         token = create_access_token({'sub': user.user_id})
     except Exception:
-        raise AppException(500, 'Не удалось войти в профиль.')
+        raise AppException(500, 'Не удалось войти в профиль!')
     return Token(
         access_token=token,
         token_type='bearer',
-        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )

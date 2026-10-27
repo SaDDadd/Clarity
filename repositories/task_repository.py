@@ -10,6 +10,7 @@ class TaskRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
+
     async def create_task(self, project_id: int, task: TaskCreate) -> TaskModel:
         """Создать задачу."""
         result = TaskModel(
@@ -20,27 +21,36 @@ class TaskRepository:
             task_favorite=task.task_favorite,
             project_id=project_id,
             assigned_to=task.assigned_to,
-            deadline=task.deadline,
+            deadline=task.deadline
         )
         self.session.add(result)
         await self.session.flush()
         return result
 
+
     async def get_tasks_by_user(self, assigned_to: int) -> list[TaskModel]:
         """Получить все задачи пользователя."""
         result = await self.session.execute(
-            select(TaskModel).where(TaskModel.assigned_to == assigned_to)
+            select(TaskModel)
+            .where(
+                TaskModel.assigned_to == assigned_to
+            )
         )
         tasks = result.scalars().all()
         return tasks
 
+
     async def get_task_by_id(self, task_id: int) -> TaskModel | None:
         """Получить задачу по ID."""
         result = await self.session.execute(
-            select(TaskModel).where(TaskModel.task_id == task_id)
+            select(TaskModel)
+            .where(
+                TaskModel.task_id == task_id
+            )
         )
         task = result.scalar_one_or_none()
         return task
+
 
     async def get_project_tasks(self, project_id: int) -> list[TaskModel]:
         """Получить все задачи проекта."""
@@ -53,13 +63,14 @@ class TaskRepository:
         tasks = result.scalars().all()
         return tasks
 
+
     async def is_task_in_project(self, project_id: int, task_id: int) -> bool:
         """Проверить, принадлежит ли задача проекту."""
         result = await self.session.execute(
             select(TaskModel)
             .where(
                 TaskModel.project_id == project_id,
-                TaskModel.task_id == task_id,
+                TaskModel.task_id == task_id
             )
         )
         task = result.scalar_one_or_none()
@@ -68,6 +79,7 @@ class TaskRepository:
         else:
             return True
 
+
     async def assign_task(self, user_id: int, task_id: int) -> bool:
         """Назначить задачу пользователю."""
         task = await self.get_task_by_id(task_id)
@@ -75,11 +87,14 @@ class TaskRepository:
             await self.session.execute(
                 update(TaskModel)
                 .values(assigned_to=user_id)
-                .where(TaskModel.task_id == task_id)
+                .where(
+                    TaskModel.task_id == task_id
+                )
             )
             await self.session.flush()
             return True
         return False
+
 
     async def update_task_by_id(self, project_id: int, task_id: int, data: dict) -> bool:
         """Обновить задачу по ID."""
@@ -88,7 +103,7 @@ class TaskRepository:
             .values(data)
             .where(
                 TaskModel.project_id == project_id,
-                TaskModel.task_id == task_id,
+                TaskModel.task_id == task_id
             )
         )
         await self.session.flush()
@@ -103,11 +118,12 @@ class TaskRepository:
             .where(
                 TaskModel.project_id == project_id,
                 TaskModel.task_id == task_id,
-                TaskModel.task_status != task_status,
+                TaskModel.task_status != task_status
             )
         )
         await self.session.flush()
         return result.rowcount > 0
+
 
     async def delete_task(self, task_id: int) -> bool:
         """Удалить задачу."""
@@ -118,14 +134,18 @@ class TaskRepository:
             return True
         return False
 
+
     async def is_user_task_performer(self, task_id: int, user_id: int) -> bool:
         """Проверка является ли пользователь исполнителем задачи."""
         result = await self.session.execute(
             select(TaskModel.assigned_to)
-            .where(TaskModel.task_id == task_id)
+            .where(
+                TaskModel.task_id == task_id
+            )
         )
         assigned_to = result.scalar_one_or_none()
         return assigned_to == user_id
+
 
     async def create_comment(self, project_id: int, task_id: int, user_id: int, message: str) -> TaskCommentsModel:
         """Создание комментария для задачи в проекте."""
@@ -139,25 +159,32 @@ class TaskRepository:
         await self.session.flush()
         return comment
 
+
     async def get_comment_author(self, project_id: int, task_id: int, comment_id: int) -> int | None:
         """Получить автора комментария у задачи."""
         result = await self.session.execute(
             select(TaskCommentsModel.author_id)
-            .where(TaskCommentsModel.project_id == project_id,
-                   TaskCommentsModel.task_id == task_id,
-                   TaskCommentsModel.comment_id == comment_id)
+            .where(
+                TaskCommentsModel.project_id == project_id,
+                TaskCommentsModel.task_id == task_id,
+                TaskCommentsModel.comment_id == comment_id
+            )
         )
         comment = result.scalar_one_or_none()
         return comment
+
 
     async def get_comment_by_id(self, comment_id: int) -> TaskCommentsModel | None:
         """Получить комментарий по ID."""
         result = await self.session.execute(
             select(TaskCommentsModel)
-            .where(TaskCommentsModel.comment_id == comment_id)
+            .where(
+                TaskCommentsModel.comment_id == comment_id
+            )
         )
         comment = result.scalar_one_or_none()
         return comment
+
 
     async def delete_comment(self, comment_id: int) -> bool:
         """Удалить комментарий."""
@@ -168,22 +195,27 @@ class TaskRepository:
             return True
         return False
 
+
     async def update_comment(self, comment_id: int, message: str) -> bool:
         """Обновить комментарий."""
         result = await self.session.execute(
             update(TaskCommentsModel)
-            .where(TaskCommentsModel.comment_id == comment_id)
+            .where(
+                TaskCommentsModel.comment_id == comment_id
+            )
             .values(comment_text=message, update_date=func.now())
         )
         await self.session.flush()
         return result.rowcount > 0
 
+
     async def get_task_comments(self, project_id: int, task_id: int) -> list[TaskCommentsModel]:
+        """Получить комментарии задачи."""
         result = await self.session.execute(
             select(TaskCommentsModel)
             .where(
                 TaskCommentsModel.project_id == project_id,
-                TaskCommentsModel.task_id == task_id,
+                TaskCommentsModel.task_id == task_id
             )
             .order_by(TaskCommentsModel.created_date)
         )
