@@ -1,0 +1,75 @@
+body.theme-dark {
+    --background: #111214;
+    --white: #18191d;
+    --border: #2b2d33;
+    --border-hover: #3a3d45;
+    --text: #f4f4f5;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --text-light: #71717a;
+    --primary-light: rgba(99,102,241,.17);
+    --danger-light: rgba(239,68,68,.12);
+}
+body.theme-dark .topbar { background: rgba(24,25,29,.92); }
+body.theme-dark .search,
+body.theme-dark .nav-item:hover,
+body.theme-dark .project:hover,
+body.theme-dark .project.active-project,
+body.theme-dark .view.active-view,
+body.theme-dark .more:hover,
+body.theme-dark .column-header > button:hover,
+body.theme-dark .menu-reset,
+body.theme-dark .task-table th,
+body.theme-dark .calendar-weekday,
+body.theme-dark .calendar-day.muted { background: #222328; }
+body.theme-dark .task-card,
+body.theme-dark .views,
+body.theme-dark .filter,
+body.theme-dark .modal-content,
+body.theme-dark #taskForm input,
+body.theme-dark #taskForm textarea,
+body.theme-dark #taskForm select,
+body.theme-dark #projectForm input,
+body.theme-dark #projectForm textarea,
+body.theme-dark .toolbar-menu,
+body.theme-dark .toolbar-menu select,
+body.theme-dark .task-menu,
+body.theme-dark .page-task-card,
+body.theme-dark .project-card-large,
+body.theme-dark .task-table,
+body.theme-dark .calendar-grid,
+body.theme-dark .calendar-nav button,
+body.theme-dark .settings-section,
+body.theme-dark .settings-section input,
+body.theme-dark .settings-section select,
+body.theme-dark .small-action,
+body.theme-dark .toast { background: var(--white); color: var(--text); }
+body.theme-dark .priority.low { background: #27272a; }
+body.theme-dark .priority.medium { background: rgba(245,158,11,.12); }
+body.theme-dark .priority.high { background: rgba(239,68,68,.12); }
+
+.theme-dark .auth-screen {
+    background: #111113;
+}
+
+.theme-dark .auth-card,
+.theme-dark .auth-tab.active,
+.theme-dark .auth-form input {
+    background: #18181b;
+}
+
+.theme-dark .auth-tabs {
+    background: #27272a;
+}
+
+.theme-dark .logout-button:hover {
+    background: #27272a;
+}
+
+.theme-dark .project-members-section {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+body.theme-dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
