@@ -69,3 +69,7 @@ body.theme-dark .priority.high { background: rgba(239,68,68,.12); }
 .theme-dark .project-members-section {
     background: rgba(255, 255, 255, 0.025);
 }
+
+body.theme-dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}

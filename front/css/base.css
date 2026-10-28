@@ -10,7 +10,7 @@
     --border: #e7e7eb;
     --border-hover: #d4d4d8;
     --text: #18181b;
-    --text-secondary: #52525b;
+    --text-secondary: #9595a1;
     --text-muted: #71717a;
     --text-light: #a1a1aa;
     --primary: #6366f1;
@@ -55,3 +55,8 @@ body {
 }
 
 .hidden { display: none !important; }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.7;
+}

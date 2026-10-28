@@ -112,7 +112,7 @@
 
 #taskForm label > span,
 #projectForm label > span {
-    color: #3f3f46;
+    color: #adadbb;
     font-size: 11px;
     font-weight: 600;
 }
@@ -191,7 +191,7 @@
     padding: 0 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: white;
+    background: rgb(167, 1, 1);
     color: var(--text-secondary);
     font-family: inherit;
     font-size: 12px;
