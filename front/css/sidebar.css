@@ -1,0 +1,295 @@
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--white);
+    border-right: 1px solid var(--border);
+    padding: 24px 14px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    margin-bottom: 35px;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+}
+
+.logo-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: var(--primary);
+    color: white;
+    font-size: 18px;
+    box-shadow:
+        0 4px 10px
+        rgba(99, 102, 241, 0.2);
+}
+
+.navigation {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 38px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.nav-item span:first-child {
+    width: 18px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.nav-item:hover {
+    background: #f4f4f5;
+    color: var(--text);
+}
+
+.nav-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.projects {
+    margin-top: 32px;
+}
+
+.projects-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 9px;
+    margin-bottom: 8px;
+}
+
+.projects-header > span {
+    color: var(--text-light);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.add-project-button {
+    width: 25px;
+    height: 25px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 19px;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.add-project-button:hover {
+    background: #f4f4f5;
+    color: var(--text);
+}
+
+.project {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    margin-bottom: 2px;
+    border-radius: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.project:hover {
+    background: #f4f4f5;
+    color: var(--text);
+}
+
+.project.active-project {
+    background: #f4f4f5;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.project-dot {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.project-dot.purple {
+    background: #8b5cf6;
+}
+
+.project-name {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.project-delete {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    color: var(--text-light);
+    cursor: pointer;
+    opacity: 0;
+    transition:
+        opacity 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.project:hover .project-delete {
+    opacity: 1;
+}
+
+.project-delete:hover {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+}
+
+.sidebar-bottom .nav-item {
+    margin-bottom: 12px;
+}
+
+.user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 7px 0;
+    border-top: 1px solid var(--border);
+}
+
+.avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #18181b;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.user-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.user-info strong {
+    font-size: 12px;
+}
+
+.user-info span {
+    color: var(--text-muted);
+    font-size: 10px;
+}
+
+.projects-page-button {
+    border: 0;
+    background: transparent;
+    color: var(--text-light);
+    font: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.projects-page-button:hover,
+.projects-page-button.active { color: var(--primary); }
+
+.project-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.project:hover .project-actions,
+.project:focus-within .project-actions { opacity: 1; }
+
+.project-edit,
+.project-delete {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    border-radius: 5px;
+    color: var(--text-light);
+    cursor: pointer;
+    opacity: 1;
+}
+
+.project-edit:hover { background: var(--primary-light); color: var(--primary); }
+
+.logout-button {
+    width: 100%;
+    min-height: 34px;
+    margin-top: 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.logout-button:hover {
+    border-color: var(--border-hover);
+    background: #f4f4f5;
+    color: var(--text);
+}
