@@ -48,7 +48,7 @@ async def send_invitation(db, project_id, user_id, current_user_id, message) -> 
 
 
 async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[dict]:
-    """Приглашения пользователя с project_name (одним JOIN-запросом)."""
+    """Приглашения пользователя с project_name."""
     repo = ProjectInvitationRepository(db)
     rows = await repo.get_invitation_by_user_with_project(current_user_id)
     result = []
