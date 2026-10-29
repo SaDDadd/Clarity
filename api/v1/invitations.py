@@ -7,8 +7,6 @@ from schemas.invitation import InvitationCreate, InvitationStatusUpdate, Invitat
 from services.invitation_service import (cancel_invitation, get_project_invitations,
                                          get_user_invitations, response_to_invitation,
                                          send_invitation)
-from cache.cache_keys import user_invitations_key, TTL_INVITATION_LIST
-from cache.cache_service import get_cache, set_cache
 
 router = APIRouter()
 
@@ -39,14 +37,7 @@ async def response_to_invitation_endpoint(invitation_id: int,
 async def user_invitations_endpoint(current_user: UserModel = Depends(current_user),
                                     db: AsyncSession = Depends(get_db)):
     """Возвращает все входящие приглашения для текущего пользователя."""
-    key = user_invitations_key(current_user.user_id)
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
-    invitations = await get_user_invitations(db, current_user.user_id)
-    data = [InvitationResponse.model_validate(invitation).model_dump(mode='json') for invitation in invitations]
-    await set_cache(key, data, TTL_INVITATION_LIST)
-    return data
+    return await get_user_invitations(db, current_user.user_id)
 
 
 @router.get('/invitations/project/{project_id}', tags=['Приглашение в проект'],

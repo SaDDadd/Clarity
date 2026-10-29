@@ -5,12 +5,13 @@ from repositories.project_invitation_repository import ProjectInvitationReposito
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.user import (UserResponse, UpdateUsernameRequest, UpdateEmailRequest, 
         UpdatePasswordRequest)
+from models.user import UserModel
 from core.security import async_hash_password
 from cache.cache_keys import (user_key, user_cache_patterns, project_key,
                               project_tasks_key, project_invitations_key,
                               user_projects_key, user_invitations_key,
-                              project_invitations_pattern, PROJECT_PREFIX)
-from cache.cache_service import (delete_cache, delete_cache_by_pattern)
+                              project_invitations_pattern, PROJECT_PREFIX, TTL_USER)
+from cache.cache_service import (set_cache, get_cache, delete_cache, delete_cache_by_pattern)
 
 
 async def update_user_username(db: AsyncSession,  user_data: UpdateUsernameRequest, current_user_id: int) -> dict:
@@ -147,3 +148,14 @@ async def delete_profile(db: AsyncSession, current_user_id: int) -> dict:
         """Удаляем все кэшированные данные удалённого пользователя."""
         await delete_cache_by_pattern(pattern)
     return {'message': 'Профиль удален!'}
+
+
+async def get_profile_info(current_user: UserModel) -> dict:
+    """Возвращает данные текущего пользователя."""
+    key = user_key(current_user.user_id)
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached
+    data = UserResponse.model_validate(current_user).model_dump(mode='json')
+    await set_cache(key, data, TTL_USER)
+    return data 

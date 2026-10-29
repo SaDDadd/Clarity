@@ -9,7 +9,7 @@ from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, Us
 from sqlalchemy.ext.asyncio import AsyncSession
 from cache.cache_keys import (project_key, user_tasks_key, user_projects_key, project_tasks_key,
                               project_invitations_key, user_invitations_key, TTL_PROJECT, PROJECT_PREFIX,
-                              project_comments_pattern)
+                              TTL_PROJECT_LIST, project_comments_pattern)
 from cache.cache_service import (get_cache, set_cache, delete_cache,
                                  delete_cache_by_pattern)
 
@@ -68,6 +68,10 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
 async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[UserProjectResponse]:
     """Проекты, где пользователь admin."""
     repo = ProjectRepository(db)
+    key = user_projects_key(admin_id, 'admin')
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached
     projects = await repo.get_projects_by_creator(admin_id)
     result: list[UserProjectResponse] = []
     for project in projects:
@@ -79,7 +83,9 @@ async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[UserProjec
             admin_id=project.admin_id,
             role=role
         ))
-    return result
+    data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in result]
+    await set_cache(key, result, TTL_PROJECT_LIST)
+    return data
 
 
 async def checking_rights_project(db: AsyncSession, project_data: ProjectMemberCheck) -> str:
@@ -130,6 +136,10 @@ async def get_project_info(db: AsyncSession, project_id: int, user_id: int) -> d
 async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[UserProjectResponse]:
     """Получить проекты пользователя."""
     repo = ProjectRepository(db)
+    key = user_projects_key(current_user_id)
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached
     projects = await repo.get_user_projects(current_user_id)
     result = []
     for project in projects:
@@ -143,7 +153,9 @@ async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[User
             admin_id=project.admin_id,
             role=role
         ))
-    return result
+    data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in result]
+    await set_cache(key, result, TTL_PROJECT_LIST)
+    return data
 
 
 async def update_project(db: AsyncSession, project_id: int, 

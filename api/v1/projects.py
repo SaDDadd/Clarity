@@ -10,8 +10,6 @@ from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
                                       get_project_info, get_user_projects, update_project,
                                       leave_from_project)
-from cache.cache_keys import user_projects_key, TTL_PROJECT_LIST
-from cache.cache_service import get_cache, set_cache
 
 router = APIRouter()
 
@@ -47,28 +45,14 @@ async def update_member_role_endpoint(project_id: int, user_id: int, role: Proje
 async def get_member_projects_endpoint(current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
     """Получить проекты пользователя, где он участвует."""
-    key = user_projects_key(current_user.user_id)
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
-    projects = await get_user_projects(db, current_user.user_id)
-    data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in projects]
-    await set_cache(key, data, TTL_PROJECT_LIST)
-    return data
+    return await get_user_projects(db, current_user.user_id)
 
 
 @router.get('/projects', tags=['Проекты'], summary='Проекты пользователя, где он admin.')
 async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
     """Получить проекты пользователя, где он admin."""
-    key = user_projects_key(user.user_id, 'admin')
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
-    projects = await get_admin_projects(db, user.user_id)
-    data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in projects]
-    await set_cache(key, data, TTL_PROJECT_LIST)
-    return data
+    return await get_admin_projects(db, user.user_id)
 
 
 @router.get('/projects/{project_id}', tags=['Проекты'], summary='Получить информацию о проекте')

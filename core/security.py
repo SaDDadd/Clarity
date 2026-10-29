@@ -47,6 +47,11 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+def craete_refresh_token() -> str:
+    """Создание refresh токена."""
+    pass
+
+
 def decode_access_token(token: str) -> dict:
     """Декодирование токена доступа."""
     try:

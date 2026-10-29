@@ -5,9 +5,7 @@ from core.dependencies import current_user, get_db
 from models.user import UserModel
 from schemas.user import UpdateEmailRequest, UpdateUsernameRequest, UpdatePasswordRequest, UserResponse
 from services.user_service import (update_user_email, update_user_username, update_user_password, 
-                                   search_by_username, delete_profile)
-from cache.cache_keys import user_key, TTL_USER
-from cache.cache_service import get_cache, set_cache
+                                   search_by_username, delete_profile, get_profile_info)
 
 router = APIRouter()
 
@@ -34,13 +32,7 @@ async def update_email_endpoint(request: UpdateEmailRequest,
             summary='Получить информацию о пользователе')
 async def get_profile_endpoint(current_user: UserModel = Depends(current_user)) -> UserResponse:
     """Возвращает данные текущего пользователя."""
-    key = user_key(current_user.user_id)
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached 
-    data = UserResponse.model_validate(current_user).model_dump(mode='json')
-    await set_cache(key, data, TTL_USER)
-    return data
+    return await get_profile_info(current_user)
 
 
 @router.patch('/profile/password', tags=['Изменения профиля'],

@@ -50,13 +50,19 @@ async def send_invitation(db, project_id, user_id, current_user_id, message) -> 
 async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[dict]:
     """Приглашения пользователя с project_name."""
     repo = ProjectInvitationRepository(db)
+    key = user_invitations_key(current_user_id)
+    cached = await get_cache(key)
+    if cached is not None:
+        return cached
     rows = await repo.get_invitation_by_user_with_project(current_user_id)
     result = []
     for invitation, project_name in rows:
         data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
         data['project_name'] = project_name
         result.append(data)
-    return result
+    data = [InvitationResponse.model_validate(invitation).model_dump(mode='json') for invitation in result]
+    await set_cache(key, data, TTL_INVITATION_LIST)
+    return data
 
 
 async def get_project_invitations(db: AsyncSession, project_id: int, current_user_id: int) -> list[dict]:
