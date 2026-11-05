@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.security import async_verify_password
 from models.user import UserModel
-from schemas.user import UserResponse
+from schemas.user import UserSearchResponse
 
 
 class UserRepository:
@@ -193,7 +193,7 @@ class UserRepository:
             return True
 
 
-    async def search_by_username(self, username: str) -> list[UserResponse]:
+    async def search_by_username(self, username: str) -> list[UserSearchResponse]:
         """Поиск пользователей по имени."""
         task = await self.session.execute(
             select(
@@ -206,4 +206,4 @@ class UserRepository:
                 UserModel.username.ilike(f"%{username}%")
             )
         )
-        return [UserResponse.model_validate(row._mapping) for row in task.all()]
+        return [UserSearchResponse.model_validate(row._mapping) for row in task.all()]

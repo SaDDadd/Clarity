@@ -37,6 +37,7 @@ async def response_to_invitation_endpoint(invitation_id: int,
 async def user_invitations_endpoint(current_user: UserModel = Depends(current_user),
                                     db: AsyncSession = Depends(get_db)):
     """Возвращает все входящие приглашения для текущего пользователя."""
+    # добавить фильтраию и пагинацию
     return await get_user_invitations(db, current_user.user_id)
 
 
@@ -46,6 +47,7 @@ async def project_invitations_endpoint(project_id: int,
                                        current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
     """Возвращает все приглашения для указанного проекта (доступно только администратору)."""
+    # добавить фильтраию и пагинацию
     return await get_project_invitations(db, project_id, current_user.user_id)
 
 

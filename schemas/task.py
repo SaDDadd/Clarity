@@ -32,6 +32,7 @@ class TaskResponse(TaskBase):
     project_id: int
     assigned_to: int | None
     created_date: datetime.datetime
+    update_date: datetime.datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class TaskCommentCreate(BaseModel):

@@ -36,6 +36,7 @@ async def change_status_endpoint(task: TaskStatusUpdate, project_id: int, task_i
 async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user),
                                   db: AsyncSession = Depends(get_db)):
     """Возвращает все задачи, назначенные на текущего пользователя."""
+    # добавить фильтраию и пагинацию
     return await get_tasks_user(db, current_user.user_id)
 
 
@@ -45,6 +46,7 @@ async def get_project_tasks_endpoint(project_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      db: AsyncSession = Depends(get_db)):
     """Возвращает все задачи указанного проекта. Доступно участникам проекта."""
+    # добавить фильтраию и пагинацию
     return await get_project_tasks(db, project_id, current_user.user_id)
 
 
@@ -108,4 +110,5 @@ async def get_task_comments_endpoint(project_id: int, task_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      db: AsyncSession = Depends(get_db)):
     """Возвращает комментарии задачи."""
+    # добавить фильтраию и пагинацию
     return await get_task_comments(db, project_id, task_id, current_user.user_id)

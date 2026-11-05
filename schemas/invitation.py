@@ -15,6 +15,7 @@ class InvitationResponse(InvitationBase):
     project_id : int
     project_name: str | None = None
     inviter_id : int
+    invitee_username: str | None = None
     status_invited : InvitationRole | None
     created_date: datetime | None
     update_date: datetime | None

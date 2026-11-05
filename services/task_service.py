@@ -1,17 +1,19 @@
 import datetime
 
-from core.exceptions import (InvalidDeadlineException, NotFoundException, 
-    PermissionDeniedException, LackOfInformationException, AppException, 
+from core.exceptions import (InvalidDeadlineException, NotFoundException,
+    PermissionDeniedException, LackOfInformationException, AppException,
     ConflictException)
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentResponse
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.user_repository import UserRepository
 from schemas.common import TaskStatus
-from sqlalchemy.ext.asyncio import AsyncSession 
-from cache.cache_keys import (project_tasks_key, user_tasks_key, task_key, 
-    task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST, TTL_TASK_COMMENT_LIST)
+from sqlalchemy.ext.asyncio import AsyncSession
+from cache.cache_keys import (project_tasks_key, user_tasks_key, task_key,
+    task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST,
+    TTL_TASK_COMMENT_LIST)
 from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
+
 
 async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task: TaskCreate) -> dict:
     """Создаёт задачу. Паттерн как в create_project."""
@@ -37,7 +39,7 @@ async def create_task(db: AsyncSession, project_id: int, current_user_id: int, t
     answer = TaskResponse.model_validate(result).model_dump(mode='json')
     await delete_cache(project_tasks_key(project_id))
     if task.assigned_to is not None:
-        await delete_cache(user_tasks_key(task.assigned_to))
+        await delete_cache(user_tasks_key(task.assigned_to, 'all'))
     return answer
 
 
@@ -92,7 +94,7 @@ async def get_tasks_user(db: AsyncSession, current_user_id: int) -> list[dict]:
     return answer
 
 
-async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int, 
+async def update_task(db: AsyncSession, project_id: int, task_id: int, current_user_id: int,
                       task: TaskUpdate) -> dict:
     """Обновляет задачу."""
     repo = TaskRepository(db)
@@ -180,7 +182,7 @@ async def change_status(db: AsyncSession, project_id: int, task_id: int, current
         raise PermissionDeniedException('Не админ и не назначенный на задачу не может менять статус задачи!')
     try:
         changed = await repo.update_task_status(project_id, task_id, task_status.value)
-        await db.commit()           
+        await db.commit()
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось изменить статус задачи!')
@@ -243,7 +245,8 @@ async def create_task_comment(db: AsyncSession, project_id: int, task_id: int,
     await delete_cache(task_comments_list_key(project_id, task_id))
     return answer
 
-async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, comment_id: int, 
+
+async def delete_task_comment(db: AsyncSession, project_id: int, task_id: int, comment_id: int,
                               current_user_id: int) -> dict:
     """Удалить комментарий у задачи."""
     repo = TaskRepository(db)

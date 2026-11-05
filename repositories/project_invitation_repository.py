@@ -2,6 +2,7 @@ from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.project import ProjectModel
+from models.user import UserModel
 from models.project_invitations import ProjectInvitationModel
 
 
@@ -49,7 +50,8 @@ class ProjectInvitationRepository:
     async def get_invitation_for_project(self, project_id: int) -> list[ProjectInvitationModel]:
         """Список приглашённых у проекта."""
         task = await self.session.execute(
-            select(ProjectInvitationModel)
+            select(ProjectInvitationModel, UserModel.username)
+            .join(UserModel, UserModel.user_id == ProjectInvitationModel.invitee_id)
             .where(
                 ProjectInvitationModel.project_id == project_id,
                 ProjectInvitationModel.status_invited == "pending"

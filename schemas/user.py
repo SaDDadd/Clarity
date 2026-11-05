@@ -18,3 +18,8 @@ class UpdateEmailRequest(BaseModel):
 
 class UpdatePasswordRequest(BaseModel):
     password: str | None = Field(default=None, min_length=8, max_length=50)
+
+class UserSearchResponse(BaseModel):
+    user_id: int 
+    username: str
+    email: EmailStr

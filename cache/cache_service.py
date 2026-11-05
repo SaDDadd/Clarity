@@ -54,12 +54,3 @@ async def delete_cache_by_pattern(pattern: str) -> int:
     except RedisError as e:
         """Место для логирования."""
     return deleted
-
-async def get_or_set(key: str, factory: Callable[[], Awaitable[Any]], ttl: int,) -> Any:
-    """Cache-aside: возвращает из кэша или вычисляет и кэширует."""
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
-    value = await factory()
-    await set_cache(key, value, ttl)
-    return value

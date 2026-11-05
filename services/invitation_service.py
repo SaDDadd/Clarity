@@ -9,8 +9,8 @@ from repositories.user_repository import UserRepository
 from schemas.invitation import InvitationResponse
 from schemas.common import InvitationAction
 from sqlalchemy.ext.asyncio import AsyncSession
-from cache.cache_keys import (user_invitations_key, project_invitations_key,project_key, 
-                                user_projects_key, TTL_INVITATION_LIST)
+from cache.cache_keys import (user_invitations_key, project_invitations_key,
+                              project_key, user_projects_key, TTL_INVITATION_LIST)
 from cache.cache_service import get_cache, delete_cache, set_cache
 
 
@@ -42,15 +42,15 @@ async def send_invitation(db, project_id, user_id, current_user_id, message) -> 
         raise AppException(500, 'Не удалось отправить приглашение!')
     answer = InvitationResponse.model_validate(result).model_dump(mode='json')
     answer['project_name'] = project.project_name
-    await delete_cache(user_invitations_key(user_id))
-    await delete_cache(project_invitations_key(project_id))
+    await delete_cache(user_invitations_key(user_id, 'all'))
+    await delete_cache(project_invitations_key(project_id, 'all'))
     return answer
 
 
 async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[dict]:
     """Приглашения пользователя с project_name."""
     repo = ProjectInvitationRepository(db)
-    key = user_invitations_key(current_user_id)
+    key = user_invitations_key(current_user_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
@@ -60,9 +60,8 @@ async def get_user_invitations(db: AsyncSession, current_user_id: int) -> list[d
         data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
         data['project_name'] = project_name
         result.append(data)
-    data = [InvitationResponse.model_validate(invitation).model_dump(mode='json') for invitation in result]
-    await set_cache(key, data, TTL_INVITATION_LIST)
-    return data
+    await set_cache(key, result, TTL_INVITATION_LIST)
+    return result
 
 
 async def get_project_invitations(db: AsyncSession, project_id: int, current_user_id: int) -> list[dict]:
@@ -73,7 +72,7 @@ async def get_project_invitations(db: AsyncSession, project_id: int, current_use
         raise NotFoundException('Проект не найден!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Данного пользователя нет в проекте!')
-    key = project_invitations_key(project_id)
+    key = project_invitations_key(project_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
@@ -107,7 +106,7 @@ async def response_to_invitation(db, invitation_id, action, current_user_id) -> 
         await db.rollback()
         raise AppException(500, 'Не удалось получить ответ на приглашение в проект!')
     await delete_cache(user_invitations_key(invitee_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'admin'))
+    await delete_cache(project_invitations_key(project_id, 'all'))
     if action == InvitationAction.ACCEPTED:
         await delete_cache(project_key(project_id))
         await delete_cache(user_projects_key(invitee_id, 'all'))
@@ -135,6 +134,6 @@ async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_i
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось отменить приглашение в проект!')
-    await delete_cache(user_invitations_key(invitation.invitee_id))
-    await delete_cache(project_invitations_key(project_id))
+    await delete_cache(user_invitations_key(invitation.invitee_id, 'all'))
+    await delete_cache(project_invitations_key(project_id, 'all'))
     return {'message': 'Приглашение отменено!'}

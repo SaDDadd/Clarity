@@ -25,5 +25,9 @@ class UserProjectResponse(BaseModel):
     project_name: str
     project_description: str | None
     admin_id: int
+    member_ids: list[int] | None = None
     role: ProjectRole | None = None
     model_config = ConfigDict(from_attributes=True, extra='ignore')
+
+class TransferAdminRequest(BaseModel):
+    new_admin_id: int

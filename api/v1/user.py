@@ -48,6 +48,7 @@ async def update_password_endpoint(request: UpdatePasswordRequest,
 async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 
                        db: AsyncSession = Depends(get_db)):
     """Поиск пользователей."""
+    # добавить фильтраию и пагинацию
     return await search_by_username(db, search_user, current_user.username)
 
 

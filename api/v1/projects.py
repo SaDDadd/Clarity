@@ -4,12 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import current_user, get_db
 from models.user import UserModel
 from schemas.common import ProjectRole
-from schemas.project import AddMemberRequest, ProjectCreate, ProjectUpdate, UserProjectResponse
-from services.project_members_service import update_member_role
+from schemas.project import AddMemberRequest, ProjectCreate, ProjectUpdate, TransferAdminRequest
+from services.project_members_service import update_member_role, transfer_admin
 from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
                                       get_project_info, get_user_projects, update_project,
                                       leave_from_project)
+
 
 router = APIRouter()
 
@@ -45,6 +46,7 @@ async def update_member_role_endpoint(project_id: int, user_id: int, role: Proje
 async def get_member_projects_endpoint(current_user: UserModel = Depends(current_user),
                                        db: AsyncSession = Depends(get_db)):
     """Получить проекты пользователя, где он участвует."""
+    # добавить фильтраию и пагинацию
     return await get_user_projects(db, current_user.user_id)
 
 
@@ -52,6 +54,7 @@ async def get_member_projects_endpoint(current_user: UserModel = Depends(current
 async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
                                       db: AsyncSession = Depends(get_db)):
     """Получить проекты пользователя, где он admin."""
+    # добавить фильтраию и пагинацию
     return await get_admin_projects(db, user.user_id)
 
 
@@ -94,3 +97,13 @@ async def leave_from_project_endpoint(project_id: int,
                                       db: AsyncSession = Depends(get_db)):
     """Выход из проекта."""
     return await leave_from_project(db, project_id, user.user_id)
+
+
+@router.patch('/projects/{project_id}/admin', tags=['Проекты'],
+              summary='Передать роль администратора')
+async def transfer_admin_endpoint(project_id: int, 
+                                  data: TransferAdminRequest, 
+                                  current_user: UserModel = Depends(current_user),
+                                  db: AsyncSession = Depends(get_db)):
+    """Админ выбирает нового админа."""
+    return await transfer_admin(db, project_id, current_user.user_id, data.new_admin_id)

@@ -292,38 +292,12 @@ class ProjectRepository:
 
     async def delete_project(self, project_id: int) -> bool:
         """Удаление проекта."""
-        await self.session.execute(
-            delete(ProjectMemberModel)
-            .where(
-                ProjectMemberModel.project_id == project_id
-            )
-        )
-        await self.session.execute(
-            delete(TaskModel)
-            .where(
-                TaskModel.project_id == project_id
-            )
-        )
-        await self.session.execute(
-            delete(ProjectInvitationModel)
-            .where(
-                ProjectInvitationModel.project_id == project_id
-            )
-        )
-        await self.session.execute(
-            delete(TaskCommentsModel)
-            .where(
-                TaskCommentsModel.project_id == project_id
-            )
-        )
-        result = await self.session.execute(
-            delete(ProjectModel)
-            .where(
-                ProjectModel.project_id == project_id
-            )
-        )
+        project = await self.get_project_by_id(project_id)
+        if project is None:
+            return False
+        await self.session.delete(project)
         await self.session.flush()
-        return result.rowcount > 0
+        return True
 
 
     async def delete_user_from_project(self, project_id: int, user_id_to_del: int) -> bool:

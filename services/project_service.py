@@ -1,15 +1,17 @@
 from core.exceptions import (AppException, ConflictException,
                              InvalidInvitationStateException,
-                             NotFoundException, PermissionDeniedException, 
+                             NotFoundException, PermissionDeniedException,
                              LackOfInformationException)
 from repositories.project_repository import ProjectRepository
 from repositories.user_repository import UserRepository
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from cache.cache_keys import (project_key, user_tasks_key, user_projects_key, project_tasks_key,
-                              project_invitations_key, user_invitations_key, TTL_PROJECT, PROJECT_PREFIX,
-                              TTL_PROJECT_LIST, project_comments_pattern)
+from cache.cache_keys import (project_key, user_projects_key, project_tasks_key,
+                              TTL_PROJECT, TTL_PROJECT_LIST, project_all_pattern,
+                              user_projects_pattern, user_tasks_pattern,
+                              user_invitations_pattern, project_task_items_pattern,
+                              project_invitations_pattern)
 from cache.cache_service import (get_cache, set_cache, delete_cache,
                                  delete_cache_by_pattern)
 
@@ -19,15 +21,14 @@ async def create_project(db: AsyncSession, project_data: ProjectCreate, admin_id
     repo = ProjectRepository(db)
     try:
         result = await repo.create_project_with_admin(
-            project_data.project_name, 
+            project_data.project_name,
             project_data.project_description, admin_id
         )
         await db.commit()
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось создать проект!')
-    await delete_cache(user_projects_key(admin_id, 'all'))
-    await delete_cache(user_projects_key(admin_id, 'admin'))
+    await delete_cache_by_pattern(user_projects_pattern(admin_id))
     return {
         'project_id': result.project_id,
         'project_name': result.project_name,
@@ -61,7 +62,7 @@ async def add_user(db: AsyncSession, project_id: int, current_user_id: int, user
         raise AppException(500, 'Не удалось добавить пользователя в проект!')
     await delete_cache(project_key(project_id))
     for i in member_ids:
-        await delete_cache(user_projects_key(i, 'all'))
+        await delete_cache_by_pattern(user_projects_pattern(i))
     return {'message': 'Пользователь добавлен в проект!'}
 
 
@@ -84,7 +85,7 @@ async def get_admin_projects(db: AsyncSession, admin_id: int) -> list[UserProjec
             role=role
         ))
     data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in result]
-    await set_cache(key, result, TTL_PROJECT_LIST)
+    await set_cache(key, data, TTL_PROJECT_LIST)
     return data
 
 
@@ -128,15 +129,15 @@ async def get_project_info(db: AsyncSession, project_id: int, user_id: int) -> d
             for m in members
         ]
     }
-    await set_cache(key, answer, TTL_PROJECT)   
-    answer['role'] = user_role                  
+    await set_cache(key, answer, TTL_PROJECT)
+    answer['role'] = user_role
     return answer
 
 
 async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[UserProjectResponse]:
     """Получить проекты пользователя."""
     repo = ProjectRepository(db)
-    key = user_projects_key(current_user_id)
+    key = user_projects_key(current_user_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
@@ -154,14 +155,14 @@ async def get_user_projects(db: AsyncSession, current_user_id: int) -> list[User
             role=role
         ))
     data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in result]
-    await set_cache(key, result, TTL_PROJECT_LIST)
+    await set_cache(key, data, TTL_PROJECT_LIST)
     return data
 
 
-async def update_project(db: AsyncSession, project_id: int, 
-                         user_id: int, project_data: ProjectUpdate) -> dict:
+async def update_project(db: AsyncSession, project_id: int, user_id: int, project_data: ProjectUpdate) -> dict:
     """Обновление проекта."""
     repo = ProjectRepository(db)
+    repo_inv = ProjectInvitationRepository(db)
     project = await repo.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
@@ -179,6 +180,8 @@ async def update_project(db: AsyncSession, project_id: int,
         return {'message': 'Ничего не изменилось!'}
     project_info = await repo.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
+    pending_invitations = await repo_inv.get_invitation_for_project(project_id)
+    invitee_ids = {inv.invitee_id for inv in pending_invitations}
     try:
         if 'project_name' in changes:
             await repo.update_project_name(changes['project_name'], project_id)
@@ -189,9 +192,11 @@ async def update_project(db: AsyncSession, project_id: int,
         await db.rollback()
         raise AppException(500, 'Не удалось обновить проект!')
     await delete_cache(project_key(project_id))
-    for i in member_ids:
-        await delete_cache(user_projects_key(i, 'all'))
-        await delete_cache(user_projects_key(i, 'admin'))
+    await delete_cache_by_pattern(project_invitations_pattern(project_id))
+    for invitee_id in invitee_ids:
+        await delete_cache_by_pattern(user_invitations_pattern(invitee_id))
+    for member_id in member_ids:
+        await delete_cache_by_pattern(user_projects_pattern(member_id))
     return {'message': 'Проект обновлен!'}
 
 
@@ -214,17 +219,13 @@ async def delete_project(db: AsyncSession, project_id: int, user_id: int) -> dic
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось удалить проект!')
-    await delete_cache(project_key(project_id))
-    await delete_cache(project_tasks_key(project_id))
-    await delete_cache(project_invitations_key(project_id, 'admin'))
-    await delete_cache_by_pattern(project_comments_pattern(project_id))
-    await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{project_id}:task*")
+    """Автоматический каскад по проекту: детали, tasks, task items, comments, invitations."""
+    await delete_cache_by_pattern(project_all_pattern(project_id))
     for i in member_ids:
-        await delete_cache(user_projects_key(i, 'all'))
-        await delete_cache(user_projects_key(i, 'admin'))
-        await delete_cache(user_tasks_key(i, 'all'))
+        await delete_cache_by_pattern(user_projects_pattern(i))
+        await delete_cache_by_pattern(user_tasks_pattern(i))
     for iid in invitee_ids:
-        await delete_cache(user_invitations_key(iid, 'all'))
+        await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Проект успешно удален!'}
 
 
@@ -253,12 +254,9 @@ async def delete_project_user(db: AsyncSession, project_id: int, current_user_id
         raise AppException(500, 'Не удалось удалить участника из проекта!')
     await delete_cache(project_key(project_id))
     await delete_cache(project_tasks_key(project_id))
-    await delete_cache(project_invitations_key(project_id, 'admin'))
-    await delete_cache(user_projects_key(user_id_to_del, 'all'))
-    await delete_cache(user_projects_key(user_id_to_del, 'admin'))
-    await delete_cache(user_projects_key(current_user_id, 'admin'))
-    await delete_cache(user_tasks_key(user_id_to_del, 'all'))
-    await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{project_id}:task*")
+    await delete_cache_by_pattern(project_task_items_pattern(project_id))
+    await delete_cache_by_pattern(user_projects_pattern(user_id_to_del))
+    await delete_cache_by_pattern(user_tasks_pattern(user_id_to_del))
     return {'message': 'Пользователь удален из проекта!'}
 
 
@@ -296,24 +294,22 @@ async def leave_from_project(db: AsyncSession, project_id: int, current_user_id:
     except Exception:
         await db.rollback()
         raise AppException(500, 'Не удалось выйти из проекта!')
-    await delete_cache(project_key(project_id))
-    await delete_cache(project_tasks_key(project_id))
-    await delete_cache(project_invitations_key(project_id, 'admin'))
-    await delete_cache_by_pattern(f"{PROJECT_PREFIX}:{project_id}:task*")
-    await delete_cache(user_projects_key(current_user_id, 'all'))
-    await delete_cache(user_projects_key(current_user_id, 'admin'))
-    await delete_cache(user_tasks_key(current_user_id, 'all'))
+    if is_admin and new_admin_id is None:
+        """Проект удалён — автоматический каскад по всем ключам проекта."""
+        await delete_cache_by_pattern(project_all_pattern(project_id))
+    else:
+        await delete_cache(project_key(project_id))
+        await delete_cache(project_tasks_key(project_id))
+        await delete_cache_by_pattern(project_task_items_pattern(project_id))
+    await delete_cache_by_pattern(user_projects_pattern(current_user_id))
+    await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
     for member_id in member_ids:
-        """Инвалидируем кэш для остальных участников проекта."""
         if member_id == current_user_id:
-            """Пропускаем текущего пользователя."""
             continue
-        await delete_cache(user_projects_key(member_id, 'all'))
-        await delete_cache(user_projects_key(member_id, 'admin'))
+        await delete_cache_by_pattern(user_projects_pattern(member_id))
         if is_admin and new_admin_id is None:
-            """Инвалидируем задачи участников, если проект удалён."""
-            await delete_cache(user_tasks_key(member_id, 'all'))
+            """Если проект удалён, у участников тоже меняются задачи."""
+            await delete_cache_by_pattern(user_tasks_pattern(member_id))
     for iid in invitee_ids:
-        """Инвалидируем приглашения затронутых пользователей."""
-        await delete_cache(user_invitations_key(iid, 'all'))
+        await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Вы вышли из проекта!'}
