@@ -72,6 +72,8 @@ async def get_project_invitations(db: AsyncSession, project_id: int, current_use
         raise NotFoundException('Проект не найден!')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Данного пользователя нет в проекте!')
+    if not await repo_proj.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Не админ и не куратор не может смотреть приглашения в проект!')
     key = project_invitations_key(project_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
@@ -114,20 +116,21 @@ async def response_to_invitation(db, invitation_id, action, current_user_id) -> 
     return {'message': f'Приглашение {action.value}!'}
 
 
-async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_id: int) -> dict:
-    """Отменяет (удаляет) приглашение."""
+async def delete_invitation(db: AsyncSession, invitation_id: int, current_user_id: int) -> dict:
+    """Удаляем приглашение."""
     repo = ProjectInvitationRepository(db)
     repo_proj = ProjectRepository(db)
     invitation = await repo.get_invitation_by_id(invitation_id)
     if not invitation:
-        raise NotFoundException('Приглашение не найдено')
+        raise NotFoundException('Приглашение не найдено!')
     if invitation.status_invited != 'pending':
-        raise InvitationAlreadyProcessedException('Приглашение уже обработано')
+        raise InvitationAlreadyProcessedException('Приглашение уже обработано!')
     project_id = invitation.project_id
     inviter_id = invitation.inviter_id
+    is_sender = current_user_id == inviter_id
     is_admin = await repo_proj.is_user_admin_or_curator(project_id, current_user_id)
-    if not (is_admin or inviter_id == current_user_id):
-        raise PermissionDeniedException('Только администратор проекта или отправитель может отменить приглашение')
+    if not (is_admin or is_sender):
+        raise PermissionDeniedException('Только администратор проекта или отправитель может удалить приглашение!')
     try:
         await repo.delete_invitation(invitation_id)
         await db.commit()
@@ -136,4 +139,4 @@ async def cancel_invitation(db: AsyncSession, invitation_id: int, current_user_i
         raise AppException(500, 'Не удалось отменить приглашение в проект!')
     await delete_cache(user_invitations_key(invitation.invitee_id, 'all'))
     await delete_cache(project_invitations_key(project_id, 'all'))
-    return {'message': 'Приглашение отменено!'}
+    return {'message': 'Приглашение удалено!'}

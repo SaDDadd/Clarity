@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.dependencies import current_user, get_db
 from models.user import UserModel
 from schemas.invitation import InvitationCreate, InvitationStatusUpdate, InvitationResponse
-from services.invitation_service import (cancel_invitation, get_project_invitations,
+from services.invitation_service import (delete_invitation, get_project_invitations,
                                          get_user_invitations, response_to_invitation,
                                          send_invitation)
 
@@ -56,5 +56,5 @@ async def project_invitations_endpoint(project_id: int,
 async def delete_invitation_endpoint(invitation_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      db: AsyncSession = Depends(get_db)):
-    """Отменяет (удаляет) приглашение. Доступно администратору проекта или отправителю."""
-    return await cancel_invitation(db, invitation_id, current_user.user_id)
+    """Удаляет приглашение. Доступно администратору проекта или отправителю."""
+    return await delete_invitation(db, invitation_id, current_user.user_id)

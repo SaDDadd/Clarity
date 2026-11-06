@@ -2,7 +2,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 import datetime
 
 class UserBase(BaseModel):
-    username: str = Field(min_length=1, max_length=50)
+    username: str = Field(min_length=3, max_length=30)
     email: EmailStr = Field(max_length=100)
 
 class UserResponse(UserBase):
@@ -11,7 +11,7 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 class UpdateUsernameRequest(BaseModel):
-    username: str | None = Field(default=None, min_length=1, max_length=50)
+    username: str | None = Field(default=None, min_length=3, max_length=30)
 
 class UpdateEmailRequest(BaseModel):
     email: EmailStr | None = Field(default=None, max_length=100)

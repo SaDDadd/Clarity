@@ -6,10 +6,9 @@ from repositories.project_invitation_repository import ProjectInvitationReposito
 
 
 class UnitOfWork():
-    def __init__(self, session: AsyncSession, read_only: bool = False):
+    def __init__(self, session: AsyncSession):
         self.session = session 
-        self._read_only = read_only
-        self._commited = False 
+        self._committed = False 
         self._rollback = False
         self.user = UserRepository(session)
         self.project = ProjectRepository(session)
@@ -18,46 +17,38 @@ class UnitOfWork():
 
 
     async def __aenter__(self) -> "UnitOfWork":
-        """"""
-        pass 
+        """Вход в контекстный менеджер."""
+        return self
 
 
-    async def __aexit__(self, exc_type, exc) -> None:
-        """"""
-        if (exc_type is not None) and (exc_type is not self._commited) \
-                and (exc_type is not self._rollback):
-            await self.session.rollback()
-        elif (exc_type is None) and (exc_type is not self._commited) \
-                and (exc_type is not self._rollback):
-            await self.session.rollback()
-        elif exc_type is self._commited:
-            pass
-        elif exc_type is self._rollback:
-            pass
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Выход из контекстного менеджера."""
+        if exc_type is not None:
+            await self.rollback()
+        else:
+            await self.commit()
 
 
     async def commit(self) -> None:
-        """"""
-        if self._rollback is True:
-            raise RuntimeError('Нельзя совершать commit после отката!')
-        elif self._commited is True:
-            pass
-        elif self._read_only is True:
-            raise RuntimeError('Не соввершаем commit при получении данных из БД!')
-        else:
-            await self.session.commit()
+        """Commit транзакции."""
+        if self._committed:
+            return
+        elif self._rollback:
+            raise RuntimeError('Нельзя совершить commit после rollback!')
+        await self.session.commit()
+        self._committed = True
 
 
     async def rollback(self) -> None:
-        """"""
-        if self._commited is True:
-            raise RuntimeError('Нельзя откатить то, что commit!')
-        elif self._rollback is True:
-            pass
-        else:
-            await self.session.rollback()
+        """Rollback транзакции."""
+        if self._rollback:
+            return 
+        elif self._committed:
+            raise RuntimeError('Нельзя совершить rollback после commit!')
+        await self.session.rollback()
+        self._rollback = True
 
 
     async def flush(self) -> None:
-        """"""
+        """Проброс изменений без commit."""
         await self.session.flush()

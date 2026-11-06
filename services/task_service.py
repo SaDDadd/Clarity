@@ -16,16 +16,17 @@ from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache
 
 
 async def create_task(db: AsyncSession, project_id: int, current_user_id: int, task: TaskCreate) -> dict:
-    """Создаёт задачу. Паттерн как в create_project."""
+    """Создаёт задачу."""
     repo = TaskRepository(db)
     repo_proj = ProjectRepository(db)
     if await repo_proj.get_project_by_id(project_id) is None:
         raise NotFoundException('Данного проекта не существует! ')
     if not await repo_proj.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
+    if not await repo_proj.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Не админ и не куратор не может создавать задачи!')
     if task.deadline is not None and task.deadline < datetime.date.today():
-        raise InvalidDeadlineException(
-            'Время дэдлайна не может быть меньше сегодняшнего дня!')
+        raise InvalidDeadlineException('Время дэдлайна не может быть меньше сегодняшнего дня!')
     if task.assigned_to is not None:
         if not await repo_proj.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')

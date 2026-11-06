@@ -7,7 +7,6 @@ from jose import JWTError, jwt
 from core.config import settings
 
 
-# ---------- Синхронные функции (для обратной совместимости, например, в тестах) ----------
 def hash_password(password: str) -> str:
     """Синхронное хеширование (используется только в seed_data и тестах)."""
     salt = bcrypt.gensalt()
@@ -47,7 +46,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def craete_refresh_token() -> str:
+def create_refresh_token() -> str:
     """Создание refresh токена."""
     pass
 

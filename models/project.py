@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from core.database import Base
-from sqlalchemy import String, Text, ForeignKey
+from sqlalchemy import String, Text, ForeignKey, func
+import datetime
 
 class ProjectModel(Base):
     __tablename__ = 'projects'
@@ -9,3 +10,4 @@ class ProjectModel(Base):
     project_name: Mapped[str] = mapped_column(String(100), nullable=False)
     project_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     admin_id: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='RESTRICT'), nullable=False)
+    created_date: Mapped[datetime.datetime] = mapped_column(nullable=False, server_default=func.now())

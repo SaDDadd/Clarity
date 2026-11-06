@@ -9,6 +9,7 @@ from core.exceptions import AuthenticationException
 from core.security import decode_access_token as decode_token
 from models.user import UserModel
 from repositories.user_repository import UserRepository
+from core.uow import UnitOfWork
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
 
@@ -20,6 +21,12 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Получить сессию."""
     async with AsyncSessionLocal() as session:
         yield session
+
+
+async def get_uow(db: AsyncSession = Depends(get_db)) -> AsyncGenerator[UnitOfWork, None]:
+    """"""
+    async with UnitOfWork(db) as uow:
+        yield uow
 
 
 async def current_user(token: str = Depends(oauth2_scheme),
