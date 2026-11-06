@@ -40,10 +40,12 @@
 - Получение информации о текущем пользователе через `/auth/me` и `/profile`.
 - Инфраструктура кэширования на Redis (в разработке).
 - Пагинация для списков (реализована, но не задокументирована — будет добавлена в следующих релизах).
+- Фильтрация задач (базовая реализация в `core/filters.py`).
 - Полностью асинхронный код.
 - Docker-контейнеризация.
 - Написанные тесты (pytest + httpx).
 - Нагрузочное тестирование с использованием Locust.
+- В репозитории присутствует простой фронтенд (папка `front/`), который взаимодействует с API через `front/js/api.js`.
 
 ## Разграничение прав пользователей
 
@@ -94,7 +96,9 @@
 - **Репозитории** — работа с базой данных.
 - **Модели** — SQLAlchemy-модели.
 - **Схемы** — Pydantic-схемы для валидации запросов и ответов.
+- **Слой фильтрации** — компоненты для фильтрации данных (`core/filters.py`).
 - **Ядро** — конфигурация, безопасность, зависимости, исключения.
+- **Unit of Work** — компонент управления транзакциями и сессией БД (`core/uow.py`).
 - **Кэш** — обёртки над Redis (в разработке).
 
 Такая структура обеспечивает **разделение ответственности**, упрощает тестирование и поддержку кода.
@@ -108,79 +112,63 @@
    ```bash
    git clone https://github.com/SaDDadd/Clarity.git
    cd Clarity
-   ```
+Создайте и активируйте виртуальное окружение:
 
-2. **Создайте и активируйте виртуальное окружение:**
+bash
+python -m venv venv
+source venv/bin/activate  # для Linux/Mac
+# или
+venv\Scripts\activate  # для Windows
+Установите зависимости:
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # для Linux/Mac
-   # или
-   venv\Scripts\activate  # для Windows
-   ```
+bash
+pip install -r requirements.txt
+Создайте файл .env (см. раздел Переменные окружения).
 
-3. **Установите зависимости:**
+Запустите MySQL (локально или в контейнере) и создайте базу данных.
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+Создайте (при необходимости) и примените миграции Alembic:
 
-4. **Создайте файл `.env`** (см. раздел [Переменные окружения](#переменные-окружения-файл-env)).
+bash
+alembic revision --autogenerate -m "имя миграции"
+alembic upgrade head
+Запустите приложение:
 
-5. **Запустите MySQL** (локально или в контейнере) и создайте базу данных.
+bash
+uvicorn main:app --reload
+API будет доступно по адресу http://localhost:8000.
 
-6. **Создайте (при необходимости) и примените миграции Alembic:**
-
-   ```bash
-   alembic revision --autogenerate -m "имя миграции"
-   alembic upgrade head
-   ```
-
-7. **Запустите приложение:**
-
-   ```bash
-   uvicorn main:app --reload
-   ```
-
-API будет доступно по адресу `http://localhost:8000`.
-
-### Запуск через Docker Compose
-
+Запуск через Docker Compose
 Для запуска всего приложения (бэкенд + MySQL) в контейнерах:
 
-1. Убедитесь, что установлены **Docker** и **Docker Compose**.
+Убедитесь, что установлены Docker и Docker Compose.
 
-2. Создайте файл `.env` в корне проекта (как описано в разделе переменных окружения).
+Создайте файл .env в корне проекта (как описано в разделе переменных окружения).
 
-3. Соберите и запустите контейнеры:
+Соберите и запустите контейнеры:
 
-   ```bash
-   docker-compose up --build
-   ```
+bash
+docker-compose up --build
+Бэкенд будет доступен на http://localhost:8000
 
-   - Бэкенд будет доступен на `http://localhost:8000`
-   - База данных MySQL будет доступна на порту `3307` хоста (внутри контейнера – `3306`).
-   - При старте контейнера бэкенда автоматически выполняются миграции (скрипт `entrypoint.sh`).
+База данных MySQL будет доступна на порту 3307 хоста (внутри контейнера – 3306).
 
-4. Для локальной раздачи статического фронтенда (если он находится в корне проекта) в отдельном терминале:
+При старте контейнера бэкенда автоматически выполняются миграции (скрипт entrypoint.sh).
 
-   ```bash
-   python -m http.server 5500
-   ```
+Для локальной раздачи статического фронтенда (он находится в папке front/) в отдельном терминале:
 
-5. Остановка:
+bash
+python -m http.server 5500 --directory front
+Остановка:
 
-   ```bash
-   docker-compose down
-   ```
+bash
+docker-compose down
+Важно: при использовании Docker переменные окружения загружаются из файла .env. Убедитесь, что все необходимые переменные заданы.
 
-> **Важно:** при использовании Docker переменные окружения загружаются из файла `.env`. Убедитесь, что все необходимые переменные заданы.
+Переменные окружения (файл .env)
+Пример содержимого .env:
 
-## Переменные окружения (файл `.env`)
-
-Пример содержимого `.env`:
-
-```env
+env
 # База данных
 DB_HOST=db  # для Docker – имя сервиса db; для локального запуска – localhost
 DB_PORT=3306  # порт внутри контейнера; при локальном запуске обычно 3306
@@ -202,13 +190,11 @@ REDIS_DB=0
 
 # CORS (опционально)
 CORS_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
-```
+Все настройки загружаются из класса Settings в core/config.py. Значение JWT_SECRET_KEY обязательно должно быть задано в .env.
 
-Все настройки загружаются из класса `Settings` в `core/config.py`. Значение `JWT_SECRET_KEY` **обязательно** должно быть задано в `.env`.
+Для запуска тестов используется файл .env.test:
 
-Для запуска тестов используется файл `.env.test`:
-
-```env
+env
 DB_HOST=db
 DB_PORT=3306
 DB_USER=root
@@ -216,126 +202,99 @@ DB_PASSWORD=2007
 DB_NAME=task_to_do_test
 JWT_SECRET_KEY=your_very_secret_key_here_32_chars_min
 CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-```
+Он подключается в core/config.py через SettingsTEST (при установленной переменной окружения ENV=test подгружается .env.test).
 
-Он подключается в `core/config.py` через `SettingsTEST` (при установленной переменной окружения `ENV=test` подгружается `.env.test`).
+Миграции базы данных
+Для управления схемой используется Alembic.
 
-## Миграции базы данных
+Создать новую миграцию (после изменения моделей):
 
-Для управления схемой используется **Alembic**.
+bash
+alembic revision --autogenerate -m "описание изменений"
+Применить миграции:
 
-- **Создать новую миграцию** (после изменения моделей):
+bash
+alembic upgrade head
+Откатиться на предыдущую версию:
 
-  ```bash
-  alembic revision --autogenerate -m "описание изменений"
-  ```
-
-- **Применить миграции:**
-
-  ```bash
-  alembic upgrade head
-  ```
-
-- **Откатиться на предыдущую версию:**
-
-  ```bash
-  alembic downgrade -1
-  ```
-
-> **Важно:** перед созданием миграции убедитесь, что ваши модели импортированы в `env.py`, чтобы Alembic мог их обнаружить.
+bash
+alembic downgrade -1
+Важно: перед созданием миграции убедитесь, что ваши модели импортированы в env.py, чтобы Alembic мог их обнаружить.
 
 В проекте есть следующие миграции:
 
-- `4ed2a0e57d1c_init.py` — начальная миграция (создаёт таблицы `users`, `projects`, `project_members`, `tasks`, `project_invitations`).
-- `38152136d0e1_add_task_favorite.py` — добавляет поле `tasks.task_favorite` и обновляет `server_default` для `created_date`, `update_date`, `joined_date`.
-- `80c4be0200f2_update_columns.py` — обновляет `server_default` и `NOT NULL` для полей дат и `status_invited`.
-- `68e4603380d9_add_ondelete_cascade_in_project_.py` — добавляет `ON DELETE CASCADE` для внешних ключей в `project_invitations` и `project_members`.
-- `93875e2f15c8_add_task_comments_and_update_admin_id_.py` — создаёт таблицу `task_comments`, переименовывает поле `admin_id` в `owner_id` в таблице `projects`.
-- `ec45a763898f_updating_the_role_model_in_the_project.py` — обновляет ролевую модель в проекте, возвращает поле `admin_id` (переименовывает `owner_id` обратно в `admin_id`) и создаёт `task_comments` (если ещё не создана).
+4ed2a0e57d1c_init.py — начальная миграция (создаёт таблицы users, projects, project_members, tasks, project_invitations).
 
-## Описание таблиц базы данных
+38152136d0e1_add_task_favorite.py — добавляет поле tasks.task_favorite и обновляет server_default для created_date, update_date, joined_date.
 
+80c4be0200f2_update_columns.py — обновляет server_default и NOT NULL для полей дат и status_invited.
+
+68e4603380d9_add_ondelete_cascade_in_project_.py — добавляет ON DELETE CASCADE для внешних ключей в project_invitations и project_members.
+
+93875e2f15c8_add_task_comments_and_update_admin_id_.py — создаёт таблицу task_comments, переименовывает поле admin_id в owner_id в таблице projects.
+
+ec45a763898f_updating_the_role_model_in_the_project.py — обновляет ролевую модель в проекте, возвращает поле admin_id (переименовывает owner_id обратно в admin_id) и создаёт task_comments (если ещё не создана).
+
+Описание таблиц базы данных
 Схема базы данных состоит из пяти таблиц, описанных ниже.
 
-### Таблица `users` (пользователи)
+Таблица users (пользователи)
+Поле	Тип	Ограничения	Описание
+user_id	int	PRIMARY KEY, AUTO_INCREMENT	Уникальный идентификатор
+username	varchar(50)	NOT NULL, UNIQUE	Имя пользователя
+email	varchar(100)	NOT NULL, UNIQUE	Электронная почта
+password_hash	varchar(255)	NOT NULL	Хеш пароля
+created_date	timestamp	NOT NULL, DEFAULT CURRENT_TIMESTAMP	Дата регистрации
+Таблица projects (проекты)
+Поле	Тип	Ограничения	Описание
+project_id	int	PRIMARY KEY, AUTO_INCREMENT	Уникальный идентификатор
+project_name	varchar(100)	NOT NULL	Название проекта
+project_description	text	YES	Описание проекта
+admin_id	int	NOT NULL, FOREIGN KEY	ID создателя (админа)
+Таблица project_members (участники проектов)
+Поле	Тип	Ограничения	Описание
+project_id	int	NOT NULL, FOREIGN KEY	ID проекта
+user_id	int	NOT NULL, FOREIGN KEY	ID пользователя
+role_project	enum	NOT NULL, DEFAULT 'member'	Роль (admin, curator или member)
+joined_date	timestamp	NOT NULL, DEFAULT CURRENT_TIMESTAMP	Дата присоединения
+Таблица tasks (задачи)
+Поле	Тип	Ограничения	Описание
+task_id	int	PRIMARY KEY, AUTO_INCREMENT	Уникальный идентификатор
+title	varchar(150)	NOT NULL	Название задачи
+task_description	text	YES	Описание задачи
+task_status	enum('pending','in_progress','completed')	YES, DEFAULT 'pending'	Статус задачи
+task_priority	enum('low','medium','high')	NOT NULL, DEFAULT 'low'	Приоритет задачи
+task_favorite	bool	NOT NULL, DEFAULT 0	Флаг «избранное»
+project_id	int	NOT NULL, FOREIGN KEY	ID проекта
+assigned_to	int	YES, FOREIGN KEY	ID исполнителя
+deadline	date	YES	Срок выполнения
+created_date	timestamp	NOT NULL, DEFAULT CURRENT_TIMESTAMP	Дата создания
+Таблица project_invitations (приглашения)
+Поле	Тип	Ограничения	Описание
+invitation_id	int	PRIMARY KEY, AUTO_INCREMENT	Уникальный идентификатор
+project_id	int	NOT NULL, FOREIGN KEY	ID проекта
+inviter_id	int	NOT NULL, FOREIGN KEY	ID пригласившего
+invitee_id	int	NOT NULL, FOREIGN KEY	ID приглашённого
+status_invited	enum('pending','accepted','declined')	YES, DEFAULT 'pending'	Статус приглашения
+created_date	timestamp	YES, DEFAULT CURRENT_TIMESTAMP	Дата создания
+update_date	timestamp	YES, DEFAULT CURRENT_TIMESTAMP	Дата последнего обновления
+message	text	YES	Сообщение к приглашению
+Документация API
+Базовый URL: http://localhost:8000/api/v1
 
-| Поле | Тип | Ограничения | Описание |
-|------|-----|-------------|----------|
-| `user_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор |
-| `username` | `varchar(50)` | NOT NULL, UNIQUE | Имя пользователя |
-| `email` | `varchar(100)` | NOT NULL, UNIQUE | Электронная почта |
-| `password_hash` | `varchar(255)` | NOT NULL | Хеш пароля |
-| `created_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата регистрации |
+Все эндпоинты, кроме регистрации и логина, требуют JWT-аутентификации. Токен передаётся в заголовке:
 
-### Таблица `projects` (проекты)
-
-| Поле | Тип | Ограничения | Описание |
-|------|-----|-------------|----------|
-| `project_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор |
-| `project_name` | `varchar(100)` | NOT NULL | Название проекта |
-| `project_description` | `text` | YES | Описание проекта |
-| `admin_id` | `int` | NOT NULL, FOREIGN KEY | ID создателя (админа) |
-
-### Таблица `project_members` (участники проектов)
-
-| Поле | Тип | Ограничения | Описание |
-|------|-----|-------------|----------|
-| `project_id` | `int` | NOT NULL, FOREIGN KEY | ID проекта |
-| `user_id` | `int` | NOT NULL, FOREIGN KEY | ID пользователя |
-| `role_project` | `enum` | NOT NULL, DEFAULT 'member' | Роль (`admin`, `curator` или `member`) |
-| `joined_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата присоединения |
-
-### Таблица `tasks` (задачи)
-
-| Поле | Тип | Ограничения | Описание |
-|------|-----|-------------|----------|
-| `task_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор |
-| `title` | `varchar(150)` | NOT NULL | Название задачи |
-| `task_description` | `text` | YES | Описание задачи |
-| `task_status` | `enum('pending','in_progress','completed')` | YES, DEFAULT 'pending' | Статус задачи |
-| `task_priority` | `enum('low','medium','high')` | NOT NULL, DEFAULT 'low' | Приоритет задачи |
-| `task_favorite` | `bool` | NOT NULL, DEFAULT 0 | Флаг «избранное» |
-| `project_id` | `int` | NOT NULL, FOREIGN KEY | ID проекта |
-| `assigned_to` | `int` | YES, FOREIGN KEY | ID исполнителя |
-| `deadline` | `date` | YES | Срок выполнения |
-| `created_date` | `timestamp` | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Дата создания |
-
-### Таблица `project_invitations` (приглашения)
-
-| Поле | Тип | Ограничения | Описание |
-|------|-----|-------------|----------|
-| `invitation_id` | `int` | PRIMARY KEY, AUTO_INCREMENT | Уникальный идентификатор |
-| `project_id` | `int` | NOT NULL, FOREIGN KEY | ID проекта |
-| `inviter_id` | `int` | NOT NULL, FOREIGN KEY | ID пригласившего |
-| `invitee_id` | `int` | NOT NULL, FOREIGN KEY | ID приглашённого |
-| `status_invited` | `enum('pending','accepted','declined')` | YES, DEFAULT 'pending' | Статус приглашения |
-| `created_date` | `timestamp` | YES, DEFAULT CURRENT_TIMESTAMP | Дата создания |
-| `update_date` | `timestamp` | YES, DEFAULT CURRENT_TIMESTAMP | Дата последнего обновления |
-| `message` | `text` | YES | Сообщение к приглашению |
-
-## Документация API
-
-**Базовый URL:** `http://localhost:8000/api/v1`
-
-Все эндпоинты, кроме регистрации и логина, требуют **JWT-аутентификации**. Токен передаётся в заголовке:
-
-```
+text
 Authorization: Bearer <token>
-```
+Аутентификация
+Метод	Эндпоинт	Описание	Требует аутентификации
+POST	/auth/register	Регистрация нового пользователя	❌
+POST	/auth/login	Вход в систему (получение токена)	❌
+POST	/auth/token	Логин для Swagger (OAuth2PasswordRequestForm)	❌
+Регистрация
+Запрос:
 
-### Аутентификация
-
-| Метод | Эндпоинт | Описание | Требует аутентификации |
-|-------|----------|----------|------------------------|
-| POST | `/auth/register` | Регистрация нового пользователя | ❌ |
-| POST | `/auth/login` | Вход в систему (получение токена) | ❌ |
-| POST | `/auth/token` | Логин для Swagger (OAuth2PasswordRequestForm) | ❌ |
-
-#### Регистрация
-
-**Запрос:**
-
-```http
+http
 POST /api/v1/auth/register
 Content-Type: application/json
 
@@ -344,26 +303,22 @@ Content-Type: application/json
   "email": "john@example.com",
   "password": "securepassword123"
 }
-```
+Успешный ответ (201 Created):
 
-**Успешный ответ (201 Created):**
-
-```json
+json
 {
   "message": "Пользователь создан"
 }
-```
+Ошибки:
 
-**Ошибки:**
+409 Conflict — имя пользователя или email уже заняты.
 
-- `409 Conflict` — имя пользователя или email уже заняты.
-- `422 Unprocessable Entity` — пароль короче 8 символов.
+422 Unprocessable Entity — пароль короче 8 символов.
 
-#### Логин
+Логин
+Запрос:
 
-**Запрос:**
-
-```http
+http
 POST /api/v1/auth/login
 Content-Type: application/json
 
@@ -371,67 +326,54 @@ Content-Type: application/json
   "username_or_email": "john_doe",
   "password": "securepassword123"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "bearer",
   "expires_in": 1800
 }
-```
+Ошибки:
 
-**Ошибки:**
+401 Unauthorized — неверные учётные данные.
 
-- `401 Unauthorized` — неверные учётные данные.
-- `422 Unprocessable Entity` — пустые поля.
+422 Unprocessable Entity — пустые поля.
 
-#### Логин для Swagger
+Логин для Swagger
+Запрос:
 
-**Запрос:**
-
-```http
+http
 POST /api/v1/auth/token
 Content-Type: application/x-www-form-urlencoded
 
 username=john_doe&password=securepassword123
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "bearer",
   "expires_in": 1800
 }
-```
+Получение информации о текущем пользователе
+Запрос:
 
-#### Получение информации о текущем пользователе
+Проекты
+Метод	Эндпоинт	Описание	Требует аутентификации	Роль
+POST	/projects	Создать проект	✅	-
+GET	/projects	Список проектов, где пользователь — админ	✅	-
+GET	/projects/all	Список всех проектов, где пользователь участвует	✅	-
+GET	/projects/{project_id}	Получить информацию о проекте	✅	member/admin/curator
+PUT	/projects/{project_id}	Обновить проект	✅	admin/curator
+DELETE	/projects/{project_id}	Удалить проект	✅	admin
+POST	/projects/{project_id}/members	Добавить участника в проект	✅	admin/curator
+DELETE	/projects/{project_id}/members/{user_id}	Удалить участника из проекта	✅	admin/curator
+PATCH	/projects/{project_id}/members/{user_id}/role	Изменить роль участника	✅	admin/curator
+Создание проекта
+Запрос:
 
-**Запрос:**
-
-### Проекты
-
-| Метод | Эндпоинт | Описание | Требует аутентификации | Роль |
-|-------|----------|----------|------------------------|------|
-| POST | `/projects` | Создать проект | ✅ | - |
-| GET | `/projects` | Список проектов, где пользователь — админ | ✅ | - |
-| GET | `/projects/all` | Список всех проектов, где пользователь участвует | ✅ | - |
-| GET | `/projects/{project_id}` | Получить информацию о проекте | ✅ | member/admin/curator |
-| PUT | `/projects/{project_id}` | Обновить проект | ✅ | admin/curator |
-| DELETE | `/projects/{project_id}` | Удалить проект | ✅ | admin |
-| POST | `/projects/{project_id}/members` | Добавить участника в проект | ✅ | admin/curator |
-| DELETE | `/projects/{project_id}/members/{user_id}` | Удалить участника из проекта | ✅ | admin/curator |
-| PATCH | `/projects/{project_id}/members/{user_id}/role` | Изменить роль участника | ✅ | admin/curator |
-
-#### Создание проекта
-
-**Запрос:**
-
-```http
+http
 POST /api/v1/projects
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -440,31 +382,24 @@ Content-Type: application/json
   "project_name": "Новый проект",
   "project_description": "Описание проекта"
 }
-```
+Успешный ответ (201 Created):
 
-**Успешный ответ (201 Created):**
-
-```json
+json
 {
   "project_id": 1,
   "project_name": "Новый проект",
   "project_description": "Описание проекта",
   "admin_id": 1
 }
-```
+Получение списка проектов (где пользователь — админ)
+Запрос:
 
-#### Получение списка проектов (где пользователь — админ)
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/projects
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "project_id": 1,
@@ -473,20 +408,15 @@ Authorization: Bearer <token>
     "admin_id": 1
   }
 ]
-```
+Получение списка всех проектов пользователя (админ + участник)
+Запрос:
 
-#### Получение списка всех проектов пользователя (админ + участник)
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/projects/all
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "project_id": 1,
@@ -501,20 +431,15 @@ Authorization: Bearer <token>
     "role": "member"
   }
 ]
-```
+Получение информации о проекте
+Запрос:
 
-#### Получение информации о проекте
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/projects/1
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "project_id": 1,
   "project_name": "Новый проект",
@@ -533,18 +458,16 @@ Authorization: Bearer <token>
     }
   ]
 }
-```
+Ошибки:
 
-**Ошибки:**
+404 Not Found — проект не найден.
 
-- `404 Not Found` — проект не найден.
-- `403 Forbidden` — пользователь не является участником проекта.
+403 Forbidden — пользователь не является участником проекта.
 
-#### Обновление проекта
+Обновление проекта
+Запрос:
 
-**Запрос:**
-
-```http
+http
 PUT /api/v1/projects/1
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -553,56 +476,46 @@ Content-Type: application/json
   "project_name": "Обновлённое название",
   "project_description": "Новое описание"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Проект обновлен!"
 }
-```
-
 Если данные не изменились:
 
-```json
+json
 {
   "message": "Ничего не изменилось!"
 }
-```
+Ошибки:
 
-**Ошибки:**
+403 Forbidden — пользователь не админ/куратор проекта.
 
-- `403 Forbidden` — пользователь не админ/куратор проекта.
-- `404 Not Found` — проект не найден.
+404 Not Found — проект не найден.
 
-#### Удаление проекта
+Удаление проекта
+Запрос:
 
-**Запрос:**
-
-```http
+http
 DELETE /api/v1/projects/1
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Проект успешно удален!"
 }
-```
+Ошибки:
 
-**Ошибки:**
+403 Forbidden — пользователь не админ проекта.
 
-- `403 Forbidden` — пользователь не админ проекта.
-- `404 Not Found` — проект не найден.
+404 Not Found — проект не найден.
 
-#### Добавление участника в проект
+Добавление участника в проект
+Запрос:
 
-**Запрос:**
-
-```http
+http
 POST /api/v1/projects/1/members
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -610,87 +523,75 @@ Content-Type: application/json
 {
   "user_id": 2
 }
-```
+Успешный ответ (201 Created):
 
-**Успешный ответ (201 Created):**
-
-```json
+json
 {
   "message": "Пользователь добавлен в проект!"
 }
-```
+Ошибки:
 
-**Ошибки:**
+400 Bad Request — попытка добавить самого себя.
 
-- `400 Bad Request` — попытка добавить самого себя.
-- `403 Forbidden` — пользователь не админ/куратор проекта.
-- `404 Not Found` — пользователь не найден.
-- `409 Conflict` — пользователь уже состоит в проекте.
+403 Forbidden — пользователь не админ/куратор проекта.
 
-#### Удаление участника из проекта
+404 Not Found — пользователь не найден.
 
-**Запрос:**
+409 Conflict — пользователь уже состоит в проекте.
 
-```http
+Удаление участника из проекта
+Запрос:
+
+http
 DELETE /api/v1/projects/1/members/2
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Пользователь удален из проекта!"
 }
-```
+Ошибки:
 
-**Ошибки:**
+400 Bad Request — попытка удалить самого себя (единственного админа).
 
-- `400 Bad Request` — попытка удалить самого себя (единственного админа).
-- `403 Forbidden` — пользователь не админ/куратор проекта.
-- `409 Conflict` — пользователь не состоит в проекте.
+403 Forbidden — пользователь не админ/куратор проекта.
 
-#### Изменение роли участника
+409 Conflict — пользователь не состоит в проекте.
 
-**Запрос:**
+Изменение роли участника
+Запрос:
 
-```http
+http
 PATCH /api/v1/projects/1/members/2/role?role=admin
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Роль обновлена"
 }
-```
+Ошибки:
 
-**Ошибки:**
+400 Bad Request — попытка понизить единственного админа.
 
-- `400 Bad Request` — попытка понизить единственного админа.
-- `403 Forbidden` — пользователь не админ/куратор проекта.
+403 Forbidden — пользователь не админ/куратор проекта.
 
-### Задачи
+Задачи
+Метод	Эндпоинт	Описание	Требует аутентификации	Роль
+GET	/tasks	Получить задачи, назначенные текущему пользователю	✅	-
+GET	/projects/{project_id}/tasks	Получить все задачи проекта	✅	member/admin/curator
+GET	/projects/{project_id}/tasks/{task_id}	Получить детали задачи	✅	member/admin/curator
+POST	/projects/{project_id}/tasks	Создать задачу в проекте	✅	member/admin/curator
+PUT	/projects/{project_id}/tasks/{task_id}	Обновить задачу	✅	member/admin/curator*
+PATCH	/projects/{project_id}/tasks/{task_id}/status	Изменить статус задачи	✅	member/admin/curator*
+DELETE	/projects/{project_id}/tasks/{task_id}	Удалить задачу	✅	admin/curator
+* member может обновлять задачу и менять её статус только если он назначен исполнителем этой задачи.
 
-| Метод | Эндпоинт | Описание | Требует аутентификации | Роль |
-|-------|----------|----------|------------------------|------|
-| GET | `/tasks` | Получить задачи, назначенные текущему пользователю | ✅ | - |
-| GET | `/projects/{project_id}/tasks` | Получить все задачи проекта | ✅ | member/admin/curator |
-| GET | `/projects/{project_id}/tasks/{task_id}` | Получить детали задачи | ✅ | member/admin/curator |
-| POST | `/projects/{project_id}/tasks` | Создать задачу в проекте | ✅ | member/admin/curator |
-| PUT | `/projects/{project_id}/tasks/{task_id}` | Обновить задачу | ✅ | member/admin/curator* |
-| PATCH | `/projects/{project_id}/tasks/{task_id}/status` | Изменить статус задачи | ✅ | member/admin/curator* |
-| DELETE | `/projects/{project_id}/tasks/{task_id}` | Удалить задачу | ✅ | admin/curator |
+Создание задачи
+Запрос:
 
-> \* member может обновлять задачу и менять её статус только если он назначен исполнителем этой задачи.
-
-#### Создание задачи
-
-**Запрос:**
-
-```http
+http
 POST /api/v1/projects/1/tasks
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -704,11 +605,9 @@ Content-Type: application/json
   "assigned_to": 2,                   // ID пользователя (опционально)
   "deadline": "2026-09-01"            // в формате YYYY-MM-DD
 }
-```
+Успешный ответ (201 Created):
 
-**Успешный ответ (201 Created):**
-
-```json
+json
 {
   "task_id": 1,
   "title": "Написать документацию",
@@ -721,20 +620,15 @@ Content-Type: application/json
   "deadline": "2026-09-01",
   "created_date": "2026-08-20T10:00:00"
 }
-```
+Получение всех задач проекта
+Запрос:
 
-#### Получение всех задач проекта
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/projects/1/tasks
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "task_id": 1,
@@ -746,20 +640,15 @@ Authorization: Bearer <token>
     "deadline": "2026-09-01"
   }
 ]
-```
+Получение деталей задачи
+Запрос:
 
-#### Получение деталей задачи
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/projects/1/tasks/1
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "task_id": 1,
   "title": "Написать документацию",
@@ -772,13 +661,10 @@ Authorization: Bearer <token>
   "deadline": "2026-09-01",
   "created_date": "2026-08-20T10:00:00"
 }
-```
+Обновление задачи
+Запрос:
 
-#### Обновление задачи
-
-**Запрос:**
-
-```http
+http
 PUT /api/v1/projects/1/tasks/1
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -792,21 +678,16 @@ Content-Type: application/json
   "assigned_to": 3,
   "deadline": "2026-10-01"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Задача обновилась!"
 }
-```
+Изменение статуса задачи
+Запрос:
 
-#### Изменение статуса задачи
-
-**Запрос:**
-
-```http
+http
 PATCH /api/v1/projects/1/tasks/1/status
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -814,49 +695,37 @@ Content-Type: application/json
 {
   "task_status": "completed"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Статус обновлен!"
 }
-```
+Удаление задачи
+Запрос:
 
-#### Удаление задачи
-
-**Запрос:**
-
-```http
+http
 DELETE /api/v1/projects/1/tasks/1
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Задача удалена из проекта!"
 }
-```
+Ошибки:
 
-**Ошибки:**
+403 Forbidden — пользователь не админ/куратор проекта.
 
-- `403 Forbidden` — пользователь не админ/куратор проекта.
+Получение задач, назначенных текущему пользователю
+Запрос:
 
-#### Получение задач, назначенных текущему пользователю
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/tasks
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "task_id": 1,
@@ -866,25 +735,19 @@ Authorization: Bearer <token>
     "deadline": "2026-09-01"
   }
 ]
-```
+Приглашения
+Метод	Эндпоинт	Описание	Требует аутентификации	Роль
+POST	/projects/{project_id}/invitations	Отправить приглашение в проект	✅	member/admin/curator
+GET	/invitations	Список входящих приглашений для пользователя	✅	-
+GET	/invitations/project/{project_id}	Список приглашений проекта	✅	member/admin/curator
+PATCH	/invitations/{invitation_id}	Принять/отклонить приглашение	✅	invitee (адресат)
+DELETE	/invitations/{invitation_id}	Отменить приглашение	✅	member/admin/curator**
+** member может отменить приглашение, только если он является его отправителем; admin/curator могут отменить любое приглашение проекта.
 
-### Приглашения
+Отправка приглашения
+Запрос:
 
-| Метод | Эндпоинт | Описание | Требует аутентификации | Роль |
-|-------|----------|----------|------------------------|------|
-| POST | `/projects/{project_id}/invitations` | Отправить приглашение в проект | ✅ | member/admin/curator |
-| GET | `/invitations` | Список входящих приглашений для пользователя | ✅ | - |
-| GET | `/invitations/project/{project_id}` | Список приглашений проекта | ✅ | member/admin/curator |
-| PATCH | `/invitations/{invitation_id}` | Принять/отклонить приглашение | ✅ | invitee (адресат) |
-| DELETE | `/invitations/{invitation_id}` | Отменить приглашение | ✅ | member/admin/curator** |
-
-> \*\* member может отменить приглашение, только если он является его отправителем; admin/curator могут отменить любое приглашение проекта.
-
-#### Отправка приглашения
-
-**Запрос:**
-
-```http
+http
 POST /api/v1/projects/1/invitations
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -893,11 +756,9 @@ Content-Type: application/json
   "user_id": 3,
   "message": "Присоединяйся к нашему проекту!"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "invitation_id": 1,
   "project_id": 1,
@@ -908,20 +769,15 @@ Content-Type: application/json
   "update_date": "2026-08-20T10:00:00",
   "message": "Присоединяйся к нашему проекту!"
 }
-```
+Получение списка приглашений для пользователя
+Запрос:
 
-#### Получение списка приглашений для пользователя
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/invitations
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "invitation_id": 1,
@@ -934,20 +790,15 @@ Authorization: Bearer <token>
     "message": "Присоединяйся к нашему проекту!"
   }
 ]
-```
+Получение списка приглашений проекта
+Запрос:
 
-#### Получение списка приглашений проекта
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/invitations/project/1
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "invitation_id": 1,
@@ -956,13 +807,10 @@ Authorization: Bearer <token>
     "created_date": "2026-08-07T20:13:03"
   }
 ]
-```
+Ответ на приглашение
+Запрос:
 
-#### Ответ на приглашение
-
-**Запрос:**
-
-```http
+http
 PATCH /api/v1/invitations/1
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -970,69 +818,51 @@ Content-Type: application/json
 {
   "action": "accepted"  // или "declined"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Приглашение accepted"
 }
-```
-
 При успешном принятии пользователь автоматически добавляется в проект как участник.
 
-#### Отмена приглашения
+Отмена приглашения
+Запрос:
 
-**Запрос:**
-
-```http
+http
 DELETE /api/v1/invitations/1
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Приглашение отменено"
 }
-```
+Профиль пользователя
+Метод	Эндпоинт	Описание	Требует аутентификации
+GET	/profile	Получить данные текущего пользователя	✅
+PUT	/profile/username	Обновить имя пользователя	✅
+PUT	/profile/email	Обновить email пользователя	✅
+PATCH	/profile/password	Обновить пароль пользователя	✅
+Получение данных профиля
+Запрос:
 
-### Профиль пользователя
-
-| Метод | Эндпоинт | Описание | Требует аутентификации |
-|-------|----------|----------|------------------------|
-| GET | `/profile` | Получить данные текущего пользователя | ✅ |
-| PUT | `/profile/username` | Обновить имя пользователя | ✅ |
-| PUT | `/profile/email` | Обновить email пользователя | ✅ |
-| PATCH | `/profile/password` | Обновить пароль пользователя | ✅ |
-
-#### Получение данных профиля
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/profile
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "user_id": 1,
   "username": "john_doe",
   "email": "john@example.com",
   "created_date": "2026-08-20T10:00:00"
 }
-```
+Обновление имени
+Запрос:
 
-#### Обновление имени
-
-**Запрос:**
-
-```http
+http
 PUT /api/v1/profile/username
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1040,21 +870,16 @@ Content-Type: application/json
 {
   "username": "new_username"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Имя пользователя обновлено!"
 }
-```
+Обновление email
+Запрос:
 
-#### Обновление email
-
-**Запрос:**
-
-```http
+http
 PUT /api/v1/profile/email
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1062,21 +887,16 @@ Content-Type: application/json
 {
   "email": "new_email@example.com"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Email пользователя обновлено!"
 }
-```
+Обновление пароля
+Запрос:
 
-#### Обновление пароля
-
-**Запрос:**
-
-```http
+http
 PATCH /api/v1/profile/password
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -1084,34 +904,24 @@ Content-Type: application/json
 {
   "password": "new_secure_password"
 }
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 {
   "message": "Пароль пользователя обновлен!"
 }
-```
+Пользователи
+Метод	Эндпоинт	Описание	Требует аутентификации
+GET	/users/search?search_user=...	Поиск пользователя по нику	✅
+Поиск пользователя по нику
+Запрос:
 
-### Пользователи
-
-| Метод | Эндпоинт | Описание | Требует аутентификации |
-|-------|----------|----------|------------------------|
-| GET | `/users/search?search_user=...` | Поиск пользователя по нику | ✅ |
-
-#### Поиск пользователя по нику
-
-**Запрос:**
-
-```http
+http
 GET /api/v1/users/search?search_user=john
 Authorization: Bearer <token>
-```
+Успешный ответ (200 OK):
 
-**Успешный ответ (200 OK):**
-
-```json
+json
 [
   {
     "user_id": 1,
@@ -1120,23 +930,19 @@ Authorization: Bearer <token>
     "created_date": "2026-08-20T10:00:00"
   }
 ]
-```
+Ошибки:
 
-**Ошибки:**
+404 Not Found — пользователь не найден.
 
-- `404 Not Found` — пользователь не найден.
+⚠️ В коде репозитория (UserRepository.search_by_username) возвращается list[dict], при этом сервис search_by_username в services/user_service.py типизирован как UserModel | dict. Проверьте фактический формат ответа.
 
-> ⚠️ В коде репозитория (`UserRepository.search_by_username`) возвращается `list[dict]`, при этом сервис `search_by_username` в `services/user_service.py` типизирован как `UserModel | dict`. Проверьте фактический формат ответа.
+Тестирование
+Для тестирования API используется pytest с асинхронной поддержкой и httpx. Все тесты находятся в директории tests/ и покрывают основные сценарии работы с эндпоинтами, а также репозитории и сервисы.
 
-## Тестирование
+Общее количество тестов: 324 — все успешно проходят.
 
-Для тестирования API используется **pytest** с асинхронной поддержкой и **httpx**. Все тесты находятся в директории `tests/` и покрывают основные сценарии работы с эндпоинтами, а также репозитории и сервисы.
-
-Общее количество тестов: **324** — все успешно проходят.
-
-### Структура тестов
-
-```
+Структура тестов
+text
 tests/
 ├── conftest.py               # Фикстуры и настройка pytest
 ├── test_api/                 # Тесты API (109 тестов)
@@ -1157,270 +963,231 @@ tests/
     ├── test_project_service.py
     ├── test_task_service.py
     └── test_user_service.py
-```
+Запуск тестов
+Убедитесь, что создан файл .env.test с настройками для тестовой базы данных.
 
-### Запуск тестов
+Запустите тесты:
 
-1. Убедитесь, что создан файл `.env.test` с настройками для тестовой базы данных.
-2. Запустите тесты:
+bash
+pytest -v
+Описание тестов
+Тесты API (test_api/)
+Тесты аутентификации (test_auth.py)
+Название теста	Описание
+test_register_success	Успешная регистрация нового пользователя.
+test_register_duplicate_username	Попытка регистрации с уже существующим именем пользователя.
+test_register_duplicate_email	Попытка регистрации с уже существующим email.
+test_login_success_username	Успешный вход по имени пользователя.
+test_login_success_email	Успешный вход по email.
+test_login_wrong_password	Попытка входа с неверным паролем.
+test_login_user_not_found	Попытка входа с несуществующим пользователем.
+test_login_empty_fields	Попытка входа с пустыми полями.
+test_short_password	Попытка регистрации с паролем короче 8 символов.
+test_get_current_user_info	Получение информации о текущем пользователе через /auth/me.
+test_register_invalid_email	Регистрация с невалидным email.
+test_register_empty_fields	Регистрация с пустыми полями (username, email, password).
+test_login_empty_username	Логин с пустым username_or_email.
+test_login_empty_password	Логин с пустым password.
+test_get_current_user_unauthorized	Запрос /auth/me без токена.
+test_get_current_user_invalid_token	Запрос /auth/me с неверным токеном.
+Тесты проектов (test_projects.py)
+Название теста	Описание
+test_successful_project_creation	Успешное создание проекта.
+test_attempt_create_project_without_authorization	Создание проекта без токена.
+test_attempt_create_project_with_incorrect_data	Создание проекта с некорректными данными.
+test_authorized_admin_projects_returned	Получение списка проектов, где пользователь — админ.
+test_attempt_get_non_existent_project	Попытка получить несуществующий проект.
+test_attempt_get_project_that_user_not_part	Попытка получить проект, в котором пользователь не состоит.
+test_authorized_user_projects_returned	Получение всех проектов пользователя.
+test_getting_project_lets_project_participant_see_details	Участник проекта получает его детали.
+test_admin_update_project	Админ обновляет проект.
+test_updating_not_existent_project	Попытка обновить несуществующий проект.
+test_deleting_not_existent_project	Попытка удалить несуществующий проект.
+test_regular_participant_not_update_project	Обычный участник не может обновить проект.
+test_admin_delete_project	Админ удаляет проект.
+test_regular_participant_not_delete_project	Обычный участник не может удалить проект.
+test_admin_add_existing_user	Админ добавляет пользователя в проект.
+test_adding_yourself	Попытка добавить самого себя.
+test_admin_not_add_user_already_in_project	Попытка добавить уже существующего участника.
+test_admin_delete_anyone	Админ удаляет участника.
+test_regular_member_not_delete_anyone	Обычный участник не может удалить другого.
+test_admin_raise_or_lower_role	Админ повышает/понижает роль.
+test_not_demote_only_admin	Попытка понизить единственного админа.
+test_empty_projects_list_for_new_user	Новый пользователь получает пустой список проектов.
+test_regular_member_add_user_to_project	Обычный участник не может добавить пользователя.
+test_admin_add_non_existent_user	Попытка добавить несуществующего пользователя.
+test_admin_delete_user_not_in_project	Попытка удалить пользователя, не состоящего в проекте.
+test_member_projects_list	Участник видит проекты, в которых состоит.
+test_regular_member_change_role	Обычный участник не может изменить роль.
+test_add_user_to_non_existent_project	Попытка добавить пользователя в несуществующий проект.
+test_update_project_with_no_changes	Обновление проекта без изменений.
+test_update_project_user_not_member	Попытка обновить проект пользователем, не состоящим в нём.
+test_admin_delete_self_from_project	Попытка админа удалить самого себя (запрещено).
+Тесты задач (test_tasks.py)
+Название теста	Описание
+test_creating_task_in_project_by_member	Участник проекта создаёт задачу.
+test_attempt_create_task_by_non_participant	Пользователь, не состоящий в проекте, не может создать задачу.
+test_getting_project_task_list	Участник проекта получает список задач.
+test_getting_task_by_ID	Получение конкретной задачи по ID.
+test_update_task	Обновление задачи участником.
+test_delete_task	Удаление задачи участником.
+test_changing_task_status	Изменение статуса задачи.
+test_attempt_get_non_existent_task	Запрос несуществующей задачи.
+test_create_task_with_deadline_in_past	Создание задачи с дэдлайном в прошлом (ошибка).
+test_create_task_with_assigned_to_not_in_project	Назначение задачи пользователю вне проекта.
+test_get_tasks_for_current_user	Получение задач, назначенных на текущего пользователя.
+test_get_task_info_by_participant	Получение информации о задаче участником.
+test_get_task_info_by_non_participant	Не участник не может получить информацию о задаче.
+test_get_task_info_for_non_existent_task	Получение информации о несуществующей задаче.
+test_update_task_by_admin	Администратор обновляет задачу.
+test_update_task_by_member	Участник обновляет задачу.
+test_update_task_with_invalid_deadline	Обновление дэдлайна на прошедшую дату (ошибка).
+test_update_task_set_assigned_to_not_in_project	Назначение задачи на пользователя вне проекта при обновлении.
+test_delete_task_by_admin	Администратор удаляет задачу.
+test_delete_task_by_member	Участник удаляет задачу (разрешено).
+test_change_status_to_valid	Изменение статуса на допустимое значение.
+test_change_status_to_invalid	Попытка установить недопустимый статус.
+test_change_status_of_non_existent_task	Изменение статуса у несуществующей задачи.
+test_change_status_by_non_participant	Не участник не может изменить статус задачи.
+Тесты приглашений (test_invitations.py)
+Название теста	Описание
+test_send_invitation_by_admin	Администратор отправляет приглашение.
+test_send_invitation_by_non_admin	Участник (не админ) не может отправить приглашение.
+test_get_user_invitations	Получение списка входящих приглашений для пользователя.
+test_get_project_invitations_by_admin	Администратор получает список приглашений проекта.
+test_get_project_invitations_by_non_admin	Участник (не админ) не может получить список приглашений проекта.
+test_accept_invitation	Пользователь принимает приглашение.
+test_reject_invitation	Пользователь отклоняет приглашение.
+test_cancel_invitation_by_admin	Администратор отменяет приглашение.
+test_cancel_invitation_by_non_admin	Участник (не админ) не может отменить приглашение.
+test_accept_already_processed_invitation	Попытка принять уже обработанное приглашение.
+test_cancel_invitation_by_outsider	Посторонний пользователь не может отменить приглашение.
+test_get_project_invitations_by_outsider	Пользователь, не состоящий в проекте, не может получить список приглашений.
+test_send_invitation_to_existing_member	Приглашение пользователя, уже состоящего в проекте.
+test_send_invitation_to_self	Админ приглашает самого себя.
+test_send_invitation_to_nonexistent_user	Приглашение несуществующего пользователя.
+test_reject_invitation_already_processed	Отклонение уже принятого приглашения.
+test_accept_invitation_already_rejected	Принятие уже отклонённого приглашения.
+test_cancel_invitation_already_processed	Отмена уже принятого приглашения администратором.
+test_get_user_invitations_empty	Пользователь без приглашений получает пустой список.
+test_get_project_invitations_empty	Проект без приглашений возвращает пустой список.
+Тесты профиля (test_profile.py)
+Название теста	Описание
+test_update_username_success	Успешное обновление имени пользователя.
+test_update_username_unauthorized	Запрос без токена.
+test_update_email_success	Успешное обновление email.
+test_update_email_unauthorized	Запрос без токена.
+test_get_profile_success	Получение данных профиля.
+test_update_username_conflict	Обновление username на уже существующий.
+test_update_email_conflict	Обновление email на уже существующий.
+test_update_username_empty	Обновление username на пустую строку.
+test_update_email_invalid	Обновление email на невалидный.
+test_update_username_too_long	Обновление username на слишком длинное значение.
+test_update_email_too_long	Обновление email на слишком длинное значение.
+test_get_profile_unauthorized	Запрос /profile без токена.
+Тесты репозиториев (test_repositories/)
+Файл	Описание	Количество тестов
+test_user_repository.py	Тесты методов работы с пользователями (создание, поиск, обновление, удаление, проверка уникальности).	~30
+test_project_repository.py	Тесты управления проектами и участниками (создание, добавление/удаление участников, роли, удаление проекта).	~35
+test_task_repository.py	Тесты операций с задачами (создание, назначение, обновление, удаление, проверка принадлежности проекту).	~19
+test_invitation_repository.py	Тесты управления приглашениями (создание, получение по пользователю/проекту, обновление статуса, удаление).	~13
+Тесты сервисов (test_services/)
+Файл	Описание	Количество тестов
+test_auth_service.py	Тесты аутентификации и регистрации.	~10
+test_invitation_service.py	Тесты логики приглашений.	~17
+test_project_member_service.py	Тесты управления ролями участников.	~7
+test_project_service.py	Тесты бизнес-логики проектов.	~20
+test_task_service.py	Тесты бизнес-логики задач.	~20
+test_user_service.py	Тесты обновления профиля пользователя.	~10
+Описание основных фикстур (conftest.py)
+Фикстура	Описание
+sync_engine	Создаёт синхронный движок SQLAlchemy (pymysql), создаёт все таблицы через Base.metadata.create_all.
+async_engine	Создаёт асинхронный движок SQLAlchemy для тестов.
+db_session	Создаёт новую сессию базы данных для каждого теста, откатывает транзакцию после.
+async_client	Предоставляет асинхронный HTTP-клиент для тестирования эндпоинтов без запуска сервера.
+create_test_user	Создаёт тестового пользователя с заданным паролем.
+test_users	Создаёт четырёх тестовых пользователей: admin, member, outsider, user_profile.
+auth_headers	Возвращает заголовки с JWT-токеном для пользователя admin.
+member_auth_headers	Возвращает заголовки с JWT-токеном для пользователя member.
+test_project	Создаёт тестовый проект с пользователем admin в роли администратора.
+test_project_with_member	Создаёт тестовый проект и добавляет в него пользователя member.
+test_task	Создаёт тестовую задачу в проекте.
+test_invitation	Создаёт тестовое приглашение в проект.
+Нагрузочное тестирование
+Для проверки производительности и стабильности API реализован набор нагрузочных тестов с использованием Locust. Тесты расположены в директории tests/load/ и позволяют симулировать одновременную работу нескольких сотен пользователей.
 
-   ```bash
-   pytest -v
-   ```
+Подготовка
+Убедитесь, что все зависимости установлены (включая locust из requirements.txt).
 
-### Описание тестов
+Для нагрузочного тестирования используется отдельная тестовая база данных (настройки берутся из .env.test). Перед запуском тестов база данных будет заполнена тестовыми данными с помощью скрипта seed_data.py, который создаёт:
 
-#### Тесты API (`test_api/`)
+500 пользователей,
 
-##### Тесты аутентификации (`test_auth.py`)
+200 проектов,
 
-| Название теста | Описание |
-|----------------|----------|
-| `test_register_success` | Успешная регистрация нового пользователя. |
-| `test_register_duplicate_username` | Попытка регистрации с уже существующим именем пользователя. |
-| `test_register_duplicate_email` | Попытка регистрации с уже существующим email. |
-| `test_login_success_username` | Успешный вход по имени пользователя. |
-| `test_login_success_email` | Успешный вход по email. |
-| `test_login_wrong_password` | Попытка входа с неверным паролем. |
-| `test_login_user_not_found` | Попытка входа с несуществующим пользователем. |
-| `test_login_empty_fields` | Попытка входа с пустыми полями. |
-| `test_short_password` | Попытка регистрации с паролем короче 8 символов. |
-| `test_get_current_user_info` | Получение информации о текущем пользователе через `/auth/me`. |
-| `test_register_invalid_email` | Регистрация с невалидным email. |
-| `test_register_empty_fields` | Регистрация с пустыми полями (username, email, password). |
-| `test_login_empty_username` | Логин с пустым `username_or_email`. |
-| `test_login_empty_password` | Логин с пустым `password`. |
-| `test_get_current_user_unauthorized` | Запрос `/auth/me` без токена. |
-| `test_get_current_user_invalid_token` | Запрос `/auth/me` с неверным токеном. |
+участников в каждом проекте,
 
-##### Тесты проектов (`test_projects.py`)
+по 10 задач в каждом проекте.
 
-| Название теста | Описание |
-|----------------|----------|
-| `test_successful_project_creation` | Успешное создание проекта. |
-| `test_attempt_create_project_without_authorization` | Создание проекта без токена. |
-| `test_attempt_create_project_with_incorrect_data` | Создание проекта с некорректными данными. |
-| `test_authorized_admin_projects_returned` | Получение списка проектов, где пользователь — админ. |
-| `test_attempt_get_non_existent_project` | Попытка получить несуществующий проект. |
-| `test_attempt_get_project_that_user_not_part` | Попытка получить проект, в котором пользователь не состоит. |
-| `test_authorized_user_projects_returned` | Получение всех проектов пользователя. |
-| `test_getting_project_lets_project_participant_see_details` | Участник проекта получает его детали. |
-| `test_admin_update_project` | Админ обновляет проект. |
-| `test_updating_not_existent_project` | Попытка обновить несуществующий проект. |
-| `test_deleting_not_existent_project` | Попытка удалить несуществующий проект. |
-| `test_regular_participant_not_update_project` | Обычный участник не может обновить проект. |
-| `test_admin_delete_project` | Админ удаляет проект. |
-| `test_regular_participant_not_delete_project` | Обычный участник не может удалить проект. |
-| `test_admin_add_existing_user` | Админ добавляет пользователя в проект. |
-| `test_adding_yourself` | Попытка добавить самого себя. |
-| `test_admin_not_add_user_already_in_project` | Попытка добавить уже существующего участника. |
-| `test_admin_delete_anyone` | Админ удаляет участника. |
-| `test_regular_member_not_delete_anyone` | Обычный участник не может удалить другого. |
-| `test_admin_raise_or_lower_role` | Админ повышает/понижает роль. |
-| `test_not_demote_only_admin` | Попытка понизить единственного админа. |
-| `test_empty_projects_list_for_new_user` | Новый пользователь получает пустой список проектов. |
-| `test_regular_member_add_user_to_project` | Обычный участник не может добавить пользователя. |
-| `test_admin_add_non_existent_user` | Попытка добавить несуществующего пользователя. |
-| `test_admin_delete_user_not_in_project` | Попытка удалить пользователя, не состоящего в проекте. |
-| `test_member_projects_list` | Участник видит проекты, в которых состоит. |
-| `test_regular_member_change_role` | Обычный участник не может изменить роль. |
-| `test_add_user_to_non_existent_project` | Попытка добавить пользователя в несуществующий проект. |
-| `test_update_project_with_no_changes` | Обновление проекта без изменений. |
-| `test_update_project_user_not_member` | Попытка обновить проект пользователем, не состоящим в нём. |
-| `test_admin_delete_self_from_project` | Попытка админа удалить самого себя (запрещено). |
-
-##### Тесты задач (`test_tasks.py`)
-
-| Название теста | Описание |
-|----------------|----------|
-| `test_creating_task_in_project_by_member` | Участник проекта создаёт задачу. |
-| `test_attempt_create_task_by_non_participant` | Пользователь, не состоящий в проекте, не может создать задачу. |
-| `test_getting_project_task_list` | Участник проекта получает список задач. |
-| `test_getting_task_by_ID` | Получение конкретной задачи по ID. |
-| `test_update_task` | Обновление задачи участником. |
-| `test_delete_task` | Удаление задачи участником. |
-| `test_changing_task_status` | Изменение статуса задачи. |
-| `test_attempt_get_non_existent_task` | Запрос несуществующей задачи. |
-| `test_create_task_with_deadline_in_past` | Создание задачи с дэдлайном в прошлом (ошибка). |
-| `test_create_task_with_assigned_to_not_in_project` | Назначение задачи пользователю вне проекта. |
-| `test_get_tasks_for_current_user` | Получение задач, назначенных на текущего пользователя. |
-| `test_get_task_info_by_participant` | Получение информации о задаче участником. |
-| `test_get_task_info_by_non_participant` | Не участник не может получить информацию о задаче. |
-| `test_get_task_info_for_non_existent_task` | Получение информации о несуществующей задаче. |
-| `test_update_task_by_admin` | Администратор обновляет задачу. |
-| `test_update_task_by_member` | Участник обновляет задачу. |
-| `test_update_task_with_invalid_deadline` | Обновление дэдлайна на прошедшую дату (ошибка). |
-| `test_update_task_set_assigned_to_not_in_project` | Назначение задачи на пользователя вне проекта при обновлении. |
-| `test_delete_task_by_admin` | Администратор удаляет задачу. |
-| `test_delete_task_by_member` | Участник удаляет задачу (разрешено). |
-| `test_change_status_to_valid` | Изменение статуса на допустимое значение. |
-| `test_change_status_to_invalid` | Попытка установить недопустимый статус. |
-| `test_change_status_of_non_existent_task` | Изменение статуса у несуществующей задачи. |
-| `test_change_status_by_non_participant` | Не участник не может изменить статус задачи. |
-
-##### Тесты приглашений (`test_invitations.py`)
-
-| Название теста | Описание |
-|----------------|----------|
-| `test_send_invitation_by_admin` | Администратор отправляет приглашение. |
-| `test_send_invitation_by_non_admin` | Участник (не админ) не может отправить приглашение. |
-| `test_get_user_invitations` | Получение списка входящих приглашений для пользователя. |
-| `test_get_project_invitations_by_admin` | Администратор получает список приглашений проекта. |
-| `test_get_project_invitations_by_non_admin` | Участник (не админ) не может получить список приглашений проекта. |
-| `test_accept_invitation` | Пользователь принимает приглашение. |
-| `test_reject_invitation` | Пользователь отклоняет приглашение. |
-| `test_cancel_invitation_by_admin` | Администратор отменяет приглашение. |
-| `test_cancel_invitation_by_non_admin` | Участник (не админ) не может отменить приглашение. |
-| `test_accept_already_processed_invitation` | Попытка принять уже обработанное приглашение. |
-| `test_cancel_invitation_by_outsider` | Посторонний пользователь не может отменить приглашение. |
-| `test_get_project_invitations_by_outsider` | Пользователь, не состоящий в проекте, не может получить список приглашений. |
-| `test_send_invitation_to_existing_member` | Приглашение пользователя, уже состоящего в проекте. |
-| `test_send_invitation_to_self` | Админ приглашает самого себя. |
-| `test_send_invitation_to_nonexistent_user` | Приглашение несуществующего пользователя. |
-| `test_reject_invitation_already_processed` | Отклонение уже принятого приглашения. |
-| `test_accept_invitation_already_rejected` | Принятие уже отклонённого приглашения. |
-| `test_cancel_invitation_already_processed` | Отмена уже принятого приглашения администратором. |
-| `test_get_user_invitations_empty` | Пользователь без приглашений получает пустой список. |
-| `test_get_project_invitations_empty` | Проект без приглашений возвращает пустой список. |
-
-##### Тесты профиля (`test_profile.py`)
-
-| Название теста | Описание |
-|----------------|----------|
-| `test_update_username_success` | Успешное обновление имени пользователя. |
-| `test_update_username_unauthorized` | Запрос без токена. |
-| `test_update_email_success` | Успешное обновление email. |
-| `test_update_email_unauthorized` | Запрос без токена. |
-| `test_get_profile_success` | Получение данных профиля. |
-| `test_update_username_conflict` | Обновление username на уже существующий. |
-| `test_update_email_conflict` | Обновление email на уже существующий. |
-| `test_update_username_empty` | Обновление username на пустую строку. |
-| `test_update_email_invalid` | Обновление email на невалидный. |
-| `test_update_username_too_long` | Обновление username на слишком длинное значение. |
-| `test_update_email_too_long` | Обновление email на слишком длинное значение. |
-| `test_get_profile_unauthorized` | Запрос `/profile` без токена. |
-
-#### Тесты репозиториев (`test_repositories/`)
-
-| Файл | Описание | Количество тестов |
-|------|----------|-------------------|
-| `test_user_repository.py` | Тесты методов работы с пользователями (создание, поиск, обновление, удаление, проверка уникальности). | ~30 |
-| `test_project_repository.py` | Тесты управления проектами и участниками (создание, добавление/удаление участников, роли, удаление проекта). | ~35 |
-| `test_task_repository.py` | Тесты операций с задачами (создание, назначение, обновление, удаление, проверка принадлежности проекту). | ~19 |
-| `test_invitation_repository.py` | Тесты управления приглашениями (создание, получение по пользователю/проекту, обновление статуса, удаление). | ~13 |
-
-#### Тесты сервисов (`test_services/`)
-
-| Файл | Описание | Количество тестов |
-|------|----------|-------------------|
-| `test_auth_service.py` | Тесты аутентификации и регистрации. | ~10 |
-| `test_invitation_service.py` | Тесты логики приглашений. | ~17 |
-| `test_project_member_service.py` | Тесты управления ролями участников. | ~7 |
-| `test_project_service.py` | Тесты бизнес-логики проектов. | ~20 |
-| `test_task_service.py` | Тесты бизнес-логики задач. | ~20 |
-| `test_user_service.py` | Тесты обновления профиля пользователя. | ~10 |
-
-### Описание основных фикстур (`conftest.py`)
-
-| Фикстура | Описание |
-|----------|----------|
-| `sync_engine` | Создаёт синхронный движок SQLAlchemy (pymysql), создаёт все таблицы через `Base.metadata.create_all`. |
-| `async_engine` | Создаёт асинхронный движок SQLAlchemy для тестов. |
-| `db_session` | Создаёт новую сессию базы данных для каждого теста, откатывает транзакцию после. |
-| `async_client` | Предоставляет асинхронный HTTP-клиент для тестирования эндпоинтов без запуска сервера. |
-| `create_test_user` | Создаёт тестового пользователя с заданным паролем. |
-| `test_users` | Создаёт четырёх тестовых пользователей: `admin`, `member`, `outsider`, `user_profile`. |
-| `auth_headers` | Возвращает заголовки с JWT-токеном для пользователя `admin`. |
-| `member_auth_headers` | Возвращает заголовки с JWT-токеном для пользователя `member`. |
-| `test_project` | Создаёт тестовый проект с пользователем `admin` в роли администратора. |
-| `test_project_with_member` | Создаёт тестовый проект и добавляет в него пользователя `member`. |
-| `test_task` | Создаёт тестовую задачу в проекте. |
-| `test_invitation` | Создаёт тестовое приглашение в проект. |
-
-## Нагрузочное тестирование
-
-Для проверки производительности и стабильности API реализован набор нагрузочных тестов с использованием **Locust**. Тесты расположены в директории `tests/load/` и позволяют симулировать одновременную работу нескольких сотен пользователей.
-
-### Подготовка
-
-1. Убедитесь, что все зависимости установлены (включая `locust` из `requirements.txt`).
-2. Для нагрузочного тестирования используется отдельная тестовая база данных (настройки берутся из `.env.test`). Перед запуском тестов база данных будет заполнена тестовыми данными с помощью скрипта `seed_data.py`, который создаёт:
-   - 500 пользователей,
-   - 200 проектов,
-   - участников в каждом проекте,
-   - по 10 задач в каждом проекте.
-
-### Запуск нагрузочного тестирования
-
+Запуск нагрузочного тестирования
 Существует два способа запуска:
 
-#### 1. Автоматический запуск через `run_load_test.py`
-
+1. Автоматический запуск через run_load_test.py
 Этот скрипт запускает FastAPI-сервер в фоновом режиме, заполняет базу данных тестовыми данными и запускает Locust.
 
-```bash
+bash
 run_load_test
-```
+По умолчанию запускается в интерактивном режиме (открывается веб-интерфейс Locust). Чтобы запустить в headless-режиме (без UI), передайте любой аргумент, например:
 
-По умолчанию запускается в **интерактивном режиме** (открывается веб-интерфейс Locust). Чтобы запустить в **headless-режиме** (без UI), передайте любой аргумент, например:
-
-```bash
+bash
 run_load_test --headless
-```
-
 Можно также настроить параметры нагрузки, передав их в командной строке:
 
-```bash
+bash
 run_load_test --headless --users 200 --spawn-rate 20 --run-time 10m
-```
-
 Скрипт автоматически:
 
-- Запускает сервер на `http://localhost:8000` с переменной окружения `ENV=test`.
-- Ожидает готовности сервера.
-- Заполняет БД тестовыми данными (вызов `seed_data.py`).
-- Запускает Locust с переданными параметрами.
-- После завершения теста останавливает сервер.
+Запускает сервер на http://localhost:8000 с переменной окружения ENV=test.
 
-#### 2. Ручной запуск
+Ожидает готовности сервера.
 
+Заполняет БД тестовыми данными (вызов seed_data.py).
+
+Запускает Locust с переданными параметрами.
+
+После завершения теста останавливает сервер.
+
+2. Ручной запуск
 Если вы хотите запустить сервер и Locust отдельно:
 
-1. Установите переменную окружения `ENV=test` и запустите сервер:
+Установите переменную окружения ENV=test и запустите сервер:
 
-   ```bash
-   ENV=test uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
+bash
+ENV=test uvicorn main:app --host 0.0.0.0 --port 8000
+В другом терминале заполните БД тестовыми данными:
 
-2. В другом терминале заполните БД тестовыми данными:
+bash
+python tests/load/seed_data.py
+Запустите Locust:
 
-   ```bash
-   python tests/load/seed_data.py
-   ```
+bash
+locust -f tests/load/locustfile.py --host=http://localhost:8000
+Откройте веб-интерфейс Locust по адресу http://localhost:8089 и настройте нагрузку.
 
-3. Запустите Locust:
+Структура нагрузочных тестов
+seed_data.py — скрипт для генерации тестовых данных (пользователи, проекты, участники, задачи). Записывает логины/пароли пользователей в tests/load/users.csv для использования Locust.
 
-   ```bash
-   locust -f tests/load/locustfile.py --host=http://localhost:8000
-   ```
+locustfile.py — сценарии поведения пользователей: получение списка проектов, создание/обновление/удаление проектов и задач, работа с приглашениями и т.д.
 
-   Откройте веб-интерфейс Locust по адресу `http://localhost:8089` и настройте нагрузку.
+run_load_test.py — вспомогательный скрипт для автоматического запуска сервера, заполнения БД и запуска Locust.
 
-### Структура нагрузочных тестов
+Очистка данных
+После завершения тестов все таблицы в тестовой БД будут очищены (триггер test_stop в Locust вызывает truncate_tables()).
 
-- `seed_data.py` — скрипт для генерации тестовых данных (пользователи, проекты, участники, задачи). Записывает логины/пароли пользователей в `tests/load/users.csv` для использования Locust.
-- `locustfile.py` — сценарии поведения пользователей: получение списка проектов, создание/обновление/удаление проектов и задач, работа с приглашениями и т.д.
-- `run_load_test.py` — вспомогательный скрипт для автоматического запуска сервера, заполнения БД и запуска Locust.
+Примечание: Нагрузочное тестирование предназначено для проверки производительности и не должно использоваться на продакшн-базе данных.
 
-### Очистка данных
-
-После завершения тестов все таблицы в тестовой БД будут очищены (триггер `test_stop` в Locust вызывает `truncate_tables()`).
-
-> **Примечание:** Нагрузочное тестирование предназначено для проверки производительности и не должно использоваться на продакшн-базе данных.
-
-## Структура проекта
-
-```
+Структура проекта
+text
 Clarity/
 ├── alembic/                     # Миграции Alembic
 │   ├── versions/
@@ -1447,11 +1214,48 @@ Clarity/
 |   └── rate_limiter.py           # Модуль ограничения частоты запросов
 ├── core/
 │   ├── __init__.py
-│   ├── config.py                 # Настройки приложения (в т.ч. Redis)
+│   ├── config.py                 # Настройки приложения
 │   ├── database.py               # Подключение к БД
 │   ├── dependencies.py           # Dependency Injection, current_user, oauth2_scheme
 │   ├── exceptions.py             # Кастомные исключения и обработчики
-│   └── security.py               # JWT, хеширование (синхронное и асинхронное)
+│   ├── filters.py                # Фильтрация запросов
+│   ├── security.py               # JWT, хеширование
+│   └── uow.py                    # Unit of Work (управление транзакциями)
+├── front/                        # Фронтенд (Tasker)
+│   ├── index.html                # Точка входа фронтенда
+│   ├── css/                      # Стили
+│   │   ├── auth.css
+│   │   ├── base.css
+│   │   ├── components.css
+│   │   ├── content.css
+│   │   ├── modals.css
+│   │   ├── responsive.css
+│   │   ├── sidebar.css
+│   │   ├── theme-dark.css
+│   │   ├── topbar.css
+│   │   └── views.css
+│   └── js/                       # Скрипты
+│       ├── api.js                # Модуль для работы с REST API
+│       ├── auth.js
+│       ├── config.js
+│       ├── elements.js
+│       ├── events.js
+│       ├── filters.js
+│       ├── invitations.js
+│       ├── mappers.js
+│       ├── menus.js
+│       ├── modals.js
+│       ├── projects.js
+│       ├── render-board.js
+│       ├── render-core.js
+│       ├── render-sidebar.js
+│       ├── render-views.js
+│       ├── state.js
+│       ├── storage.js
+│       ├── tasks.js
+│       ├── theme.js
+│       ├── users.js
+│       └── utils.js
 ├── models/
 │   ├── __init__.py
 │   ├── user.py                   # Модель User
@@ -1516,18 +1320,21 @@ Clarity/
 ├── requirements.txt
 ├── run_load_test.py               # Скрипт для автоматического запуска нагрузочных тестов
 └── main.py                        # Точка входа
-```
-
-## Планы на доработку
-
+Планы на доработку
 Проект активно развивается. В ближайших релизах планируется:
 
-- **Пагинации** — пагинация не реализована. Будет добавлено подробное описание с примерами запросов в будущем.
-- **WebSocket-уведомления** — добавление реального времени: уведомления о новых задачах, изменениях статуса, приглашениях и комментариях.
-- **Фильтрация и поиск** — расширенные возможности поиска задач по названию, статусу, исполнителю, приоритету и дедлайну.
-- **Завершение кэширования на Redis** — в `cache/` сейчас реализованы только `get/set/delete` и заготовки ключей; нужно доделать инвалидацию (`delete_cache_by_pattern`) и комбинированный `get_or_set`, а также подключить кэш к роутерам.
-- **CI/CD пайплайн** — настройка автоматического тестирования и деплоя через GitHub Actions.
-- **Поддержка других БД** — добавление поддержки PostgreSQL для упрощения локальной разработки и тестирования.
-- **Swagger/OpenAPI улучшения** — детальное описание всех эндпоинтов, схем и возможных ошибок для улучшения Developer Experience.
-- **Rate Limiting** — защита API от чрезмерных запросов (в `cache_keys.py` уже предусмотрен префикс `RATE_LIMITING_PREFIX`).
-- **Логирование** — внедрение структурированного логирования (например, через `structlog`) для упрощения отладки и мониторинга.
+Пагинации — пагинация не реализована. Будет добавлено подробное описание с примерами запросов в будущем.
+
+WebSocket-уведомления — добавление реального времени: уведомления о новых задачах, изменениях статуса, приглашениях и комментариях.
+
+Фильтрация и поиск — базовые фильтры уже реализованы в core/filters.py, в планах — расширенные возможности поиска задач по названию, статусу, исполнителю, приоритету и дедлайну.
+
+Завершение кэширования на Redis — в cache/ сейчас реализованы только get/set/delete и заготовки ключей.
+
+CI/CD пайплайн — настройка автоматического тестирования и деплоя через GitHub Actions.
+
+Swagger/OpenAPI улучшения — детальное описание всех эндпоинтов, схем и возможных ошибок для улучшения Developer Experience.
+
+Rate Limiting — защита API от чрезмерных запросов (в cache_keys.py уже предусмотрен префикс RATE_LIMITING_PREFIX).
+
+Логирование — внедрение структурированного логирования (например, через structlog) для упрощения отладки и мониторинга.
