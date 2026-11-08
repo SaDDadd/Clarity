@@ -13,7 +13,7 @@ class UnitOfWork():
         self.user = UserRepository(session)
         self.project = ProjectRepository(session)
         self.task = TaskRepository(session)
-        self.project_inv = ProjectInvitationRepository(session)
+        self.invitation = ProjectInvitationRepository(session)
 
 
     async def __aenter__(self) -> "UnitOfWork":
