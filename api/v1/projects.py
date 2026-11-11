@@ -10,7 +10,8 @@ from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
                                       get_project_info, get_user_projects, update_project,
                                       leave_from_project)
-
+from core.filters import ProjectFilter
+from fastapi_filter import FilterDepends 
 
 router = APIRouter()
 
@@ -44,18 +45,20 @@ async def update_member_role_endpoint(project_id: int, user_id: int, role: Proje
 
 @router.get('/projects/all', tags=['Проекты'], summary='Проекты, где пользователь участвует (owner/admin/member)')
 async def get_member_projects_endpoint(current_user: UserModel = Depends(current_user),
+                                       project_filter: ProjectFilter = FilterDepends(ProjectFilter), 
                                        uow: UnitOfWork = Depends(get_uow)):
     """Получить проекты пользователя, где он участвует."""
     # добавить фильтраию и пагинацию
-    return await get_user_projects(uow, current_user.user_id)
+    return await get_user_projects(uow, current_user.user_id, project_filter)
 
 
 @router.get('/projects', tags=['Проекты'], summary='Проекты пользователя, где он admin.')
 async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
+                                      project_filter: ProjectFilter = FilterDepends(ProjectFilter),
                                       uow: UnitOfWork = Depends(get_uow)):
     """Получить проекты пользователя, где он admin."""
     # добавить фильтраию и пагинацию
-    return await get_admin_projects(uow, user.user_id)
+    return await get_admin_projects(uow, user.user_id, project_filter)
 
 
 @router.get('/projects/{project_id}', tags=['Проекты'], summary='Получить информацию о проекте')

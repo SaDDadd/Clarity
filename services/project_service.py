@@ -11,6 +11,7 @@ from cache.cache_keys import (project_key, user_projects_key, project_tasks_key,
                               project_invitations_pattern)
 from cache.cache_service import (get_cache, set_cache, delete_cache,
                                  delete_cache_by_pattern)
+from core.filters import ProjectFilter
 
 
 async def create_project(uow: UnitOfWork, project_data: ProjectCreate, admin_id: int) -> dict:
@@ -50,13 +51,13 @@ async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_
     return {'message': 'Пользователь добавлен в проект!'}
 
 
-async def get_admin_projects(uow: UnitOfWork, admin_id: int) -> list[UserProjectResponse]:
+async def get_admin_projects(uow: UnitOfWork, admin_id: int, project_filter: ProjectFilter | None = None) -> list[UserProjectResponse]:
     """Проекты, где пользователь admin."""
     key = user_projects_key(admin_id, 'admin')
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    projects = await uow.project.get_projects_by_creator(admin_id)
+    projects = await uow.project.get_projects_by_creator(admin_id, project_filter)
     result: list[UserProjectResponse] = []
     for project in projects:
         role = await uow.project.get_user_role_in_project(project.project_id, admin_id)
@@ -115,13 +116,13 @@ async def get_project_info(uow: UnitOfWork, project_id: int, user_id: int) -> di
     return answer
 
 
-async def get_user_projects(uow: UnitOfWork, current_user_id: int) -> list[UserProjectResponse]:
+async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filter: ProjectFilter | None = None) -> list[UserProjectResponse]:
     """Получить проекты пользователя."""
     key = user_projects_key(current_user_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    projects = await uow.project.get_user_projects(current_user_id)
+    projects = await uow.project.get_user_projects(current_user_id, project_filter)
     result = []
     for project in projects:
         role = await uow.project.get_user_role_in_project(project.project_id, current_user_id)
@@ -186,6 +187,7 @@ async def delete_project(uow: UnitOfWork, project_id: int, user_id: int) -> dict
     invitee_ids = list({inv.invitee_id for inv in pending_invitations})
     await uow.project.delete_project(project_id)
     """Автоматический каскад по проекту: детали, tasks, task items, comments, invitations."""
+    await delete_cache(project_key(project_id))
     await delete_cache_by_pattern(project_all_pattern(project_id))
     for i in member_ids:
         await delete_cache_by_pattern(user_projects_pattern(i))
@@ -248,6 +250,7 @@ async def leave_from_project(uow: UnitOfWork, project_id: int, current_user_id: 
         await uow.project.delete_user_from_project(project_id, current_user_id)
     if is_admin and new_admin_id is None:
         """Проект удалён — автоматический каскад по всем ключам проекта."""
+        await delete_cache(project_key(project_id))
         await delete_cache_by_pattern(project_all_pattern(project_id))
     else:
         await delete_cache(project_key(project_id))

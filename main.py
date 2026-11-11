@@ -34,7 +34,7 @@ async def health(db: AsyncSession = Depends(get_db)):
     try:
         await db.execute(text('SELECT 1'))
         db_ok = True
-    except:
+    except Exception:
         db_ok = False
     return {'redis': redis_ok['redis'], 'db': 'ok' if db_ok else 'unavailable'}
 

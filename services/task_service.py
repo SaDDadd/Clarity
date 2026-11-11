@@ -9,6 +9,7 @@ from cache.cache_keys import (project_tasks_key, user_tasks_key, task_key,
     task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST,
     TTL_TASK_COMMENT_LIST)
 from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
+from core.filters import TaskFilter, CommentFilter
 
 
 async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, task: TaskCreate) -> dict:
@@ -32,7 +33,7 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
     return answer
 
 
-async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: int) -> list[dict]:
+async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: int, task_filter: TaskFilter | None = None) -> list[dict]:
     """Возвращает все задачи проекта."""
     if await uow.project.get_project_by_id(project_id) is None:
         raise NotFoundException('Данного проекта не существует!')
@@ -42,7 +43,7 @@ async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: i
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    data = await uow.task.get_project_tasks(project_id)
+    data = await uow.task.get_project_tasks(project_id, task_filter)
     answer = [TaskResponse.model_validate(i).model_dump(mode='json') for i in data]
     await set_cache(key, answer, TTL_TASK_LIST)
     return answer
@@ -66,13 +67,13 @@ async def get_task_info(uow: UnitOfWork, project_id: int, current_user_id: int, 
     return answer
 
 
-async def get_tasks_user(uow: UnitOfWork, current_user_id: int) -> list[dict]:
+async def get_tasks_user(uow: UnitOfWork, current_user_id: int, task_filter: TaskFilter | None = None) -> list[dict]:
     """Возвращает все задачи, назначенные на пользователя."""
     key = user_tasks_key(current_user_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    data = await uow.task.get_tasks_by_user(current_user_id)
+    data = await uow.task.get_tasks_by_user(current_user_id, task_filter)
     answer = [TaskResponse.model_validate(i).model_dump(mode='json') for i in data]
     await set_cache(key, answer, TTL_TASK_LIST)
     return answer
@@ -250,7 +251,7 @@ async def update_comment(uow: UnitOfWork, project_id: int, task_id: int, comment
 
 
 async def get_task_comments(uow: UnitOfWork, project_id: int, task_id: int,
-                            current_user_id: int) -> list[dict]:
+                            current_user_id: int, comment_filter: CommentFilter | None = None) -> list[dict]:
     """Список комментариев задачи."""
     if await uow.project.get_project_by_id(project_id) is None:
         raise NotFoundException('Данного проекта не существует!')
@@ -262,7 +263,7 @@ async def get_task_comments(uow: UnitOfWork, project_id: int, task_id: int,
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    data = await uow.task.get_task_comments(project_id, task_id)
+    data = await uow.task.get_task_comments(project_id, task_id, comment_filter)
     answer = [TaskCommentResponse.model_validate(c).model_dump(mode='json') for c in data]
     await set_cache(key, answer, TTL_TASK_COMMENT_LIST)
     return answer

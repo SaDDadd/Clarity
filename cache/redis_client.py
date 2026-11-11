@@ -10,7 +10,7 @@ async def get_redis_client() -> Redis:
         _redis_client = Redis.from_url(
             settings.REDIS_URL,
             max_connections=50,
-            socket_timeout=2,
+            socket_timeout=3,
             socket_connect_timeout=2,
             decode_responses=True,
         )

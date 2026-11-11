@@ -3,6 +3,7 @@ from typing import Any, Awaitable, Callable
 from redis.exceptions import RedisError
 from cache.redis_client import get_redis_client
 
+
 async def get_cache(key: str) -> Any | None:
     """Читает значение из Redis и десериализует JSON."""
     if not key:
@@ -20,6 +21,7 @@ async def get_cache(key: str) -> Any | None:
         """Место для логирования."""
         return None
 
+
 async def set_cache(key: str, value: Any, ttl: int) -> None:
     """Сохраняет значение в Redis с TTL (в секундах)."""
     if not key or ttl <= 0:
@@ -31,6 +33,7 @@ async def set_cache(key: str, value: Any, ttl: int) -> None:
     except RedisError as e:
         """Место для логирования."""
 
+
 async def delete_cache(key: str) -> None:
     """Удаляет один ключ из Redis. Ошибки логируются, но не падают."""
     if not key:
@@ -40,6 +43,7 @@ async def delete_cache(key: str) -> None:
         await client.delete(key)
     except RedisError as e:
         """Место для логирования."""
+
 
 async def delete_cache_by_pattern(pattern: str) -> int:
     """Удаляет все ключи, подходящие под glob-паттерн, через SCAN."""

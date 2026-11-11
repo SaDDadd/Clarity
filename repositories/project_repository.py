@@ -2,10 +2,9 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.project import ProjectModel
-from models.task_comments import TaskCommentsModel
 from models.project_members import ProjectMemberModel
-from models.project_invitations import ProjectInvitationModel
 from models.task import TaskModel
+from core.filters import ProjectFilter
 
 
 class ProjectRepository:
@@ -57,16 +56,15 @@ class ProjectRepository:
         return result.scalars().all()
 
 
-    async def get_projects_by_creator(self, admin_id: int) -> list[ProjectModel]:
+    async def get_projects_by_creator(self, admin_id: int, filter: ProjectFilter | None = None) -> list[ProjectModel]:
         """Проекты, где пользователь именно владелец."""
-        result = await self.session.execute(
-            select(ProjectModel)
-            .join(ProjectMemberModel)
-            .where(
+        query = select(ProjectModel).join(ProjectMemberModel).where(
                 ProjectMemberModel.user_id == admin_id,
                 ProjectMemberModel.role_project == 'admin'
             )
-        )
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
         return result.scalars().all()
 
 
@@ -235,18 +233,17 @@ class ProjectRepository:
         return result.scalar_one_or_none() is not None
 
 
-    async def get_user_projects(self, user_id: int) -> list[ProjectModel]:
+    async def get_user_projects(self, user_id: int, filter: ProjectFilter | None = None) -> list[ProjectModel]:
         """Получить все проекты пользователя."""
-        result = await self.session.execute(
-            select(ProjectModel)
-            .join(
+        query = select(ProjectModel).join(
                 ProjectMemberModel,
                 ProjectModel.project_id == ProjectMemberModel.project_id
-            )
-            .where(
+            ).where(
                 ProjectMemberModel.user_id == user_id
             )
-        )
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
         return result.scalars().all()
 
 

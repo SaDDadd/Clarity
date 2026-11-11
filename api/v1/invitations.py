@@ -7,6 +7,8 @@ from schemas.invitation import InvitationCreate, InvitationStatusUpdate
 from services.invitation_service import (delete_invitation, get_project_invitations,
                                          get_user_invitations, response_to_invitation,
                                          send_invitation)
+from core.filters import InvitationFilter
+from fastapi_filter import FilterDepends
 
 router = APIRouter()
 
@@ -35,20 +37,22 @@ async def response_to_invitation_endpoint(invitation_id: int,
 @router.get('/invitations', tags=['Приглашение в проект'],
             summary='Список проектов, в которые приглашают пользователя')
 async def user_invitations_endpoint(current_user: UserModel = Depends(current_user),
+                                    invitation_filter: InvitationFilter = FilterDepends(InvitationFilter),
                                     uow: UnitOfWork = Depends(get_uow)):
     """Возвращает все входящие приглашения для текущего пользователя."""
     # добавить фильтраию и пагинацию
-    return await get_user_invitations(uow, current_user.user_id)
+    return await get_user_invitations(uow, current_user.user_id, invitation_filter)
 
 
 @router.get('/invitations/project/{project_id}', tags=['Приглашение в проект'],
             summary='Список приглашений в проект')
 async def project_invitations_endpoint(project_id: int,
                                        current_user: UserModel = Depends(current_user),
+                                       invitation_filter: InvitationFilter = FilterDepends(InvitationFilter),
                                        uow: UnitOfWork = Depends(get_uow)):
     """Возвращает все приглашения для указанного проекта (доступно только администратору)."""
     # добавить фильтраию и пагинацию
-    return await get_project_invitations(uow, project_id, current_user.user_id)
+    return await get_project_invitations(uow, project_id, current_user.user_id, invitation_filter)
 
 
 @router.delete('/invitations/{invitation_id}', tags=['Приглашение в проект'],

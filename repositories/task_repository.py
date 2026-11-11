@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.task import TaskModel
 from models.task_comments import TaskCommentsModel
 from schemas.task import TaskCreate
+from core.filters import TaskFilter, CommentFilter
 
 
 class TaskRepository:
@@ -28,14 +29,14 @@ class TaskRepository:
         return result
 
 
-    async def get_tasks_by_user(self, assigned_to: int) -> list[TaskModel]:
+    async def get_tasks_by_user(self, assigned_to: int, filter: TaskFilter | None = None) -> list[TaskModel]:
         """Получить все задачи пользователя."""
-        result = await self.session.execute(
-            select(TaskModel)
-            .where(
+        query = select(TaskModel).where(
                 TaskModel.assigned_to == assigned_to
             )
-        )
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
         tasks = result.scalars().all()
         return tasks
 
@@ -52,14 +53,14 @@ class TaskRepository:
         return task
 
 
-    async def get_project_tasks(self, project_id: int) -> list[TaskModel]:
+    async def get_project_tasks(self, project_id: int, filter: TaskFilter | None = None) -> list[TaskModel]:
         """Получить все задачи проекта."""
-        result = await self.session.execute(
-            select(TaskModel)
-            .where(
+        query = select(TaskModel).where(
                 TaskModel.project_id == project_id
             )
-        )
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
         tasks = result.scalars().all()
         return tasks
 
@@ -209,14 +210,13 @@ class TaskRepository:
         return result.rowcount > 0
 
 
-    async def get_task_comments(self, project_id: int, task_id: int) -> list[TaskCommentsModel]:
+    async def get_task_comments(self, project_id: int, task_id: int, filter: CommentFilter | None = None) -> list[TaskCommentsModel]: 
         """Получить комментарии задачи."""
-        result = await self.session.execute(
-            select(TaskCommentsModel)
-            .where(
+        query = select(TaskCommentsModel).where(
                 TaskCommentsModel.project_id == project_id,
                 TaskCommentsModel.task_id == task_id
-            )
-            .order_by(TaskCommentsModel.created_date)
-        )
+            ).order_by(TaskCommentsModel.created_date)
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
         return result.scalars().all()

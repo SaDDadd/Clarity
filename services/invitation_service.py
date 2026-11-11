@@ -9,6 +9,7 @@ from core.uow import UnitOfWork
 from cache.cache_keys import (user_invitations_key, project_invitations_key,
                               project_key, user_projects_key, TTL_INVITATION_LIST)
 from cache.cache_service import get_cache, delete_cache, set_cache
+from core.filters import InvitationFilter
 
 
 async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, current_user_id: int, message: str) -> dict:
@@ -34,13 +35,13 @@ async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, curren
     return answer
 
 
-async def get_user_invitations(uow: UnitOfWork, current_user_id: int) -> list[dict]:
+async def get_user_invitations(uow: UnitOfWork, current_user_id: int, invitation_filter: InvitationFilter | None = None) -> list[dict]:
     """Приглашения пользователя с project_name."""
     key = user_invitations_key(current_user_id, 'all')
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id)
+    rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id, invitation_filter)
     result = []
     for invitation, project_name in rows:
         data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
@@ -50,7 +51,7 @@ async def get_user_invitations(uow: UnitOfWork, current_user_id: int) -> list[di
     return result
 
 
-async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user_id: int) -> list[dict]:
+async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user_id: int, invitation_filter: InvitationFilter | None = None) -> list[dict]:
     """Возвращает приглашения проекта с учётом прав доступа."""
     if not await uow.project.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
@@ -62,7 +63,7 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    data = await uow.invitation.get_invitation_for_project(project_id)
+    data = await uow.invitation.get_invitation_for_project(project_id, invitation_filter)
     serialized = [InvitationResponse.model_validate(i).model_dump(mode='json') for i in data]
     await set_cache(key, serialized, TTL_INVITATION_LIST)
     return serialized

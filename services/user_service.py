@@ -5,7 +5,7 @@ from schemas.user import (UserResponse, UpdateUsernameRequest, UpdateEmailReques
 from models.user import UserModel
 from core.security import async_hash_password
 from cache.cache_keys import (user_key, user_all_pattern, user_projects_pattern,
-                              user_invitations_pattern, project_all_pattern, TTL_USER)
+                              user_invitations_pattern, project_all_pattern, project_key, TTL_USER)
 from cache.cache_service import (set_cache, get_cache, delete_cache, delete_cache_by_pattern)
 
 
@@ -88,6 +88,7 @@ async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
             await uow.project.delete_project(project.project_id)
     await uow.user.delete_user(current_user_id)
     for pid in project_ids:
+        await delete_cache(project_key(pid))
         await delete_cache_by_pattern(project_all_pattern(pid))
     for members in project_members_map.values():
         for mid in members:

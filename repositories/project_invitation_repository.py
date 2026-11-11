@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.project import ProjectModel
 from models.user import UserModel
 from models.project_invitations import ProjectInvitationModel
+from core.filters import InvitationFilter
 
 
 class ProjectInvitationRepository:
@@ -47,18 +48,18 @@ class ProjectInvitationRepository:
         result = task.scalars().all()
         return result
 
-    async def get_invitation_for_project(self, project_id: int) -> list[ProjectInvitationModel]:
+    async def get_invitation_for_project(self, project_id: int, filter: InvitationFilter | None = None) -> list[ProjectInvitationModel]:
         """Список приглашённых у проекта."""
-        task = await self.session.execute(
-            select(ProjectInvitationModel, UserModel.username)
-            .join(UserModel, UserModel.user_id == ProjectInvitationModel.invitee_id)
-            .where(
+        query = select(ProjectInvitationModel, 
+                       UserModel.username).join(
+                UserModel, UserModel.user_id == ProjectInvitationModel.invitee_id).where(
                 ProjectInvitationModel.project_id == project_id,
                 ProjectInvitationModel.status_invited == "pending"
             )
-        )
-        result = task.scalars().all()
-        return result
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
+        return result.all()
 
     async def update_invitation_status(self, invitation_id: int, status_invited: str) -> bool:
         """Обновление статуса."""
@@ -118,16 +119,15 @@ class ProjectInvitationRepository:
         )
         return result.scalars().all()
 
-    async def get_invitation_by_user_with_project(self, user_id: int) -> list[tuple[ProjectInvitationModel, str]]:
+    async def get_invitation_by_user_with_project(self, user_id: int, filter: InvitationFilter | None = None) -> list[tuple[ProjectInvitationModel, str]]:
         """Входящие приглашения + имя проекта."""
-        result = await self.session.execute(
-            select(ProjectInvitationModel, ProjectModel.project_name)
-            .join(ProjectModel,
+        query = select(ProjectInvitationModel, ProjectModel.project_name).join(ProjectModel,
                   ProjectModel.project_id == ProjectInvitationModel.project_id
-            )
-            .where(
+            ).where(
                 ProjectInvitationModel.invitee_id == user_id,
                 ProjectInvitationModel.status_invited == "pending"
             )
-        )
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
         return result.all()
