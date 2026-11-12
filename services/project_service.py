@@ -15,49 +15,40 @@ from cache.cache_service import (get_cache, set_cache, delete_cache,
 from core.filters import ProjectFilter, UserFilter
 
 
-async def create_project(uow: UnitOfWork, project_data: ProjectCreate, admin_id: int) -> dict:
-    """Создание проекта."""
-    result = await uow.project.create_project_with_admin(
-        project_data.project_name,
-        project_data.project_description, admin_id
-    )
-    await delete_cache_by_pattern(user_projects_pattern(admin_id))
-    return {
-        'project_id': result.project_id,
-        'project_name': result.project_name,
-        'project_description': result.project_description,
-        'admin_id': result.admin_id,
-    }
-
-
-async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_id_to_add: int) -> dict:
-    """Добавить пользователя в проект."""
+async def update_project(uow: UnitOfWork, project_id: int, user_id: int, project_data: ProjectUpdate) -> dict:
+    """Обновление проекта."""
     project = await uow.project.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
-    if not await uow.project.is_user_admin_or_curator(project_id, current_user_id):
-        raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ и не куратор проекта!')
-    if current_user_id == user_id_to_add:
-        raise InvalidInvitationStateException('Нельзя добавить самого себя!')
-    if not await uow.user.check_user_exists(user_id_to_add):
-        raise NotFoundException('Нельзя добавить пользователя: его не существует!')
-    if await uow.project.is_user_in_project(project_id, user_id_to_add):
-        raise ConflictException('Пользователь уже состоит в проекте')
-    if await uow.invitation.get_pending_invitation(project_id, user_id_to_add):
-        pending = await uow.invitation.get_invitation_for_project(project_id)
-        for inv, _ in pending:
-            if inv.invitee_id == user_id_to_add:
-                await uow.invitation.delete_invitation(inv.invitation_id)
-                break
-    await uow.project.add_user(project_id, user_id_to_add)
+    if not await uow.project.is_user_admin_or_curator(project_id, user_id):
+        raise PermissionDeniedException('Пользователь не может менять проект, он не админ/куратор!')
+    update_data = project_data.model_dump(exclude_unset=True)
+    if 'project_name' in update_data and update_data['project_name'] is None:
+        raise LackOfInformationException('Название проекта не может быть null!')
+    changes: dict = {}
+    if 'project_name' in update_data and update_data['project_name'] != project.project_name:
+        changes['project_name'] = update_data['project_name']
+    if 'project_description' in update_data and update_data['project_description'] != project.project_description:
+        changes['project_description'] = update_data['project_description']
+    if not changes:
+        return {'message': 'Ничего не изменилось!'}
     project_info = await uow.project.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
+    pending_invitations = await uow.invitation.get_invitation_for_project(project_id)
+    invitee_ids = {inv.invitee_id for inv, _ in pending_invitations}
+    if 'project_name' in changes:
+        await uow.project.update_project_name(changes['project_name'], project_id)
+    if 'project_description' in changes:
+        await uow.project.update_project_description(changes['project_description'], project_id)
     await delete_cache(project_key(project_id))
-    await delete_cache(user_invitations_key(user_id_to_add, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'all'))
-    for i in member_ids:
-        await delete_cache_by_pattern(user_projects_pattern(i))
-    return {'message': 'Пользователь добавлен в проект!'}
+    await delete_cache_by_pattern(project_invitations_pattern(project_id))
+    for invitee_id in invitee_ids:
+        """Инвалидируем кэш приглашений для приглашённых."""
+        await delete_cache_by_pattern(user_invitations_pattern(invitee_id))
+    for member_id in member_ids:
+        """Инвалидируем кэш проектов для участников."""
+        await delete_cache_by_pattern(user_projects_pattern(member_id))
+    return {'message': 'Проект обновлен!'}
 
 
 async def get_admin_projects(uow: UnitOfWork, admin_id: int, project_filter: ProjectFilter | None = None) -> list[UserProjectResponse]:
@@ -71,6 +62,7 @@ async def get_admin_projects(uow: UnitOfWork, admin_id: int, project_filter: Pro
     projects = await uow.project.get_projects_by_creator(admin_id, project_filter)
     result: list[UserProjectResponse] = []
     for project in projects:
+        """Формируем список проектов с ролями."""
         role = await uow.project.get_user_role_in_project(project.project_id, admin_id)
         result.append(UserProjectResponse(
             project_id=project.project_id,
@@ -104,6 +96,7 @@ async def get_project_info(uow: UnitOfWork, project_id: int, user_id: int) -> di
     key = project_key(project_id)
     cached = await get_cache(key)
     if cached is not None:
+        """Если данные в кэше, добавляем роль."""
         cached = dict(cached)
         cached['role'] = user_role
         return cached
@@ -139,6 +132,7 @@ async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filte
     projects = await uow.project.get_user_projects(current_user_id, project_filter)
     result = []
     for project in projects:
+        """Формируем список проектов с ролями."""
         role = await uow.project.get_user_role_in_project(project.project_id, current_user_id)
         if role is None:
             role = 'member'
@@ -155,38 +149,63 @@ async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filte
     return data
 
 
-async def update_project(uow: UnitOfWork, project_id: int, user_id: int, project_data: ProjectUpdate) -> dict:
-    """Обновление проекта."""
+async def get_project_members(uow: UnitOfWork, project_id: int, user_id: int, 
+                               user_filter: UserFilter | None = None) -> list[dict]:
+    """Получение пользователей проекта."""
+    if await uow.project.get_project_by_id(project_id) is None:
+        raise NotFoundException('Проект не найден!')
+    if not await uow.project.is_user_in_project(project_id, user_id):
+        raise ConflictException('Пользователь не состоит в проекте!')
+    result = await uow.project.get_all_project_participants(project_id, user_filter)
+    return [UserSearchResponse.model_validate(user).model_dump(mode='json') for user in result]
+
+
+async def create_project(uow: UnitOfWork, project_data: ProjectCreate, admin_id: int) -> dict:
+    """Создание проекта."""
+    result = await uow.project.create_project_with_admin(
+        project_data.project_name,
+        project_data.project_description, admin_id
+    )
+    await delete_cache_by_pattern(user_projects_pattern(admin_id))
+    return {
+        'project_id': result.project_id,
+        'project_name': result.project_name,
+        'project_description': result.project_description,
+        'admin_id': result.admin_id,
+    }
+
+
+async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_id_to_add: int) -> dict:
+    """Добавить пользователя в проект."""
     project = await uow.project.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
-    if not await uow.project.is_user_admin_or_curator(project_id, user_id):
-        raise PermissionDeniedException('Пользователь не может менять проект, он не админ/куратор!')
-    update_data = project_data.model_dump(exclude_unset=True)
-    if 'project_name' in update_data and update_data['project_name'] is None:
-        raise LackOfInformationException('Название проекта не может быть null!')
-    changes: dict = {}
-    if 'project_name' in update_data and update_data['project_name'] != project.project_name:
-        changes['project_name'] = update_data['project_name']
-    if 'project_description' in update_data and update_data['project_description'] != project.project_description:
-        changes['project_description'] = update_data['project_description']
-    if not changes:
-        return {'message': 'Ничего не изменилось!'}
+    if not await uow.project.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Нельзя добавить пользователя: вы не админ и не куратор проекта!')
+    if current_user_id == user_id_to_add:
+        raise InvalidInvitationStateException('Нельзя добавить самого себя!')
+    if not await uow.user.check_user_exists(user_id_to_add):
+        raise NotFoundException('Нельзя добавить пользователя: его не существует!')
+    if await uow.project.is_user_in_project(project_id, user_id_to_add):
+        raise ConflictException('Пользователь уже состоит в проекте')
+    if await uow.invitation.get_pending_invitation(project_id, user_id_to_add):
+        """Проверяем наличие активного приглашения."""
+        pending = await uow.invitation.get_invitation_for_project(project_id)
+        for inv, _ in pending:
+            """Ищем приглашение для этого пользователя."""
+            if inv.invitee_id == user_id_to_add:
+                await uow.invitation.delete_invitation(inv.invitation_id)
+                break
+    await uow.project.add_user(project_id, user_id_to_add)
     project_info = await uow.project.get_project_all_info(project_id)
     member_ids = [i.user_id for i in project_info['members']]
-    pending_invitations = await uow.invitation.get_invitation_for_project(project_id)
-    invitee_ids = {inv.invitee_id for inv, _ in pending_invitations}
-    if 'project_name' in changes:
-        await uow.project.update_project_name(changes['project_name'], project_id)
-    if 'project_description' in changes:
-        await uow.project.update_project_description(changes['project_description'], project_id)
     await delete_cache(project_key(project_id))
-    await delete_cache_by_pattern(project_invitations_pattern(project_id))
-    for invitee_id in invitee_ids:
-        await delete_cache_by_pattern(user_invitations_pattern(invitee_id))
-    for member_id in member_ids:
-        await delete_cache_by_pattern(user_projects_pattern(member_id))
-    return {'message': 'Проект обновлен!'}
+    await delete_cache(user_invitations_key(user_id_to_add, 'all'))
+    await delete_cache(project_invitations_key(project_id, 'all'))
+    for i in member_ids:
+        """Инвалидируем кэш проектов для участников."""
+        await delete_cache_by_pattern(user_projects_pattern(i))
+    return {'message': 'Пользователь добавлен в проект!'}
 
 
 async def delete_project(uow: UnitOfWork, project_id: int, user_id: int) -> dict:
@@ -205,9 +224,11 @@ async def delete_project(uow: UnitOfWork, project_id: int, user_id: int) -> dict
     await delete_cache(project_key(project_id))
     await delete_cache_by_pattern(project_all_pattern(project_id))
     for i in member_ids:
+        """Инвалидируем кэш проектов и задач для участников."""
         await delete_cache_by_pattern(user_projects_pattern(i))
         await delete_cache_by_pattern(user_tasks_pattern(i))
     for iid in invitee_ids:
+        """Инвалидируем кэш приглашений для приглашённых."""
         await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Проект успешно удален!'}
 
@@ -274,23 +295,15 @@ async def leave_from_project(uow: UnitOfWork, project_id: int, current_user_id: 
     await delete_cache_by_pattern(user_projects_pattern(current_user_id))
     await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
     for member_id in member_ids:
+        """Инвалидируем кэш для каждого участника."""
         if member_id == current_user_id:
+            """Пропускаем текущего пользователя."""
             continue
         await delete_cache_by_pattern(user_projects_pattern(member_id))
         if is_admin and new_admin_id is None:
             """Если проект удалён, у участников тоже меняются задачи."""
             await delete_cache_by_pattern(user_tasks_pattern(member_id))
     for iid in invitee_ids:
+        """Инвалидируем кэш приглашений для приглашённых."""
         await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Вы вышли из проекта!'}
-
-
-async def get_project_members(uow: UnitOfWork, project_id: int, user_id: int, 
-                               user_filter: UserFilter | None = None) -> list[dict]:
-    """Получение пользователей проекта."""
-    if await uow.project.get_project_by_id(project_id) is None:
-        raise NotFoundException('Проект не найден!')
-    if not await uow.project.is_user_in_project(project_id, user_id):
-        raise ConflictException('Пользователь не состоит в проекте!')
-    result = await uow.project.get_all_project_participants(project_id, user_filter)
-    return [UserSearchResponse.model_validate(user).model_dump(mode='json') for user in result]

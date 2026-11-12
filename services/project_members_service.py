@@ -29,6 +29,7 @@ async def update_member_role(uow: UnitOfWork, user_id: int, project_id: int,
     await delete_cache(project_key(project_id))
     project_info = await uow.project.get_project_all_info(project_id)
     for member in project_info['members']:
+        """Инвалидируем кэш проектов для каждого участника."""
         await delete_cache_by_pattern(user_projects_pattern(member.user_id))
     return {'message': 'Роль обновлена!'}
 
@@ -49,5 +50,6 @@ async def transfer_admin(uow: UnitOfWork, project_id: int, current_user_id: int,
     await delete_cache(project_key(project_id))
     project_info = await uow.project.get_project_all_info(project_id)
     for member in project_info['members']:
+        """Инвалидируем кэш проектов для каждого участника."""
         await delete_cache_by_pattern(user_projects_pattern(member.user_id))
     return {'message': 'Роль администратора передана! Старый администратор стал куратором.'}

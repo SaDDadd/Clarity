@@ -35,6 +35,14 @@ async def get_profile_endpoint(current_user: UserModel = Depends(current_user)) 
     return await get_profile_info(current_user)
 
 
+@router.get('/users/search', tags=['Пользователи'], summary='Поиск пользователя по нику')
+async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 
+                       uow: UnitOfWork = Depends(get_uow)):
+    """Поиск пользователей."""
+    # добавить пагинацию
+    return await search_by_username(uow, search_user, current_user.username)
+
+
 @router.patch('/profile/password', tags=['Изменения профиля'],
               summary='Обновить пароль пользователя')
 async def update_password_endpoint(request: UpdatePasswordRequest,
@@ -42,14 +50,6 @@ async def update_password_endpoint(request: UpdatePasswordRequest,
                                    uow: UnitOfWork = Depends(get_uow)):
     """Обновляет пароль текущего пользователя."""
     return await update_user_password(uow, request, current_user.user_id)
-
-
-@router.get('/users/search', tags=['Пользователи'], summary='Поиск пользователя по нику')
-async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 
-                       uow: UnitOfWork = Depends(get_uow)):
-    """Поиск пользователей."""
-    # добавить пагинацию
-    return await search_by_username(uow, search_user, current_user.username)
 
 
 @router.delete('/profile', tags=['Изменения профиля'], summary='Удаление профиля')

@@ -16,31 +16,12 @@ from fastapi_filter import FilterDepends
 router = APIRouter()
 
 
-@router.post('/projects', tags=['Проекты'],
-             summary='Создание проекта', status_code=201)
-async def create_project_endpoint(project: ProjectCreate,
-                                  user: UserModel = Depends(current_user),
-                                  uow: UnitOfWork = Depends(get_uow)):
-    """Создание проекта."""
-    return await create_project(uow, project, user.user_id)
-
-
-@router.post('/projects/{project_id}/members', tags=['Проекты'],
-             summary='Добавить участника в проект')
-async def add_member_endpoint(project_id: int, request: AddMemberRequest,
-                              current_user: UserModel = Depends(current_user),
-                              uow: UnitOfWork = Depends(get_uow)):
-    """Добавление пользователя в проект."""
-    return await add_user(uow, project_id, current_user.user_id, request.user_id)
-
-
-@router.patch('/projects/{project_id}/members/{user_id}/role', tags=['Проекты'],
-              summary='Изменение роли участника')
-async def update_member_role_endpoint(project_id: int, user_id: int, role: ProjectRole,
-                                      current_user: UserModel = Depends(current_user),
-                                      uow: UnitOfWork = Depends(get_uow)):
-    """Обновление роли пользователя в проекте."""
-    return await update_member_role(uow, user_id, project_id, current_user.user_id, role.value)
+@router.put('/projects/{project_id}', tags=['Проекты'], summary='Обновить проект')
+async def update_project_description_endpoint(project_id: int, project: ProjectUpdate,
+                                              user: UserModel = Depends(current_user),
+                                              uow: UnitOfWork = Depends(get_uow)):
+    """Обновление проекта."""
+    return await update_project(uow, project_id, user.user_id, project)
 
 
 @router.get('/projects/all', tags=['Проекты'], summary='Проекты, где пользователь участвует (owner/admin/member)')
@@ -78,12 +59,41 @@ async def get_project_info_endpoint(project_id: int,
     return await get_project_info(uow, project_id, user.user_id)
 
 
-@router.put('/projects/{project_id}', tags=['Проекты'], summary='Обновить проект')
-async def update_project_description_endpoint(project_id: int, project: ProjectUpdate,
-                                              user: UserModel = Depends(current_user),
-                                              uow: UnitOfWork = Depends(get_uow)):
-    """Обновление проекта."""
-    return await update_project(uow, project_id, user.user_id, project)
+@router.patch('/projects/{project_id}/members/{user_id}/role', tags=['Проекты'],
+              summary='Изменение роли участника')
+async def update_member_role_endpoint(project_id: int, user_id: int, role: ProjectRole,
+                                      current_user: UserModel = Depends(current_user),
+                                      uow: UnitOfWork = Depends(get_uow)):
+    """Обновление роли пользователя в проекте."""
+    return await update_member_role(uow, user_id, project_id, current_user.user_id, role.value)
+
+
+@router.patch('/projects/{project_id}/admin', tags=['Проекты'],
+              summary='Передать роль администратора')
+async def transfer_admin_endpoint(project_id: int, 
+                                  data: TransferAdminRequest, 
+                                  current_user: UserModel = Depends(current_user),
+                                  uow: UnitOfWork = Depends(get_uow)):
+    """Админ выбирает нового админа."""
+    return await transfer_admin(uow, project_id, current_user.user_id, data.new_admin_id)
+
+
+@router.post('/projects', tags=['Проекты'],
+             summary='Создание проекта', status_code=201)
+async def create_project_endpoint(project: ProjectCreate,
+                                  user: UserModel = Depends(current_user),
+                                  uow: UnitOfWork = Depends(get_uow)):
+    """Создание проекта."""
+    return await create_project(uow, project, user.user_id)
+
+
+@router.post('/projects/{project_id}/members', tags=['Проекты'],
+             summary='Добавить участника в проект')
+async def add_member_endpoint(project_id: int, request: AddMemberRequest,
+                              current_user: UserModel = Depends(current_user),
+                              uow: UnitOfWork = Depends(get_uow)):
+    """Добавление пользователя в проект."""
+    return await add_user(uow, project_id, current_user.user_id, request.user_id)
 
 
 @router.delete('/projects/{project_id}', tags=['Проекты'], summary='Удалить проект')
@@ -109,13 +119,3 @@ async def leave_from_project_endpoint(project_id: int,
                                       uow: UnitOfWork = Depends(get_uow)):
     """Выход из проекта."""
     return await leave_from_project(uow, project_id, user.user_id)
-
-
-@router.patch('/projects/{project_id}/admin', tags=['Проекты'],
-              summary='Передать роль администратора')
-async def transfer_admin_endpoint(project_id: int, 
-                                  data: TransferAdminRequest, 
-                                  current_user: UserModel = Depends(current_user),
-                                  uow: UnitOfWork = Depends(get_uow)):
-    """Админ выбирает нового админа."""
-    return await transfer_admin(uow, project_id, current_user.user_id, data.new_admin_id)

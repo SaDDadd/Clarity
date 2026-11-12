@@ -12,29 +12,6 @@ from cache.cache_service import get_cache, delete_cache, set_cache, has_filter
 from core.filters import InvitationFilter
 
 
-async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, current_user_id: int, message: str) -> dict:
-    """Отправляет приглашение. Паттерн как в create_project."""
-    project = await uow.project.get_project_by_id(project_id)
-    if not project:
-        raise NotFoundException('Проект не найден!')
-    if not await uow.project.is_user_in_project(project_id, current_user_id):
-        raise PermissionDeniedException('Вы не состоите в проекте!')
-    if not await uow.user.get_by_id(user_id):
-        raise NotFoundException('Пользователь не найден!')
-    if current_user_id == user_id:
-        raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
-    if await uow.project.is_user_in_project(project_id, user_id):
-        raise MemberAlreadyInProjectException('Пользователь уже является участником проекта!')
-    if await uow.invitation.get_pending_invitation(project_id, user_id):
-        raise ConflictException('Приглашение уже отправлено!')
-    result = await uow.invitation.create_invitation(project_id, current_user_id, user_id, message)
-    answer = InvitationResponse.model_validate(result).model_dump(mode='json')
-    answer['project_name'] = project.project_name
-    await delete_cache(user_invitations_key(user_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'all'))
-    return answer
-
-
 async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
                     invitation_filter: InvitationFilter | None = None) -> list[dict]:
     """Приглашения пользователя с project_name."""
@@ -73,6 +50,7 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
     rows = await uow.invitation.get_invitation_for_project(project_id, invitation_filter)
     serialized = []
     for invitation, username in rows:
+        """Формируем ответ для каждого приглашения."""
         data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
         data['invitee_username'] = username
         serialized.append(data)
@@ -100,10 +78,34 @@ async def response_to_invitation(uow: UnitOfWork, invitation_id: int, action: In
     await delete_cache(user_invitations_key(invitee_id, 'all'))
     await delete_cache(project_invitations_key(project_id, 'all'))
     if action == InvitationAction.ACCEPTED:
+        """Инвалидируем кэш проекта и списков проектов пользователя."""
         await delete_cache(project_key(project_id))
         await delete_cache(user_projects_key(invitee_id, 'all'))
         await delete_cache(user_projects_key(invitee_id, 'admin'))
     return {'message': f'Приглашение {action.value}!'}
+
+
+async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, current_user_id: int, message: str) -> dict:
+    """Отправляет приглашение. Паттерн как в create_project."""
+    project = await uow.project.get_project_by_id(project_id)
+    if not project:
+        raise NotFoundException('Проект не найден!')
+    if not await uow.project.is_user_in_project(project_id, current_user_id):
+        raise PermissionDeniedException('Вы не состоите в проекте!')
+    if not await uow.user.get_by_id(user_id):
+        raise NotFoundException('Пользователь не найден!')
+    if current_user_id == user_id:
+        raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
+    if await uow.project.is_user_in_project(project_id, user_id):
+        raise MemberAlreadyInProjectException('Пользователь уже является участником проекта!')
+    if await uow.invitation.get_pending_invitation(project_id, user_id):
+        raise ConflictException('Приглашение уже отправлено!')
+    result = await uow.invitation.create_invitation(project_id, current_user_id, user_id, message)
+    answer = InvitationResponse.model_validate(result).model_dump(mode='json')
+    answer['project_name'] = project.project_name
+    await delete_cache(user_invitations_key(user_id, 'all'))
+    await delete_cache(project_invitations_key(project_id, 'all'))
+    return answer
 
 
 async def delete_invitation(uow: UnitOfWork, invitation_id: int, current_user_id: int) -> dict:
