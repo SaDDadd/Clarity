@@ -3,6 +3,7 @@ from core.exceptions import (ConflictException,
                              NotFoundException, PermissionDeniedException,
                              LackOfInformationException)
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
+from schemas.user import UserSearchResponse
 from core.uow import UnitOfWork
 from cache.cache_keys import (project_key, user_projects_key, project_tasks_key,
                               TTL_PROJECT, TTL_PROJECT_LIST, project_all_pattern,
@@ -11,7 +12,7 @@ from cache.cache_keys import (project_key, user_projects_key, project_tasks_key,
                               project_invitations_pattern, user_invitations_key, project_invitations_key)
 from cache.cache_service import (get_cache, set_cache, delete_cache,
                                  delete_cache_by_pattern, has_filter)
-from core.filters import ProjectFilter
+from core.filters import ProjectFilter, UserFilter
 
 
 async def create_project(uow: UnitOfWork, project_data: ProjectCreate, admin_id: int) -> dict:
@@ -282,3 +283,14 @@ async def leave_from_project(uow: UnitOfWork, project_id: int, current_user_id: 
     for iid in invitee_ids:
         await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Вы вышли из проекта!'}
+
+
+async def get_project_members(uow: UnitOfWork, project_id: int, user_id: int, 
+                               user_filter: UserFilter | None = None) -> list[dict]:
+    """Получение пользователей проекта."""
+    if await uow.project.get_project_by_id(project_id) is None:
+        raise NotFoundException('Проект не найден!')
+    if not await uow.project.is_user_in_project(project_id, user_id):
+        raise ConflictException('Пользователь не состоит в проекте!')
+    result = await uow.project.get_all_project_participants(project_id, user_filter)
+    return [UserSearchResponse.model_validate(user).model_dump(mode='json') for user in result]

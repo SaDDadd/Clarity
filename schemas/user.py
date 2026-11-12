@@ -23,3 +23,4 @@ class UserSearchResponse(BaseModel):
     user_id: int 
     username: str
     email: EmailStr
+    model_config = ConfigDict(from_attributes=True)

@@ -9,8 +9,8 @@ from services.project_members_service import update_member_role, transfer_admin
 from services.project_service import (add_user, create_project, delete_project,
                                       delete_project_user, get_admin_projects,
                                       get_project_info, get_user_projects, update_project,
-                                      leave_from_project)
-from core.filters import ProjectFilter
+                                      leave_from_project, get_project_members)
+from core.filters import ProjectFilter, UserFilter
 from fastapi_filter import FilterDepends 
 
 router = APIRouter()
@@ -61,10 +61,13 @@ async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
     return await get_admin_projects(uow, user.user_id, project_filter)
 
 
-# @router.get('/projects/{project_id}/members')
-# async def get_project_members():
-#     """Получить участников проекта."""
+@router.get('/projects/{project_id}/members', tags=['Проекты'], summary='Все участники проекта.')
+async def get_project_members_endpoint(project_id: int, current_user: UserModel = Depends(current_user),
+                              user_filter: UserFilter = FilterDepends(UserFilter), 
+                              uow: UnitOfWork = Depends(get_uow)):
+    """Получить участников проекта."""
     # добавить фильтрацию и пагинацию 
+    return await get_project_members(uow, project_id, current_user.user_id, user_filter)
 
 
 @router.get('/projects/{project_id}', tags=['Проекты'], summary='Получить информацию о проекте')

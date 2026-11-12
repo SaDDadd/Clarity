@@ -2,9 +2,10 @@ from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.project import ProjectModel
+from models.user import UserModel
 from models.project_members import ProjectMemberModel
 from models.task import TaskModel
-from core.filters import ProjectFilter
+from core.filters import ProjectFilter, UserFilter
 
 
 class ProjectRepository:
@@ -361,3 +362,13 @@ class ProjectRepository:
             )
         )
         return result.scalar() or 0
+
+
+    async def get_all_project_participants(self, project_id: int, filter: UserFilter | None = None) -> list[UserModel]:
+        """Получить всех участников проекта."""
+        query = select(UserModel).join(ProjectMemberModel, ProjectMemberModel.user_id == UserModel.user_id).where(
+            ProjectMemberModel.project_id == project_id)
+        if filter:
+            query = filter.filter(query)
+        result = await self.session.execute(query)
+        return result.scalars().all()
