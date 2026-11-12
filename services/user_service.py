@@ -5,7 +5,9 @@ from schemas.user import (UserResponse, UpdateUsernameRequest, UpdateEmailReques
 from models.user import UserModel
 from core.security import async_hash_password
 from cache.cache_keys import (user_key, user_all_pattern, user_projects_pattern,
-                              user_invitations_pattern, project_all_pattern, project_key, TTL_USER)
+                                user_invitations_pattern, project_all_pattern, project_key, TTL_USER,
+                                user_tasks_pattern, project_invitations_key, task_comments_list_key
+                            )
 from cache.cache_service import (set_cache, get_cache, delete_cache, delete_cache_by_pattern)
 
 
@@ -21,6 +23,9 @@ async def update_user_username(uow: UnitOfWork, user_data: UpdateUsernameRequest
         raise ConflictException('Пользователь с таким именем уже существует!')
     await uow.user.update_username(current_user_id, username)
     await delete_cache(user_key(current_user_id))
+    incoming = await uow.invitation.get_invitation_by_user(current_user_id)
+    for inv in incoming:
+        await delete_cache(project_invitations_key(inv.project_id, 'all'))
     return {'message': 'Имя пользователя обновлено!'}
 
 
@@ -66,7 +71,7 @@ async def search_by_username(uow: UnitOfWork, search_user: str, current_user_use
 
 
 async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
-    """Удаление профиля пользователя."""
+    """Удаление профиля."""
     user = await uow.user.get_by_id(current_user_id)
     if user is None:
         raise NotFoundException('Пользователь не найден!')
@@ -78,10 +83,24 @@ async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
     for project in member_projects:
         project_ids.add(project.project_id)
         info = await uow.project.get_project_all_info(project.project_id)
-        project_members_map[project.project_id] = [m.user_id for m in info['members'] if m.user_id != current_user_id]
+        project_members_map[project.project_id] = [
+            m.user_id for m in info['members'] if m.user_id != current_user_id
+        ]
     for pid in project_ids:
         pending = await uow.invitation.get_invitation_for_project(pid)
-        affected_invitee_ids.update(inv.invitee_id for inv in pending)
+        affected_invitee_ids.update(inv.invitee_id for inv, _ in pending)
+    invited_project_ids: set[int] = set()
+    incoming = await uow.invitation.get_invitation_by_user(current_user_id)
+    for inv in incoming:
+        if inv.project_id not in project_ids:
+            invited_project_ids.add(inv.project_id)
+    sent_invitations = await uow.invitation.get_pending_invitations_by_inviter(current_user_id)
+    sent_project_ids = {inv.project_id for inv in sent_invitations}
+    sent_invitee_ids = {inv.invitee_id for inv in sent_invitations}
+    project_invitation_ids = sent_project_ids | invited_project_ids
+    invitee_ids_to_invalidate = affected_invitee_ids | sent_invitee_ids
+    comment_locations = await uow.task.get_task_comment_locations_by_author(current_user_id)
+    await uow.project.unassign_all_tasks_from_user(current_user_id)
     for project in admin_projects:
         new_owner_id = await uow.project.automatically_assign_admin(project.project_id, current_user_id)
         if new_owner_id is None:
@@ -93,8 +112,14 @@ async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
     for members in project_members_map.values():
         for mid in members:
             await delete_cache_by_pattern(user_projects_pattern(mid))
-    for iid in affected_invitee_ids:
+            await delete_cache_by_pattern(user_tasks_pattern(mid))
+    for iid in invitee_ids_to_invalidate:
         await delete_cache_by_pattern(user_invitations_pattern(iid))
+    for pid in project_invitation_ids:
+        await delete_cache(project_invitations_key(pid, 'all'))
+    for pid, tid in comment_locations:
+        await delete_cache(task_comments_list_key(pid, tid))
+    await delete_cache(user_key(current_user_id))
     await delete_cache_by_pattern(user_all_pattern(current_user_id))
     return {'message': 'Профиль удален!'}
 

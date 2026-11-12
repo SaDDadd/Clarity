@@ -6,9 +6,9 @@ from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentRespon
 from schemas.common import TaskStatus
 from core.uow import UnitOfWork
 from cache.cache_keys import (project_tasks_key, user_tasks_key, task_key,
-    task_comments_list_key, task_comments_pattern, TTL_TASK, TTL_TASK_LIST,
+    task_comments_list_key, TTL_TASK, TTL_TASK_LIST,
     TTL_TASK_COMMENT_LIST)
-from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
+from cache.cache_service import get_cache, delete_cache, set_cache, has_filter
 from core.filters import TaskFilter, CommentFilter
 
 
@@ -33,19 +33,23 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
     return answer
 
 
-async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: int, task_filter: TaskFilter | None = None) -> list[dict]:
+async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: int,
+                                task_filter: TaskFilter | None = None) -> list[dict]:
     """Возвращает все задачи проекта."""
     if await uow.project.get_project_by_id(project_id) is None:
         raise NotFoundException('Данного проекта не существует!')
     if not await uow.project.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Пользователя нет в проекте!')
+    use_cache = not await has_filter(task_filter)
     key = project_tasks_key(project_id)
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = await get_cache(key)
+        if cached is not None:
+            return cached
     data = await uow.task.get_project_tasks(project_id, task_filter)
     answer = [TaskResponse.model_validate(i).model_dump(mode='json') for i in data]
-    await set_cache(key, answer, TTL_TASK_LIST)
+    if use_cache:
+        await set_cache(key, answer, TTL_TASK_LIST)
     return answer
 
 
@@ -55,7 +59,7 @@ async def get_task_info(uow: UnitOfWork, project_id: int, current_user_id: int, 
         raise NotFoundException('Данного проекта не существует!')
     if not await uow.project.is_user_in_project(project_id, current_user_id):
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if not await uow.project.is_task_in_project(project_id, task_id):
+    if not await uow.task.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     key = task_key(project_id, task_id)
     cached = await get_cache(key)
@@ -69,13 +73,16 @@ async def get_task_info(uow: UnitOfWork, project_id: int, current_user_id: int, 
 
 async def get_tasks_user(uow: UnitOfWork, current_user_id: int, task_filter: TaskFilter | None = None) -> list[dict]:
     """Возвращает все задачи, назначенные на пользователя."""
+    use_cache = not await has_filter(task_filter)
     key = user_tasks_key(current_user_id, 'all')
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = await get_cache(key)
+        if cached is not None:
+            return cached
     data = await uow.task.get_tasks_by_user(current_user_id, task_filter)
     answer = [TaskResponse.model_validate(i).model_dump(mode='json') for i in data]
-    await set_cache(key, answer, TTL_TASK_LIST)
+    if use_cache:
+        await set_cache(key, answer, TTL_TASK_LIST)
     return answer
 
 
@@ -182,7 +189,7 @@ async def delete_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
     await delete_cache(project_tasks_key(project_id))
     if assignee:
         await delete_cache(user_tasks_key(assignee, 'all'))
-    await delete_cache_by_pattern(task_comments_pattern(project_id, task_id))
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Задача удалена из проекта!'}
 
 
@@ -250,8 +257,8 @@ async def update_comment(uow: UnitOfWork, project_id: int, task_id: int, comment
     return {'message': 'Комментарий обновлен!'}
 
 
-async def get_task_comments(uow: UnitOfWork, project_id: int, task_id: int,
-                            current_user_id: int, comment_filter: CommentFilter | None = None) -> list[dict]:
+async def get_task_comments(uow: UnitOfWork, project_id: int, task_id: int, current_user_id: int,
+                                comment_filter: CommentFilter | None = None) -> list[dict]:
     """Список комментариев задачи."""
     if await uow.project.get_project_by_id(project_id) is None:
         raise NotFoundException('Данного проекта не существует!')
@@ -259,11 +266,14 @@ async def get_task_comments(uow: UnitOfWork, project_id: int, task_id: int,
         raise PermissionDeniedException('Текущего пользователя нет в проекте!')
     if not await uow.task.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
+    use_cache = not await has_filter(comment_filter)
     key = task_comments_list_key(project_id, task_id)
-    cached = await get_cache(key)
-    if cached is not None:
-        return cached
+    if use_cache:
+        cached = await get_cache(key)
+        if cached is not None:
+            return cached
     data = await uow.task.get_task_comments(project_id, task_id, comment_filter)
     answer = [TaskCommentResponse.model_validate(c).model_dump(mode='json') for c in data]
-    await set_cache(key, answer, TTL_TASK_COMMENT_LIST)
+    if use_cache:
+        await set_cache(key, answer, TTL_TASK_COMMENT_LIST)
     return answer

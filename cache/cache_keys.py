@@ -16,6 +16,7 @@ def make_key(*parts) -> str:
     """Склеивает части ключа."""
     return ':'.join(str(p) for p in parts if p is not None)
 
+
 def user_key(user_id: int) -> str:
     """Профиль: clarity:user:{id}"""
     return make_key(USER_PREFIX, user_id)
@@ -57,7 +58,7 @@ def user_all_pattern(user_id: int) -> str:
 
 def user_cache_patterns(user_id: int) -> list[str]:
     """Все паттерны пользователя для каскадной инвалидации."""
-    return [user_all_pattern(user_id), user_all_pattern(user_id)]
+    return [user_key(user_id), user_all_pattern(user_id)]
 
 
 def project_key(project_id: int) -> str:

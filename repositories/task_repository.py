@@ -220,3 +220,13 @@ class TaskRepository:
             query = filter.filter(query)
         result = await self.session.execute(query)
         return result.scalars().all()
+
+
+    async def get_task_comment_locations_by_author(self, user_id: int) -> list[tuple[int, int]]:
+        """Возврат id проекта и комментария автора"""
+        result = await self.session.execute(
+                select(TaskCommentsModel.project_id, TaskCommentsModel.task_id)
+                .where(TaskCommentsModel.author_id == user_id)
+                .distinct()
+        )
+        return result.all()

@@ -61,6 +61,12 @@ async def get_projects_admin_endpoint(user: UserModel = Depends(current_user),
     return await get_admin_projects(uow, user.user_id, project_filter)
 
 
+# @router.get('/projects/{project_id}/members')
+# async def get_project_members():
+#     """Получить участников проекта."""
+    # добавить фильтрацию и пагинацию 
+
+
 @router.get('/projects/{project_id}', tags=['Проекты'], summary='Получить информацию о проекте')
 async def get_project_info_endpoint(project_id: int,
                                     user: UserModel = Depends(current_user),

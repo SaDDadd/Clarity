@@ -1,7 +1,8 @@
 import json
-from typing import Any, Awaitable, Callable
+from typing import Any
 from redis.exceptions import RedisError
 from cache.redis_client import get_redis_client
+from fastapi_filter import Filter 
 
 
 async def get_cache(key: str) -> Any | None:
@@ -58,3 +59,11 @@ async def delete_cache_by_pattern(pattern: str) -> int:
     except RedisError as e:
         """Место для логирования."""
     return deleted
+
+
+async def has_filter(filter: Filter | None = None) -> bool:
+    """Проверка работает ли пользователь с фильтрами."""
+    if filter is None:
+        return False 
+    data = filter.model_dump(exclude_none=True, exclude_unset=True)
+    return bool(data)
