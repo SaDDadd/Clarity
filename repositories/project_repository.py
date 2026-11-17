@@ -6,6 +6,8 @@ from models.user import UserModel
 from models.project_members import ProjectMemberModel
 from models.task import TaskModel
 from core.filters import ProjectFilter, UserFilter
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 
 class ProjectRepository:
@@ -175,14 +177,28 @@ class ProjectRepository:
 
     async def get_projects_by_creator(self, admin_id: int, filter: ProjectFilter | None = None) -> list[ProjectModel]:
         """Проекты, где пользователь именно владелец."""
-        query = select(ProjectModel).join(ProjectMemberModel).where(
-                ProjectMemberModel.user_id == admin_id,
-                ProjectMemberModel.role_project == 'admin'
-            )
+        query = select(ProjectModel).join(ProjectMemberModel, 
+                                          ProjectModel.project_id == ProjectMemberModel.project_id).where(
+            ProjectMemberModel.user_id == admin_id,
+            ProjectMemberModel.role_project == 'admin'
+        )
         if filter:
             query = filter.filter(query)
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    
+    async def get_projects_by_creator_pagination(self, admin_id: int, filter: ProjectFilter | None = None, 
+                                                 params: Params | None = None) -> Page[ProjectModel]:
+        """Проекты, где пользователь именно владелец с пагинацией."""
+        query = select(ProjectModel).join(ProjectMemberModel,
+                                          ProjectModel.project_id == ProjectMemberModel.project_id).where(
+                ProjectMemberModel.user_id == admin_id,
+                ProjectMemberModel.role_project == 'admin'
+            ).order_by(ProjectModel.project_id)
+        if filter:
+            query = filter.filter(query)
+        return await apaginate(self.session, query, params=params)
 
 
     async def get_user_role_in_project(self, project_id: int, user_id: int) -> str | None:
@@ -235,15 +251,29 @@ class ProjectRepository:
     async def get_user_projects(self, user_id: int, filter: ProjectFilter | None = None) -> list[ProjectModel]:
         """Получить все проекты пользователя."""
         query = select(ProjectModel).join(
-                ProjectMemberModel,
-                ProjectModel.project_id == ProjectMemberModel.project_id
-            ).where(
-                ProjectMemberModel.user_id == user_id
-            )
+            ProjectMemberModel,
+            ProjectModel.project_id == ProjectMemberModel.project_id
+        ).where(
+            ProjectMemberModel.user_id == user_id
+        )
         if filter:
             query = filter.filter(query)
         result = await self.session.execute(query)
         return result.scalars().all()
+
+
+    async def get_user_projects_pagination(self, user_id: int, filter: ProjectFilter | None = None, 
+                                           params: Params | None = None) -> Page[ProjectModel]:
+        """Получить все проекты пользователя с пагинацией."""
+        query = select(ProjectModel).join(
+                ProjectMemberModel,
+                ProjectModel.project_id == ProjectMemberModel.project_id
+            ).where(
+                ProjectMemberModel.user_id == user_id
+            ).order_by(ProjectModel.project_id)
+        if filter:
+            query = filter.filter(query)
+        return await apaginate(self.session, query, params=params)
 
 
     async def get_number_curators(self, project_id: int) -> int:
@@ -272,14 +302,18 @@ class ProjectRepository:
         return result.scalar() or 0
 
 
-    async def get_all_project_participants(self, project_id: int, filter: UserFilter | None = None) -> list[UserModel]:
+    async def get_all_project_participants(self, project_id: int, filter: UserFilter | None = None, 
+                                           params: Params | None = None) -> Page[UserModel]:
         """Получить всех участников проекта."""
-        query = select(UserModel).join(ProjectMemberModel, ProjectMemberModel.user_id == UserModel.user_id).where(
-            ProjectMemberModel.project_id == project_id)
+        query = select(UserModel).join(
+            ProjectMemberModel, 
+            ProjectMemberModel.user_id == UserModel.user_id).where(
+                ProjectMemberModel.project_id == project_id).order_by(
+                    UserModel.user_id
+                )
         if filter:
             query = filter.filter(query)
-        result = await self.session.execute(query)
-        return result.scalars().all()
+        return await apaginate(self.session, query, params=params)
 
 
     async def create_project_with_admin(self, name: str, description: str | None, admin_id: int) -> ProjectModel:

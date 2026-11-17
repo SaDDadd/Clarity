@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.security import async_verify_password
 from models.user import UserModel
 from schemas.user import UserSearchResponse
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 
 class UserRepository:
@@ -97,20 +99,19 @@ class UserRepository:
         return user
 
 
-    async def search_by_username(self, username: str) -> list[UserSearchResponse]:
+    async def search_by_username(self, username: str, params: Params | None = None) -> Page[UserSearchResponse]:
         """Поиск пользователей по имени."""
-        task = await self.session.execute(
-            select(
+        query = select(
                 UserModel.user_id,
                 UserModel.email,
                 UserModel.username,
                 UserModel.created_date
-            )
-            .where(
+            ).where(
                 UserModel.username.ilike(f"%{username}%")
+            ).order_by(
+                UserModel.user_id
             )
-        )
-        return [UserSearchResponse.model_validate(row._mapping) for row in task.all()]
+        return await apaginate(self.session, query, params=params)
 
 
     async def create_user(self, username: str, email: str, password_hash: str) -> UserModel:

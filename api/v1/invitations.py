@@ -9,6 +9,7 @@ from services.invitation_service import (delete_invitation, get_project_invitati
                                          send_invitation)
 from core.filters import InvitationFilter
 from fastapi_filter import FilterDepends
+from fastapi_pagination import Params
 
 router = APIRouter()
 
@@ -17,10 +18,11 @@ router = APIRouter()
             summary='Список проектов, в которые приглашают пользователя')
 async def user_invitations_endpoint(current_user: UserModel = Depends(current_user),
                                     invitation_filter: InvitationFilter = FilterDepends(InvitationFilter),
+                                    params: Params = Depends(),
                                     uow: UnitOfWork = Depends(get_uow)):
     """Возвращает все входящие приглашения для текущего пользователя."""
     # добавить фильтраию и пагинацию
-    return await get_user_invitations(uow, current_user.user_id, invitation_filter)
+    return await get_user_invitations(uow, current_user.user_id, invitation_filter, params)
 
 
 @router.get('/invitations/project/{project_id}', tags=['Приглашение в проект'],
@@ -28,10 +30,11 @@ async def user_invitations_endpoint(current_user: UserModel = Depends(current_us
 async def project_invitations_endpoint(project_id: int,
                                        current_user: UserModel = Depends(current_user),
                                        invitation_filter: InvitationFilter = FilterDepends(InvitationFilter),
+                                       params: Params = Depends(),
                                        uow: UnitOfWork = Depends(get_uow)):
     """Возвращает все приглашения для указанного проекта (доступно только администратору)."""
     # добавить фильтраию и пагинацию
-    return await get_project_invitations(uow, project_id, current_user.user_id, invitation_filter)
+    return await get_project_invitations(uow, project_id, current_user.user_id, invitation_filter, params)
 
 
 @router.patch('/invitations/{invitation_id}', tags=['Приглашение в проект'],

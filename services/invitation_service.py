@@ -6,34 +6,32 @@ from core.exceptions import (ConflictException,
 from schemas.invitation import InvitationResponse
 from schemas.common import InvitationAction
 from core.uow import UnitOfWork
-from cache.cache_keys import (user_invitations_key, project_invitations_key,
-                              project_key, user_projects_key, TTL_INVITATION_LIST)
-from cache.cache_service import get_cache, delete_cache, set_cache, has_filter 
+from cache.cache_keys import project_key, user_projects_key
+from cache.cache_service import delete_cache
 from core.filters import InvitationFilter
+from fastapi_pagination import Page, Params
 
 
 async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
-                    invitation_filter: InvitationFilter | None = None) -> list[dict]:
+                    invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[dict]:
     """Приглашения пользователя с project_name."""
-    use_cache = not await has_filter(invitation_filter)
-    key = user_invitations_key(current_user_id, 'all')
-    if use_cache:
-        cached = await get_cache(key)
-        if cached is not None:
-            return cached
-    rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id, invitation_filter)
+    rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id, invitation_filter, params)
     result = []
-    for invitation, project_name in rows:
+    for invitation, project_name in rows.items:
         data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
         data['project_name'] = project_name
         result.append(data)
-    if use_cache:
-        await set_cache(key, result, TTL_INVITATION_LIST)
-    return result
+    return Page[InvitationResponse](
+        items=result,
+        total=rows.total,
+        page=rows.page,
+        size=rows.size,
+        pages=rows.pages
+    )
 
 
 async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user_id: int,
-                                  invitation_filter: InvitationFilter | None = None) -> list[dict]:
+                                  invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[dict]:
     """Возвращает приглашения проекта с учётом прав доступа."""
     if not await uow.project.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
@@ -41,22 +39,20 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
         raise PermissionDeniedException('Данного пользователя нет в проекте!')
     if not await uow.project.is_user_admin_or_curator(project_id, current_user_id):
         raise PermissionDeniedException('Не админ и не куратор не может смотреть приглашения в проект!')
-    use_cache = not await has_filter(invitation_filter)
-    key = project_invitations_key(project_id, 'all')
-    if use_cache:
-        cached = await get_cache(key)
-        if cached is not None:
-            return cached
-    rows = await uow.invitation.get_invitation_for_project(project_id, invitation_filter)
+    rows = await uow.invitation.get_invitation_for_project_pagination(project_id, invitation_filter, params)
     serialized = []
-    for invitation, username in rows:
+    for invitation, username in rows.items:
         """Формируем ответ для каждого приглашения."""
         data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
         data['invitee_username'] = username
         serialized.append(data)
-    if use_cache:
-        await set_cache(key, serialized, TTL_INVITATION_LIST)
-    return serialized
+    return Page[InvitationResponse](
+        items=serialized,
+        total=rows.total,
+        page=rows.page,
+        size=rows.size,
+        pages=rows.pages
+    )
 
 
 async def response_to_invitation(uow: UnitOfWork, invitation_id: int, action: InvitationAction, current_user_id: int) -> dict:
@@ -75,8 +71,6 @@ async def response_to_invitation(uow: UnitOfWork, invitation_id: int, action: In
     await uow.invitation.update_invitation_status(invitation_id, action.value)
     if action == InvitationAction.ACCEPTED:
         await uow.project.add_user(project_id, invitee_id)
-    await delete_cache(user_invitations_key(invitee_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'all'))
     if action == InvitationAction.ACCEPTED:
         """Инвалидируем кэш проекта и списков проектов пользователя."""
         await delete_cache(project_key(project_id))
@@ -86,7 +80,7 @@ async def response_to_invitation(uow: UnitOfWork, invitation_id: int, action: In
 
 
 async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, current_user_id: int, message: str) -> dict:
-    """Отправляет приглашение. Паттерн как в create_project."""
+    """Отправляет приглашение."""
     project = await uow.project.get_project_by_id(project_id)
     if not project:
         raise NotFoundException('Проект не найден!')
@@ -103,8 +97,6 @@ async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, curren
     result = await uow.invitation.create_invitation(project_id, current_user_id, user_id, message)
     answer = InvitationResponse.model_validate(result).model_dump(mode='json')
     answer['project_name'] = project.project_name
-    await delete_cache(user_invitations_key(user_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'all'))
     return answer
 
 
@@ -122,6 +114,4 @@ async def delete_invitation(uow: UnitOfWork, invitation_id: int, current_user_id
     if not (is_admin or is_sender):
         raise PermissionDeniedException('Только администратор проекта или отправитель может удалить приглашение!')
     await uow.invitation.delete_invitation(invitation_id)
-    await delete_cache(user_invitations_key(invitation.invitee_id, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'all'))
     return {'message': 'Приглашение удалено!'}

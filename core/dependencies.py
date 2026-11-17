@@ -11,10 +11,10 @@ from models.user import UserModel
 from repositories.user_repository import UserRepository
 from core.uow import UnitOfWork
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+# oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
 
 #Для проверки в Swagger
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/token')
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:

@@ -5,14 +5,12 @@ from core.exceptions import (ConflictException,
 from schemas.project import ProjectCreate, ProjectMemberCheck, ProjectUpdate, UserProjectResponse
 from schemas.user import UserSearchResponse
 from core.uow import UnitOfWork
-from cache.cache_keys import (project_key, user_projects_key, project_tasks_key,
-                              TTL_PROJECT, TTL_PROJECT_LIST, project_all_pattern,
-                              user_projects_pattern, user_tasks_pattern,
-                              user_invitations_pattern, project_task_items_pattern,
+from cache.cache_keys import (project_key, project_tasks_key, TTL_PROJECT, project_all_pattern,
+                              user_projects_pattern, user_invitations_pattern, project_task_items_pattern,
                               project_invitations_pattern, user_invitations_key, project_invitations_key)
-from cache.cache_service import (get_cache, set_cache, delete_cache,
-                                 delete_cache_by_pattern, has_filter)
+from cache.cache_service import get_cache, set_cache, delete_cache, delete_cache_by_pattern
 from core.filters import ProjectFilter, UserFilter
+from fastapi_pagination import Page, Params
 
 
 async def update_project(uow: UnitOfWork, project_id: int, user_id: int, project_data: ProjectUpdate) -> dict:
@@ -51,17 +49,12 @@ async def update_project(uow: UnitOfWork, project_id: int, user_id: int, project
     return {'message': 'Проект обновлен!'}
 
 
-async def get_admin_projects(uow: UnitOfWork, admin_id: int, project_filter: ProjectFilter | None = None) -> list[UserProjectResponse]:
+async def get_admin_projects(uow: UnitOfWork, admin_id: int, project_filter: ProjectFilter | None = None, 
+                             params: Params | None = None) -> Page[UserProjectResponse]:
     """Проекты, где пользователь admin."""
-    use_cache = not await has_filter(project_filter)
-    key = user_projects_key(admin_id, 'admin')
-    if use_cache:
-        cached = await get_cache(key)
-        if cached is not None:
-            return cached
-    projects = await uow.project.get_projects_by_creator(admin_id, project_filter)
+    projects = await uow.project.get_projects_by_creator_pagination(admin_id, project_filter, params)
     result: list[UserProjectResponse] = []
-    for project in projects:
+    for project in projects.items:
         """Формируем список проектов с ролями."""
         role = await uow.project.get_user_role_in_project(project.project_id, admin_id)
         result.append(UserProjectResponse(
@@ -71,10 +64,13 @@ async def get_admin_projects(uow: UnitOfWork, admin_id: int, project_filter: Pro
             admin_id=project.admin_id,
             role=role
         ))
-    data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in result]
-    if use_cache:
-        await set_cache(key, data, TTL_PROJECT_LIST)
-    return data
+    return Page[UserProjectResponse](
+        items=result,
+        total=projects.total,
+        page=projects.page,
+        size=projects.size,
+        pages=projects.pages
+    )
 
 
 async def checking_rights_project(uow: UnitOfWork, project_data: ProjectMemberCheck) -> str:
@@ -121,17 +117,12 @@ async def get_project_info(uow: UnitOfWork, project_id: int, user_id: int) -> di
     return {**cache_payload, 'role': user_role}
 
 
-async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filter: ProjectFilter | None = None) -> list[UserProjectResponse]:
+async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filter: ProjectFilter | None = None, 
+                            params: Params | None = None) -> Page[UserProjectResponse]:
     """Получить проекты пользователя."""
-    use_cache = not await has_filter(project_filter)
-    key = user_projects_key(current_user_id, 'all')
-    if use_cache:
-        cached = await get_cache(key)
-        if cached is not None:
-            return cached
-    projects = await uow.project.get_user_projects(current_user_id, project_filter)
+    projects = await uow.project.get_user_projects_pagination(current_user_id, project_filter, params)
     result = []
-    for project in projects:
+    for project in projects.items:
         """Формируем список проектов с ролями."""
         role = await uow.project.get_user_role_in_project(project.project_id, current_user_id)
         if role is None:
@@ -143,21 +134,31 @@ async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filte
             admin_id=project.admin_id,
             role=role
         ))
-    data = [UserProjectResponse.model_validate(project).model_dump(mode='json') for project in result]
-    if use_cache:
-        await set_cache(key, data, TTL_PROJECT_LIST)
-    return data
+    return Page[UserProjectResponse](
+        items=result,
+        total=projects.total,
+        page=projects.page,
+        size=projects.size,
+        pages=projects.pages
+    )
 
 
 async def get_project_members(uow: UnitOfWork, project_id: int, user_id: int, 
-                               user_filter: UserFilter | None = None) -> list[dict]:
+                               user_filter: UserFilter | None = None, params: Params | None = None) -> Page[dict]:
     """Получение пользователей проекта."""
     if await uow.project.get_project_by_id(project_id) is None:
         raise NotFoundException('Проект не найден!')
     if not await uow.project.is_user_in_project(project_id, user_id):
         raise ConflictException('Пользователь не состоит в проекте!')
-    result = await uow.project.get_all_project_participants(project_id, user_filter)
-    return [UserSearchResponse.model_validate(user).model_dump(mode='json') for user in result]
+    result = await uow.project.get_all_project_participants(project_id, user_filter, params)
+    items = [UserSearchResponse.model_validate(project).model_dump(mode='json') for project in result.items]
+    return Page(
+        items=items,
+        total=result.total,
+        page=result.page,
+        size=result.size,
+        pages=result.pages
+    )
 
 
 async def create_project(uow: UnitOfWork, project_data: ProjectCreate, admin_id: int) -> dict:
@@ -197,14 +198,9 @@ async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_
                 await uow.invitation.delete_invitation(inv.invitation_id)
                 break
     await uow.project.add_user(project_id, user_id_to_add)
-    project_info = await uow.project.get_project_all_info(project_id)
-    member_ids = [i.user_id for i in project_info['members']]
     await delete_cache(project_key(project_id))
     await delete_cache(user_invitations_key(user_id_to_add, 'all'))
     await delete_cache(project_invitations_key(project_id, 'all'))
-    for i in member_ids:
-        """Инвалидируем кэш проектов для участников."""
-        await delete_cache_by_pattern(user_projects_pattern(i))
     return {'message': 'Пользователь добавлен в проект!'}
 
 
@@ -224,9 +220,8 @@ async def delete_project(uow: UnitOfWork, project_id: int, user_id: int) -> dict
     await delete_cache(project_key(project_id))
     await delete_cache_by_pattern(project_all_pattern(project_id))
     for i in member_ids:
-        """Инвалидируем кэш проектов и задач для участников."""
+        """Инвалидируем кэш проектов."""
         await delete_cache_by_pattern(user_projects_pattern(i))
-        await delete_cache_by_pattern(user_tasks_pattern(i))
     for iid in invitee_ids:
         """Инвалидируем кэш приглашений для приглашённых."""
         await delete_cache_by_pattern(user_invitations_pattern(iid))
@@ -252,8 +247,6 @@ async def delete_project_user(uow: UnitOfWork, project_id: int, current_user_id:
     await delete_cache(project_key(project_id))
     await delete_cache(project_tasks_key(project_id))
     await delete_cache_by_pattern(project_task_items_pattern(project_id))
-    await delete_cache_by_pattern(user_projects_pattern(user_id_to_del))
-    await delete_cache_by_pattern(user_tasks_pattern(user_id_to_del))
     return {'message': 'Пользователь удален из проекта!'}
 
 
@@ -292,17 +285,12 @@ async def leave_from_project(uow: UnitOfWork, project_id: int, current_user_id: 
         await delete_cache(project_key(project_id))
         await delete_cache(project_tasks_key(project_id))
         await delete_cache_by_pattern(project_task_items_pattern(project_id))
-    await delete_cache_by_pattern(user_projects_pattern(current_user_id))
-    await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
     for member_id in member_ids:
         """Инвалидируем кэш для каждого участника."""
         if member_id == current_user_id:
             """Пропускаем текущего пользователя."""
             continue
         await delete_cache_by_pattern(user_projects_pattern(member_id))
-        if is_admin and new_admin_id is None:
-            """Если проект удалён, у участников тоже меняются задачи."""
-            await delete_cache_by_pattern(user_tasks_pattern(member_id))
     for iid in invitee_ids:
         """Инвалидируем кэш приглашений для приглашённых."""
         await delete_cache_by_pattern(user_invitations_pattern(iid))

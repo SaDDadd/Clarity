@@ -8,6 +8,7 @@ from cache.cache_keys import (user_key, user_all_pattern, user_projects_pattern,
                                 user_invitations_pattern, project_all_pattern, project_key, TTL_USER,
                                 user_tasks_pattern, project_invitations_key, task_comments_list_key)
 from cache.cache_service import (set_cache, get_cache, delete_cache, delete_cache_by_pattern)
+from fastapi_pagination import Page, Params
 
 
 async def update_user_username(uow: UnitOfWork, user_data: UpdateUsernameRequest, current_user_id: int) -> dict:
@@ -43,16 +44,22 @@ async def update_user_email(uow: UnitOfWork, user_data: UpdateEmailRequest, curr
     return {'message': 'Email пользователя обновлено!'}
 
 
-async def search_by_username(uow: UnitOfWork, search_user: str, current_user_username: str) -> list[UserSearchResponse]:
+async def search_by_username(uow: UnitOfWork, search_user: str, current_user_username: str, 
+                             params: Params | None = None) -> Page[UserSearchResponse]:
     """Поиск пользователя по имени."""
     if len(search_user) == 0:
         raise NotFoundException('Нельзя найти пользователя, введите ник!')
     if search_user == current_user_username:
         raise ConflictException('Нельзя искать самого себя!')
-    user = await uow.user.search_by_username(search_user)
-    if user:
-        return user
-    raise NotFoundException('Пользователь не найден!')
+    users = await uow.user.search_by_username(search_user, params)
+    items = [UserSearchResponse.model_validate(user).model_dump(mode='json') for user in users.items]
+    return Page[UserSearchResponse](
+        items=items,
+        total=users.total,
+        page=users.page,
+        size=users.size,
+        pages=users.pages
+    )
 
 
 async def get_profile_info(current_user: UserModel) -> dict:
@@ -72,7 +79,7 @@ async def update_user_password(uow: UnitOfWork, user_data: UpdatePasswordRequest
     if not update_data or update_data.get('password') is None:
         raise LackOfInformationException('Не указан новый пароль!')
     password = update_data['password']
-    if len(password) < 8 or len(password) > 50:
+    if len(password) < 8 or len(password) > 30:
         raise LackOfInformationException('Пароль должен быть от 8 до 50 символов!')
     hashed_password = await async_hash_password(password)
     await uow.user.update_password(current_user_id, hashed_password)

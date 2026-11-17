@@ -10,6 +10,7 @@ from services.task_service import (change_status, create_task, delete_task,
                                    update_comment, get_task_comments)
 from core.filters import TaskFilter, CommentFilter
 from fastapi_filter import FilterDepends
+from fastapi_pagination import Params
 
 router = APIRouter()
 
@@ -36,10 +37,11 @@ async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, t
             summary='Получить задачи пользователя')
 async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user),
                                   task_filter: TaskFilter = FilterDepends(TaskFilter),
+                                  params: Params = Depends(),
                                   uow: UnitOfWork = Depends(get_uow)):
     """Возвращает все задачи, назначенные на текущего пользователя."""
     # добавить фильтраию и пагинацию
-    return await get_tasks_user(uow, current_user.user_id, task_filter)
+    return await get_tasks_user(uow, current_user.user_id, task_filter, params)
 
 
 @router.get('/projects/{project_id}/tasks', tags=['Задачи'],
@@ -47,10 +49,11 @@ async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user
 async def get_project_tasks_endpoint(project_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      task_filter: TaskFilter = FilterDepends(TaskFilter),
+                                     params: Params = Depends(),
                                      uow: UnitOfWork = Depends(get_uow)):
     """Возвращает все задачи указанного проекта. Доступно участникам проекта."""
     # добавить фильтраию и пагинацию
-    return await get_project_tasks(uow, project_id, current_user.user_id, task_filter)
+    return await get_project_tasks(uow, project_id, current_user.user_id, task_filter, params)
 
 
 @router.get('/projects/{project_id}/tasks/{task_id}', tags=['Задачи'],
@@ -67,10 +70,11 @@ async def get_task_info_endpoint(project_id: int, task_id: int,
 async def get_task_comments_endpoint(project_id: int, task_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      comment_filter: CommentFilter = FilterDepends(CommentFilter),
+                                     params: Params = Depends(),
                                      uow: UnitOfWork = Depends(get_uow)):
     """Возвращает комментарии задачи."""
     # добавить фильтраию и пагинацию
-    return await get_task_comments(uow, project_id, task_id, current_user.user_id, comment_filter)
+    return await get_task_comments(uow, project_id, task_id, current_user.user_id, comment_filter, params)
 
 
 @router.patch('/projects/{project_id}/tasks/{task_id}/status', tags=['Задачи'],

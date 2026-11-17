@@ -14,6 +14,7 @@ from core.database import engine
 from core.config import settings
 from core.dependencies import get_db
 from core.exceptions import register_exception_handlers
+from fastapi_pagination import add_pagination
 
 
 @asynccontextmanager
@@ -53,6 +54,7 @@ app.include_router(router_tasks, prefix='/api/v1')
 app.include_router(router_invitations, prefix='/api/v1')
 app.include_router(router_user, prefix='/api/v1')
 register_exception_handlers(app)
+add_pagination(app)
 
 if __name__ == '__main__':
     uvicorn.run('main:app', reload=True)

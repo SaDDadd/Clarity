@@ -6,6 +6,7 @@ from models.user import UserModel
 from schemas.user import UpdateEmailRequest, UpdateUsernameRequest, UpdatePasswordRequest, UserResponse
 from services.user_service import (update_user_email, update_user_username, update_user_password, 
                                    search_by_username, delete_profile, get_profile_info)
+from fastapi_pagination import Params
 
 router = APIRouter()
 
@@ -37,10 +38,10 @@ async def get_profile_endpoint(current_user: UserModel = Depends(current_user)) 
 
 @router.get('/users/search', tags=['Пользователи'], summary='Поиск пользователя по нику')
 async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 
-                       uow: UnitOfWork = Depends(get_uow)):
+                       params: Params = Depends(), uow: UnitOfWork = Depends(get_uow)):
     """Поиск пользователей."""
     # добавить пагинацию
-    return await search_by_username(uow, search_user, current_user.username)
+    return await search_by_username(uow, search_user, current_user.username, params)
 
 
 @router.patch('/profile/password', tags=['Изменения профиля'],

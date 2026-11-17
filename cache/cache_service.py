@@ -2,7 +2,7 @@ import json
 from typing import Any
 from redis.exceptions import RedisError
 from cache.redis_client import get_redis_client
-from fastapi_filter import Filter 
+from fastapi_filter.contrib.sqlalchemy import Filter
 
 
 async def get_cache(key: str) -> Any | None:

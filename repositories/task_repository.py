@@ -5,6 +5,8 @@ from models.task import TaskModel
 from models.task_comments import TaskCommentsModel
 from schemas.task import TaskCreate
 from core.filters import TaskFilter, CommentFilter
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 
 class TaskRepository:
@@ -70,16 +72,17 @@ class TaskRepository:
         return result.rowcount > 0
 
 
-    async def get_tasks_by_user(self, assigned_to: int, filter: TaskFilter | None = None) -> list[TaskModel]:
+    async def get_tasks_by_user(self, assigned_to: int, filter: TaskFilter | None = None, 
+                                params: Params | None = None) -> Page[TaskModel]:
         """Получить все задачи пользователя."""
         query = select(TaskModel).where(
                 TaskModel.assigned_to == assigned_to
+            ).order_by(
+                TaskModel.task_id
             )
         if filter:
             query = filter.filter(query)
-        result = await self.session.execute(query)
-        tasks = result.scalars().all()
-        return tasks
+        return await apaginate(self.session, query, params=params)
 
 
     async def get_task_by_id(self, task_id: int) -> TaskModel | None:
@@ -94,16 +97,17 @@ class TaskRepository:
         return task
 
 
-    async def get_project_tasks(self, project_id: int, filter: TaskFilter | None = None) -> list[TaskModel]:
+    async def get_project_tasks(self, project_id: int, filter: TaskFilter | None = None, 
+                                params: Params | None = None) -> Page[TaskModel]:
         """Получить все задачи проекта."""
         query = select(TaskModel).where(
                 TaskModel.project_id == project_id
+            ).order_by(
+                TaskModel.task_id
             )
         if filter:
             query = filter.filter(query)
-        result = await self.session.execute(query)
-        tasks = result.scalars().all()
-        return tasks
+        return await apaginate(self.session, query, params=params)
 
 
     async def get_comment_author(self, project_id: int, task_id: int, comment_id: int) -> int | None:
@@ -132,7 +136,8 @@ class TaskRepository:
         return comment
 
 
-    async def get_task_comments(self, project_id: int, task_id: int, filter: CommentFilter | None = None) -> list[TaskCommentsModel]: 
+    async def get_task_comments(self, project_id: int, task_id: int, filter: CommentFilter | None = None, 
+                                params: Params | None = None) -> Page[TaskCommentsModel]: 
         """Получить комментарии задачи."""
         query = select(TaskCommentsModel).where(
                 TaskCommentsModel.project_id == project_id,
@@ -140,8 +145,7 @@ class TaskRepository:
             ).order_by(TaskCommentsModel.created_date)
         if filter:
             query = filter.filter(query)
-        result = await self.session.execute(query)
-        return result.scalars().all()
+        return await apaginate(self.session, query, params=params)
 
 
     async def get_task_comment_locations_by_author(self, user_id: int) -> list[tuple[int, int]]:

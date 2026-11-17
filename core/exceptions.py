@@ -1,8 +1,10 @@
 from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from jose import JWSError
 from pydantic import ValidationError
+import logging
 
 class AppException(Exception): # Общий класс ошибок
     def __init__(self, code, detail):
@@ -96,6 +98,7 @@ def register_exception_handlers(app: FastAPI): # Регистрирует гло
 
     @app.exception_handler(SQLAlchemyError)
     def er_sqlalchemy(request, exc):
+        logging.error("SQLAlchemy error occurred", exc_info=exc)
         return JSONResponse(status_code=500, content={'detail':'Ошибка базы данных'})
 
     @app.exception_handler(JWSError)
@@ -104,7 +107,7 @@ def register_exception_handlers(app: FastAPI): # Регистрирует гло
 
     @app.exception_handler(ValidationError)
     def er_validation(request, exc):
-        return JSONResponse(status_code=422, content={'detail':exc.errors()})
+        return JSONResponse(status_code=422, content={'detail': jsonable_encoder(exc.errors())})
 
     @app.exception_handler(AppException)
     def er_app(request, exc):

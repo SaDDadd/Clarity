@@ -5,6 +5,8 @@ from models.project import ProjectModel
 from models.user import UserModel
 from models.project_invitations import ProjectInvitationModel
 from core.filters import InvitationFilter
+from fastapi_pagination import Page, Params
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 
 class ProjectInvitationRepository:
@@ -55,17 +57,31 @@ class ProjectInvitationRepository:
 
 
     async def get_invitation_for_project(self, project_id: int, filter: InvitationFilter | None = None) -> list[ProjectInvitationModel]:
-        """Список приглашённых у проекта."""
+        """Список приглашенных у проекта."""
         query = select(ProjectInvitationModel, 
                        UserModel.username).join(
-                UserModel, UserModel.user_id == ProjectInvitationModel.invitee_id).where(
-                ProjectInvitationModel.project_id == project_id,
-                ProjectInvitationModel.status_invited == "pending"
-            )
+                        UserModel, UserModel.user_id == ProjectInvitationModel.invitee_id).where(
+                            ProjectInvitationModel.project_id == project_id,
+                            ProjectInvitationModel.status_invited == "pending"
+                        )
         if filter:
             query = filter.filter(query)
         result = await self.session.execute(query)
-        return result.all()
+        return result.scalars().all()
+
+        
+    async def get_invitation_for_project_pagination(self, project_id: int, filter: InvitationFilter | None = None, 
+                                                    params: Params | None = None) -> Page[ProjectInvitationModel]:
+        """Список приглашённых у проекта с пагинацией."""
+        query = select(ProjectInvitationModel, 
+                       UserModel.username).join(
+                UserModel, UserModel.user_id == ProjectInvitationModel.invitee_id).where(
+                    ProjectInvitationModel.project_id == project_id,
+                    ProjectInvitationModel.status_invited == "pending"
+            ).order_by(ProjectInvitationModel.invitation_id)
+        if filter:
+            query = filter.filter(query)
+        return await apaginate(self.session, query, params=params)
 
 
     async def get_pending_invitations_by_inviter(self, inviter_id: int) -> list[ProjectInvitationModel]:
@@ -80,18 +96,20 @@ class ProjectInvitationRepository:
         return result.scalars().all()
 
 
-    async def get_invitation_by_user_with_project(self, user_id: int, filter: InvitationFilter | None = None) -> list[tuple[ProjectInvitationModel, str]]:
+    async def get_invitation_by_user_with_project(self, user_id: int, filter: InvitationFilter | None = None, 
+                                                  params: Params | None = None) -> Page[tuple[ProjectInvitationModel, str]]:
         """Входящие приглашения + имя проекта."""
         query = select(ProjectInvitationModel, ProjectModel.project_name).join(ProjectModel,
                   ProjectModel.project_id == ProjectInvitationModel.project_id
             ).where(
                 ProjectInvitationModel.invitee_id == user_id,
                 ProjectInvitationModel.status_invited == "pending"
+            ).order_by(
+                ProjectInvitationModel.invitation_id
             )
         if filter:
             query = filter.filter(query)
-        result = await self.session.execute(query)
-        return result.all()
+        return await apaginate(self.session, query, params=params)
 
 
     async def create_invitation(self, project_id: int, inviter_id: int, 
