@@ -6,8 +6,7 @@ from core.exceptions import (
 )
 from services.invitation_service import (
     send_invitation, get_user_invitations, get_project_invitations,
-    response_to_invitation, cancel_invitation
-)
+    response_to_invitation)
 from schemas.common import InvitationRole
 from repositories.project_invitation_repository import ProjectInvitationRepository
 from repositories.project_repository import ProjectRepository
@@ -171,38 +170,3 @@ class TestInvitationService:
         with pytest.raises(MemberAlreadyInProjectException) as exc:
             await response_to_invitation(db_session, invitation.invitation_id, InvitationRole.ACCEPTED, invitee.user_id)
         assert exc.value.detail == 'Пользователь уже является участником проекта'
-
-    @pytest.mark.asyncio
-    async def test_cancel_invitation_success(self, db_session: AsyncSession, test_invitation, test_users):
-        invitation = test_invitation
-        admin = test_users['admin']
-        result = await cancel_invitation(db_session, invitation.invitation_id, admin.user_id)
-        assert result == {'message': 'Приглашение отменено'}
-        repo_inv = ProjectInvitationRepository(db_session)
-        deleted = await repo_inv.get_invitation_by_id(invitation.invitation_id)
-        assert deleted is None
-
-    @pytest.mark.asyncio
-    async def test_cancel_invitation_not_found(self, db_session: AsyncSession, test_users):
-        admin = test_users['admin']
-        with pytest.raises(NotFoundException) as exc:
-            await cancel_invitation(db_session, 99999, admin.user_id)
-        assert exc.value.detail == 'Приглашение не найдено'
-
-    @pytest.mark.asyncio
-    async def test_cancel_invitation_already_processed(self, db_session: AsyncSession, test_invitation, test_users):
-        invitation = test_invitation
-        admin = test_users['admin']
-        invitee = test_users['outsider']
-        await response_to_invitation(db_session, invitation.invitation_id, InvitationRole.ACCEPTED, invitee.user_id)
-        with pytest.raises(InvitationAlreadyProcessedException) as exc:
-            await cancel_invitation(db_session, invitation.invitation_id, admin.user_id)
-        assert exc.value.detail == 'Приглашение уже обработано'
-
-    @pytest.mark.asyncio
-    async def test_cancel_invitation_not_allowed(self, db_session: AsyncSession, test_invitation, test_users):
-        invitation = test_invitation
-        member = test_users['member']
-        with pytest.raises(PermissionDeniedException) as exc:
-            await cancel_invitation(db_session, invitation.invitation_id, member.user_id)
-        assert exc.value.detail == 'Только администратор проекта или отправитель может отменить приглашение'

@@ -186,6 +186,7 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
         if not await uow.project.is_user_in_project(project_id, task.assigned_to):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     result = await uow.task.create_task(project_id, task)
+    await uow.session.refresh(result)
     answer = TaskResponse.model_validate(result).model_dump(mode='json')
     return answer
 
@@ -200,6 +201,7 @@ async def create_task_comment(uow: UnitOfWork, project_id: int, task_id: int,
     if not await uow.task.is_task_in_project(project_id, task_id):
         raise NotFoundException('Задачи нет в проекте!')
     result = await uow.task.create_comment(project_id, task_id, current_user_id, message)
+    await uow.session.refresh(result)
     answer = TaskCommentResponse.model_validate(result).model_dump(mode='json')
     return answer
 

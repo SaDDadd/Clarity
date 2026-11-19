@@ -61,7 +61,7 @@ class LastAdminDeletionException(AppException): # Удаление админи�
         super().__init__(self.status_code, self.detail)
 
 class MemberAlreadyInProjectException(AppException): # Добавление уже принадлежащего проекту пользователя 
-    def __init__(self, detail):
+    def __init__(self, detail=None):
         self.status_code = 409
         self.detail = detail
         super().__init__(self.status_code, self.detail)
@@ -75,6 +75,30 @@ class InvalidDeadlineException(AppException): # Дата дедлайна, ко�
 class TaskAssignmentException(AppException): # Попытка дать задачу пользователю не в проекте 
     def __init__(self, detail=None):
         self.status_code = 403
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
+class TokenExpiredException(AppException):
+    def __init__(self, detail=None):
+        self.status_code = 401
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
+class InvalidTokenException(AppException):
+    def __init__(self, detail=None):
+        self.status_code = 401
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
+class PaginationException(AppException):
+    def __init__(self, detail=None):
+        self.status_code = 422
+        self.detail = detail
+        super().__init__(self.status_code, self.detail)
+
+class UnprocessableEntityException(AppException):
+    def __init__(self, detail=None):
+        self.status_code = 422
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
