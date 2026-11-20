@@ -136,12 +136,6 @@ async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
         for mid in members:
             await delete_cache_by_pattern(user_projects_pattern(mid))
             await delete_cache_by_pattern(user_tasks_pattern(mid))
-    for iid in invitee_ids_to_invalidate:
-        """Инвалидируем кэш приглашений для приглашённых."""
-        await delete_cache_by_pattern(user_invitations_pattern(iid))
-    for pid in project_invitation_ids:
-        """Инвалидируем кэш приглашений проектов."""
-        await delete_cache(project_invitations_key(pid, 'all'))
     for pid, tid in comment_locations:
         """Инвалидируем кэш комментариев задач."""
         await delete_cache(task_comments_list_key(pid, tid))

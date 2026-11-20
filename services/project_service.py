@@ -7,7 +7,7 @@ from schemas.user import UserSearchResponse
 from core.uow import UnitOfWork
 from cache.cache_keys import (project_key, project_tasks_key, TTL_PROJECT, project_all_pattern,
                               user_projects_pattern, user_invitations_pattern, project_task_items_pattern,
-                              project_invitations_pattern, user_invitations_key, project_invitations_key)
+                              project_invitations_pattern, user_invitations_key, user_tasks_pattern)
 from cache.cache_service import get_cache, set_cache, delete_cache, delete_cache_by_pattern
 from core.filters import ProjectFilter, UserFilter
 from fastapi_pagination import Page, Params
@@ -77,7 +77,7 @@ async def checking_rights_project(uow: UnitOfWork, project_data: ProjectMemberCh
     """Проверка прав проекта."""
     result = await uow.project.get_user_role_in_project(project_data.project_id, project_data.user_id)
     if result is None:
-        raise PermissionDeniedException('Пользователь не состоит в проекте!')
+        raise NotFoundException('Пользователь не состоит в проекте!')
     return result
 
 
@@ -200,7 +200,6 @@ async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_
     await uow.project.add_user(project_id, user_id_to_add)
     await delete_cache(project_key(project_id))
     await delete_cache(user_invitations_key(user_id_to_add, 'all'))
-    await delete_cache(project_invitations_key(project_id, 'all'))
     return {'message': 'Пользователь добавлен в проект!'}
 
 
@@ -222,9 +221,6 @@ async def delete_project(uow: UnitOfWork, project_id: int, user_id: int) -> dict
     for i in member_ids:
         """Инвалидируем кэш проектов."""
         await delete_cache_by_pattern(user_projects_pattern(i))
-    for iid in invitee_ids:
-        """Инвалидируем кэш приглашений для приглашённых."""
-        await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Проект успешно удален!'}
 
 
@@ -246,6 +242,7 @@ async def delete_project_user(uow: UnitOfWork, project_id: int, current_user_id:
     await uow.project.delete_user_from_project(project_id, user_id_to_del)
     await delete_cache(project_key(project_id))
     await delete_cache(project_tasks_key(project_id))
+    await delete_cache_by_pattern(user_tasks_pattern(user_id_to_del))
     await delete_cache_by_pattern(project_task_items_pattern(project_id))
     return {'message': 'Пользователь удален из проекта!'}
 

@@ -1,3 +1,4 @@
+from pydantic import Field
 from fastapi_filter.contrib.sqlalchemy import Filter
 from models.user import UserModel
 from models.project import ProjectModel

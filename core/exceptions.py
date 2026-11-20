@@ -6,104 +6,120 @@ from jose import JWSError
 from pydantic import ValidationError
 import logging
 
-class AppException(Exception): # Общий класс ошибок
+class AppException(Exception): 
+    """"""
     def __init__(self, code, detail):
-        self.status_code = code # HTTP статус ошибки
-        self.detail = detail # Сообщение для пользователя
+        self.status_code = code
+        self.detail = detail
         super().__init__(detail)
 
-class NotFoundException(AppException): # Нет ресурсов
+class NotFoundException(AppException): 
+    """"""
     def __init__(self, detail=None):
         self.status_code = 404
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class PermissionDeniedException(AppException): # Запрет доступа
+class PermissionDeniedException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 403
         self.detail = detail
         super().__init__(self.status_code, self.detail)
         
-class ConflictException(AppException): # Конфликты
+class ConflictException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 409
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class AuthenticationException(AppException): # Ошибка аутентификации
+class AuthenticationException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 401
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class LackOfInformationException(AppException): # Нехватка вводимой информации
+class LackOfInformationException(AppException): 
+    """"""
     def __init__(self, detail=None):
         self.status_code = 422
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class InvitationAlreadyProcessedException(AppException): # Попытка ответить на приглашение, которое принято/отклонено
+class InvitationAlreadyProcessedException(AppException): 
+    """"""
     def __init__(self, detail=None):
         self.status_code = 409
         self.detail = detail 
         super().__init__(self.status_code, self.detail)
 
-class InvalidInvitationStateException(AppException): # Приглашению самому себе, участнику проекта
+class InvalidInvitationStateException(AppException): 
+    """"""
     def __init__(self, detail=None):
         self.status_code = 400
         self.detail = detail 
         super().__init__(self.status_code, self.detail)
 
-class LastAdminDeletionException(AppException): # Удаление администратора проекта или выход единственного администратора
+class LastAdminDeletionException(AppException): 
+    """"""
     def __init__(self, detail=None):
         self.status_code = 400
         self.detail = detail 
         super().__init__(self.status_code, self.detail)
 
-class MemberAlreadyInProjectException(AppException): # Добавление уже принадлежащего проекту пользователя 
+class MemberAlreadyInProjectException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 409
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class InvalidDeadlineException(AppException): # Дата дедлайна, которая уже прошла
+class InvalidDeadlineException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 422
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-class TaskAssignmentException(AppException): # Попытка дать задачу пользователю не в проекте 
+class TaskAssignmentException(AppException): 
+    """"""
     def __init__(self, detail=None):
         self.status_code = 403
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
 class TokenExpiredException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 401
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
 class InvalidTokenException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 401
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
 class PaginationException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 422
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
 class UnprocessableEntityException(AppException):
+    """"""
     def __init__(self, detail=None):
         self.status_code = 422
         self.detail = detail
         super().__init__(self.status_code, self.detail)
 
-def register_exception_handlers(app: FastAPI): # Регистрирует глобальные обработчики для кастомных и стандартных исключений, 
-                                        # возвращая JSON-ответы с соответствующими HTTP-статусами.
+def register_exception_handlers(app: FastAPI):
+    """"""
     @app.exception_handler(NotFoundException)
     def er_not_found_exception(request, exc):
         return JSONResponse(status_code=exc.status_code, content={'detail':exc.detail})
