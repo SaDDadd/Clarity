@@ -1,17 +1,18 @@
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import func
 from schemas.common import ProjectRole
+import datetime
 
 class ProjectBase(BaseModel):
     project_name: str = Field(min_length=1, max_length=100)
     project_description: str | None = Field(default=None, max_length=1000)
 
 class ProjectCreate(ProjectBase):
-    pass
+    created_date: datetime.datetime | None = Field(default=func.now())
 
 class ProjectUpdate(BaseModel):
     project_name: str | None = Field(default=None, min_length=1, max_length=100)
     project_description: str | None = Field(default=None, max_length=1000)
-    
 
 class ProjectMemberCheck(BaseModel):
     project_id: int

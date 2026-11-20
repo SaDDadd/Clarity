@@ -14,8 +14,9 @@ from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.project_invitation_repository import ProjectInvitationRepository
 import uuid
-import time
 from schemas.task import TaskCreate
+from core.uow import UnitOfWork
+from cache.cache_service import delete_cache_by_pattern
 import pytest
 from sqlalchemy import create_engine, text
 from core.database import Base
@@ -186,3 +187,14 @@ async def test_invitation(db_session, test_project, test_users):
         message="Приглашение для теста"
     )
     return invitation
+
+@pytest_asyncio.fixture
+async def uow(db_session):
+    """Применение транзакций."""
+    return UnitOfWork(db_session)
+
+@pytest_asyncio.fixture(autouse=True)
+async def clean_redis():
+    """Очистка кэша после теста."""
+    await delete_cache_by_pattern('*')
+    yield

@@ -232,7 +232,7 @@ async def test_update_task_set_assigned_to_not_in_project(async_client, test_pro
         headers=headers
     )
     assert response.status_code == 403
-    assert response.json()['detail'] == 'Добавляемого пользователя нет в проекте!'
+    assert response.json()['detail'] == 'Задачу могут обновлять только админ, куратор или назначенный исполнитель!'
 
 @pytest.mark.asyncio
 async def test_delete_task_by_admin(async_client, test_project, auth_headers, test_task):

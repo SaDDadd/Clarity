@@ -94,7 +94,7 @@ async def test_accept_invitation(async_client, test_invitation, test_users):
         headers=headers
     )
     assert response.status_code == 200
-    assert response.json()['message'] == 'Приглашение accepted'
+    assert response.json()['message'] == 'Приглашение accepted!'
 
 @pytest.mark.asyncio
 async def test_reject_invitation(async_client, test_invitation, test_users):
@@ -109,7 +109,7 @@ async def test_reject_invitation(async_client, test_invitation, test_users):
         headers=headers
     )
     assert response.status_code == 200
-    assert response.json()['message'] == 'Приглашение declined'
+    assert response.json()['message'] == 'Приглашение declined!'
 
 
 @pytest.mark.asyncio
@@ -123,7 +123,7 @@ async def test_cancel_invitation_by_admin(async_client, test_invitation, auth_he
         headers=headers
     )
     assert response.status_code == 200
-    assert response.json()['message'] == 'Приглашение отменено'
+    assert response.json()['message'] == 'Приглашение удалено!'
 
 
 @pytest.mark.asyncio
@@ -245,7 +245,7 @@ async def test_reject_invitation_already_processed(async_client, test_invitation
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Приглашение уже было принято или отклонено'
+    assert response.json()['detail'] == 'Приглашение уже было принято или отклонено!'
 
 @pytest.mark.asyncio
 async def test_accept_invitation_already_rejected(async_client, test_invitation, test_users):
@@ -267,7 +267,7 @@ async def test_accept_invitation_already_rejected(async_client, test_invitation,
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Приглашение уже было принято или отклонено'
+    assert response.json()['detail'] == 'Приглашение уже было принято или отклонено!'
 
 @pytest.mark.asyncio
 async def test_cancel_invitation_already_processed(async_client, test_invitation, auth_headers, test_users):
@@ -290,7 +290,7 @@ async def test_cancel_invitation_already_processed(async_client, test_invitation
         headers=headers
     )
     assert response.status_code == 409
-    assert response.json()['detail'] == 'Приглашение уже обработано'
+    assert response.json()['detail'] == 'Приглашение уже обработано!'
 
 @pytest.mark.asyncio
 async def test_get_user_invitations_empty(async_client):

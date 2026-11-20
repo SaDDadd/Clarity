@@ -3,6 +3,7 @@ from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.project_invitation_repository import ProjectInvitationRepository
+from core.exceptions import ConflictException
 
 
 class UnitOfWork():
@@ -51,4 +52,7 @@ class UnitOfWork():
 
     async def flush(self) -> None:
         """Проброс изменений без commit."""
-        await self.session.flush()
+        try:
+            await self.session.flush()
+        except Exception:
+            raise ConflictException('Нарушение уникальности!')
