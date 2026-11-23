@@ -33,7 +33,10 @@ print(f"ENV: {os.getenv('ENV')}")
 print(f"Active settings URL: {settings.DATABASE_URL}")
 
 # Переопределяем URL из настроек приложения
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+x_args = context.get_x_argument(as_dictionary=True)
+db_url = x_args.get("db_url") or settings.DATABASE_URL
+print(f"Using DB URL: {db_url}")
+config.set_main_option("sqlalchemy.url", db_url)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""

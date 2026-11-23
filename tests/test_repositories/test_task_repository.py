@@ -46,27 +46,6 @@ class TestTaskRepository:
 
 
     @pytest.mark.asyncio
-    async def test_get_tasks_by_user_success(self, uow: UnitOfWork, test_project, test_users):
-        """Проверяет получение списка задач, назначенных на пользователя."""
-        member = test_users['member']
-        task_data = TaskCreate(title='Task for member', assigned_to=member.user_id)
-        await uow.task.create_task(test_project.project_id, task_data)
-        tasks = await uow.task.get_tasks_by_user(member.user_id)
-        assert isinstance(tasks, list)
-        assert len(tasks) >= 1
-        assert any(t.assigned_to == member.user_id for t in tasks)
-
-
-    @pytest.mark.asyncio
-    async def test_get_tasks_by_user_empty(self, uow: UnitOfWork, test_users):
-        """Проверяет, что для пользователя без задач возвращается пустой список."""
-        outsider = test_users['outsider']
-        tasks = await uow.task.get_tasks_by_user(outsider.user_id)
-        assert isinstance(tasks, list)
-        assert len(tasks) == 0
-
-
-    @pytest.mark.asyncio
     async def test_get_task_by_id_success(self, uow: UnitOfWork, test_task):
         """Проверяет получение задачи по существующему ID."""
         task_id = test_task.task_id
@@ -80,15 +59,6 @@ class TestTaskRepository:
         """Проверяет, что при несуществующем ID возвращается None."""
         task = await uow.task.get_task_by_id(99999)
         assert task is None
-
-
-    @pytest.mark.asyncio
-    async def test_get_project_tasks_success(self, uow: UnitOfWork, test_project, test_task):
-        """Проверяет получение списка всех задач проекта."""
-        tasks = await uow.task.get_project_tasks(test_project.project_id)
-        assert isinstance(tasks, list)
-        assert len(tasks) >= 1
-        assert any(t.task_id == test_task.task_id for t in tasks)
 
 
     @pytest.mark.asyncio

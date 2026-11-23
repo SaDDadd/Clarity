@@ -13,6 +13,9 @@ from fastapi_pagination import Page, Params
 
 async def update_user_username(uow: UnitOfWork, user_data: UpdateUsernameRequest, current_user_id: int) -> dict:
     """Изменить имя пользователя."""
+    user = await uow.user.get_by_id(current_user_id)
+    if not user:
+        raise NotFoundException('Пользователь не найден!')
     update_data = user_data.model_dump(exclude_unset=True)
     if not update_data or update_data.get('username') is None:
         raise LackOfInformationException('Не указано новое имя пользователя!')
@@ -31,6 +34,9 @@ async def update_user_username(uow: UnitOfWork, user_data: UpdateUsernameRequest
 
 async def update_user_email(uow: UnitOfWork, user_data: UpdateEmailRequest, current_user_id: int) -> dict:
     """Изменить email пользователя."""
+    user = await uow.user.get_by_id(current_user_id)
+    if not user:
+        raise NotFoundException('Пользователь не найден!')
     update_data = user_data.model_dump(exclude_unset=True)
     if not update_data or update_data.get('email') is None:
         raise LackOfInformationException('Не указан новый email!')
