@@ -86,8 +86,8 @@ function getProjectName(projectId) {
 
 async function loadWorkspaceFromServer() {
     const [projectResult, assignedResult] = await Promise.all([
-        api("GET", "/projects/all?size=1000"),
-        api("GET", "/tasks?size=1000")
+        api("GET", "/projects/all?size=100"),
+        api("GET", "/tasks?size=100")
     ]);
 
     const rawProjects = projectResult?.items || []
@@ -116,7 +116,7 @@ async function loadProjectDetails(projectId) {
     const id = Number(projectId);
     const [detailsResult, taskResult] = await Promise.all([
         api("GET", `/projects/${id}`),
-        api("GET", `/projects/${id}/tasks?size=1000`)
+        api("GET", `/projects/${id}/tasks?size=100`)
     ]);
 
     const mappedProject = mapProjectFromServer(detailsResult);
