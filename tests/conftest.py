@@ -20,6 +20,9 @@ from cache.cache_service import delete_cache_by_pattern
 import pytest
 from sqlalchemy import create_engine, text
 from core.database import Base
+from fastapi_pagination import add_pagination
+add_pagination(app)
+
 
 @pytest.fixture(scope='session')
 def sync_engine():
@@ -40,11 +43,13 @@ def sync_engine():
         conn.commit()
     engine.dispose()
 
+
 @pytest_asyncio.fixture
 async def async_engine(sync_engine):
     async_engine = create_async_engine(settings.DATABASE_URL)
     yield async_engine
     await async_engine.dispose()
+
 
 @pytest_asyncio.fixture(scope='function')
 async def db_session(async_engine):
@@ -59,6 +64,7 @@ async def db_session(async_engine):
             await session.rollback()
             await session.close()
 
+
 @pytest_asyncio.fixture(scope='function')
 async def async_client(db_session):
     """Создаёт HTTP-клиент для тестирования эндпоинтов, подменяет зависимость get_db."""
@@ -68,6 +74,7 @@ async def async_client(db_session):
     async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
         yield client
     app.dependency_overrides.clear()
+
 
 @pytest_asyncio.fixture(scope='function')
 async def create_test_user(db_session, password='qwertyui'):
@@ -81,6 +88,7 @@ async def create_test_user(db_session, password='qwertyui'):
         hashed_password
     )
     return user
+
 
 @pytest_asyncio.fixture(scope='function')
 async def test_users(db_session):
@@ -115,6 +123,7 @@ async def test_users(db_session):
         'user_profile': user4
     }
 
+
 @pytest_asyncio.fixture(scope='function')
 async def auth_headers(async_client, test_users):
     admin = test_users['admin']
@@ -125,6 +134,7 @@ async def auth_headers(async_client, test_users):
     assert response.status_code == 200, f"Login failed: {response.text}"
     token = response.json()['access_token']
     return {'Authorization': f'Bearer {token}'}
+
 
 @pytest_asyncio.fixture(scope='function')
 async def member_auth_headers(async_client, test_users):
@@ -138,18 +148,20 @@ async def member_auth_headers(async_client, test_users):
     token = response.json()['access_token']
     return {'Authorization': f'Bearer {token}'}
 
+
 @pytest_asyncio.fixture(scope='function')
 async def test_project(db_session, test_users):
     """Создаёт проект с администратором admin."""
     repo = ProjectRepository(db_session)
     user = test_users.get('admin')
-    uui = uuid.uuid4()
+    uui = uuid.uuid4().hex[:8]
     project = await repo.create_project_with_admin(
         name=f'Test_project_<{uui}>',
         description=None,
         admin_id=user.user_id,
     )
     return project
+
 
 @pytest_asyncio.fixture(scope='function')
 async def test_project_with_member(db_session, test_project, test_users):
@@ -158,6 +170,7 @@ async def test_project_with_member(db_session, test_project, test_users):
     member = test_users.get('member')
     await repo.add_user(test_project.project_id, member.user_id)
     return {'project': test_project, 'member': member}
+
 
 @pytest_asyncio.fixture(scope='function')
 async def test_task(db_session, test_project):
@@ -172,6 +185,7 @@ async def test_task(db_session, test_project):
     )
     task = await repo.create_task(project_id=test_project.project_id, task=create)
     return task
+
 
 @pytest_asyncio.fixture(scope='function')
 async def test_invitation(db_session, test_project, test_users):
@@ -188,13 +202,24 @@ async def test_invitation(db_session, test_project, test_users):
     )
     return invitation
 
+
 @pytest_asyncio.fixture
 async def uow(db_session):
     """Применение транзакций."""
     return UnitOfWork(db_session)
+
 
 @pytest_asyncio.fixture(autouse=True)
 async def clean_redis():
     """Очистка кэша после теста."""
     await delete_cache_by_pattern('*')
     yield
+
+
+@pytest.fixture(autouse=True)
+def mock_pagination_params():
+    from fastapi_pagination import Params
+    from fastapi_pagination.api import _params_val
+    token = _params_val.set(Params(page=1, size=50))
+    yield
+    _params_val.reset(token)

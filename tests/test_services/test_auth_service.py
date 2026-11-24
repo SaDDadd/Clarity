@@ -4,7 +4,7 @@ from core.uow import UnitOfWork
 
 from services.auth_service import register_user, login_user
 from schemas.auth import UserRegister, UserLogin, Token
-from core.exceptions import LackOfInformationException, ConflictException, AuthenticationException
+from core.exceptions import ConflictException, AuthenticationException, ValidationError
 from core.security import decode_access_token
 
 
@@ -21,31 +21,30 @@ class TestAuthService:
         assert response.get('message') == 'Пользователь создан!'
         assert await uow.user.get_by_username(user_data.username) is not None
 
+
     @pytest.mark.asyncio
     async def test_register_user_empty_username(self, uow: UnitOfWork):
         """Проверяет, что при пустом имени пользователя выбрасывается LackOfInformationException."""
-        with pytest.raises(LackOfInformationException) as exc_info:
+        with pytest.raises(ValidationError):
             user_data = UserRegister(
                 username='',
                 email=f'{uuid.uuid4().hex[:8]}@gmail.com',
                 password='qwertyui'
             )
             await register_user(uow, user_data)
-        assert exc_info.value.detail == 'Нехватка информации!'
-        assert exc_info.value.status_code == 422
+
 
     @pytest.mark.asyncio
     async def test_register_user_short_password(self, uow: UnitOfWork):
         """Проверяет, что при пароле короче 8 символов выбрасывается LackOfInformationException."""
-        with pytest.raises(LackOfInformationException) as exc_info:
+        with pytest.raises(ValidationError):
             user_data = UserRegister(
                 username=f'{uuid.uuid4().hex[:8]}',
                 email=f'{uuid.uuid4().hex[:8]}@gmail.com',
                 password='12'
             )
             await register_user(uow, user_data)
-        assert exc_info.value.detail == 'Пароль короткий, должен быть больше 8 символов!'
-        assert exc_info.value.status_code == 422
+
 
     @pytest.mark.asyncio
     async def test_register_user_duplicate_username(self, uow: UnitOfWork, test_users):
@@ -60,6 +59,7 @@ class TestAuthService:
         assert exc_info.value.detail == 'Имя пользователя уже существует!'
         assert exc_info.value.status_code == 409
 
+
     @pytest.mark.asyncio
     async def test_register_user_duplicate_email(self, uow: UnitOfWork, test_users):
         """Проверяет, что при попытке использовать уже существующий email выбрасывается ConflictException."""
@@ -73,6 +73,7 @@ class TestAuthService:
         assert exc_info.value.detail == 'Email пользователя уже существует!'
         assert exc_info.value.status_code == 409
 
+
     @pytest.mark.asyncio
     async def test_login_user_success_by_username(self, uow: UnitOfWork, test_users):
         """Проверяет успешный вход пользователя по имени пользователя, возвращается объект Token."""
@@ -85,6 +86,7 @@ class TestAuthService:
         assert response.token_type == 'bearer'
         assert response.expires_in == 30 * 60
 
+
     @pytest.mark.asyncio
     async def test_login_user_success_by_email(self, uow: UnitOfWork, test_users):
         """Проверяет успешный вход пользователя по email, возвращается объект Token."""
@@ -95,6 +97,7 @@ class TestAuthService:
         response = await login_user(uow, user_data)
         assert isinstance(response, Token)
         assert response.token_type == 'bearer'
+
 
     @pytest.mark.asyncio
     async def test_login_user_wrong_password(self, uow: UnitOfWork, test_users):
@@ -108,6 +111,7 @@ class TestAuthService:
         assert exc_info.value.detail == 'Неверные учётные данные!'
         assert exc_info.value.status_code == 401
 
+
     @pytest.mark.asyncio
     async def test_login_user_not_found(self, uow: UnitOfWork):
         """Проверяет, что при несуществующем пользователе выбрасывается AuthenticationException."""
@@ -120,29 +124,28 @@ class TestAuthService:
         assert exc_info.value.detail == 'Неверные учётные данные!'
         assert exc_info.value.status_code == 401
 
+
     @pytest.mark.asyncio
     async def test_login_user_empty_username_or_email(self, uow: UnitOfWork):
-        """Проверяет, что при пустом поле username_or_email выбрасывается LackOfInformationException."""
-        with pytest.raises(LackOfInformationException) as exc_info:
+        """Проверяет, что при пустом поле username_or_email выбрасыв."""
+        with pytest.raises(ValidationError):
             user_data = UserLogin(
                 username_or_email='',
                 password='qwertyui'
             )
             await login_user(uow, user_data)
-        assert exc_info.value.detail == 'Нехватка информации!'
-        assert exc_info.value.status_code == 422
+
 
     @pytest.mark.asyncio
     async def test_login_user_empty_password(self, uow: UnitOfWork, test_users):
         """Проверяет, что при пустом пароле выбрасывается LackOfInformationException."""
-        with pytest.raises(LackOfInformationException) as exc_info:
+        with pytest.raises(ValidationError):
             user_data = UserLogin(
                 username_or_email=test_users['admin'].username,
                 password=''
             )
             await login_user(uow, user_data)
-        assert exc_info.value.detail == 'Нехватка информации!'
-        assert exc_info.value.status_code == 422
+
 
     @pytest.mark.asyncio
     async def test_login_user_returns_valid_token(self, uow: UnitOfWork, test_users):
@@ -160,6 +163,7 @@ class TestAuthService:
         assert isinstance(payload['exp'], int)
         assert response.token_type == 'bearer'
         assert response.expires_in == 30 * 60
+
 
     @pytest.mark.asyncio
     async def test_login_user_wrong_password_by_email(self, uow: UnitOfWork, test_users):

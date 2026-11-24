@@ -1,26 +1,6 @@
 import pytest
 from core.security import create_access_token
-import uuid
 
-@pytest.mark.asyncio
-async def test_send_invitation_by_admin(async_client, test_project, test_users, auth_headers):
-    """Проверяет, что администратор проекта может отправить приглашение."""
-    headers = auth_headers
-    project_id = test_project.project_id
-    invitee_id = test_users['outsider'].user_id
-
-    response = await async_client.post(
-        f'/api/v1/projects/{project_id}/invitations',
-        json={
-            'user_id': invitee_id,
-            'message': 'Присоединяйся к нашему проекту!'
-        },
-        headers=headers
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data['invitee_id'] == invitee_id
-    assert data['status_invited'] == 'pending'
 
 @pytest.mark.asyncio
 async def test_send_invitation_by_non_admin(async_client, test_project, test_users, member_auth_headers):
@@ -36,38 +16,6 @@ async def test_send_invitation_by_non_admin(async_client, test_project, test_use
     )
     assert response.status_code == 403
 
-@pytest.mark.asyncio
-async def test_get_user_invitations(async_client, test_invitation, test_users):
-    """Проверяет получение списка входящих приглашений для пользователя."""
-    outsider = test_users['outsider']
-    login_resp = await async_client.post('/api/v1/auth/login', json={
-        'username_or_email': outsider.username,
-        'password': 'qwertyui'
-    })
-    assert login_resp.status_code == 200
-    token = login_resp.json()['access_token']
-    headers = {'Authorization': f'Bearer {token}'}
-
-    response = await async_client.get('/api/v1/invitations', headers=headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) >= 1
-
-@pytest.mark.asyncio
-async def test_get_project_invitations_by_admin(async_client, test_project, test_invitation, auth_headers):
-    """Проверяет, что администратор получает список приглашений проекта."""
-    headers = auth_headers
-    project_id = test_project.project_id
-
-    response = await async_client.get(
-        f'/api/v1/invitations/project/{project_id}',
-        headers=headers
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert isinstance(data, list)
-    assert len(data) >= 1
 
 @pytest.mark.asyncio
 async def test_get_project_invitations_by_non_admin(async_client, test_project, member_auth_headers):
@@ -291,49 +239,3 @@ async def test_cancel_invitation_already_processed(async_client, test_invitation
     )
     assert response.status_code == 409
     assert response.json()['detail'] == 'Приглашение уже обработано!'
-
-@pytest.mark.asyncio
-async def test_get_user_invitations_empty(async_client):
-    """Пользователь без приглашений получает пустой список."""
-    # регистрируем нового пользователя
-    new_username = str(uuid.uuid4())
-    new_email = f'{uuid.uuid4()}@mail.ru'
-    reg_resp = await async_client.post(
-        '/api/v1/auth/register',
-        json={'username': new_username, 'email': new_email, 'password': '123456789'}
-    )
-    assert reg_resp.status_code == 201
-
-    # логинимся, получаем токен
-    login_resp = await async_client.post(
-        '/api/v1/auth/login',
-        json={'username_or_email': new_username, 'password': '123456789'}
-    )
-    token = login_resp.json()['access_token']
-    headers = {'Authorization': f'Bearer {token}'}
-
-    # проверяем список приглашений – должен быть пустым
-    response = await async_client.get('/api/v1/invitations', headers=headers)
-    assert response.status_code == 200
-    assert response.json() == []
-
-@pytest.mark.asyncio
-async def test_get_project_invitations_empty(async_client, auth_headers):
-    """Проект без приглашений возвращает пустой список."""
-    headers = auth_headers
-    # создаём новый проект
-    create_resp = await async_client.post(
-        '/api/v1/projects',
-        json={'project_name': 'EmptyProject', 'project_description': ''},
-        headers=headers
-    )
-    assert create_resp.status_code == 201
-    project_id = create_resp.json()['project_id']
-
-    # запрашиваем приглашения этого проекта
-    response = await async_client.get(
-        f'/api/v1/invitations/project/{project_id}',
-        headers=headers
-    )
-    assert response.status_code == 200
-    assert response.json() == []

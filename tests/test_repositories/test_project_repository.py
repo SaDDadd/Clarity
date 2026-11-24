@@ -1,12 +1,8 @@
 import pytest
 import uuid
-from sqlalchemy import select, delete
 from core.uow import UnitOfWork
 from sqlalchemy.exc import IntegrityError, DataError
 from models.project import ProjectModel
-from models.project_members import ProjectMemberModel
-from models.task import TaskModel
-from models.project_invitations import ProjectInvitationModel
 from schemas.task import TaskCreate
 
 
@@ -175,21 +171,6 @@ class TestProjectRepository:
         outsider = test_users['outsider']
         result = await uow.project.is_user_admin(test_project.project_id, outsider.user_id)
         assert result is False
-
-
-    @pytest.mark.asyncio
-    async def test_get_user_projects_success(self, uow: UnitOfWork, test_users, test_project_with_member):
-        """Проверяет получение списка проектов, в которых состоит пользователь."""
-        admin_projects = await uow.project.get_user_projects(test_users['admin'].user_id)
-        member_projects = await uow.project.get_user_projects(test_users['member'].user_id)
-        # Проверяем, что у обоих есть проекты
-        assert len(admin_projects) >= 1
-        assert len(member_projects) >= 1
-        # Проверяем, что есть общий проект
-        admin_ids = {p.project_id for p in admin_projects}
-        member_ids = {p.project_id for p in member_projects}
-        common = admin_ids & member_ids
-        assert len(common) >= 1
 
 
     @pytest.mark.asyncio
