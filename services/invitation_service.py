@@ -6,7 +6,7 @@ from core.exceptions import (ConflictException,
 from schemas.invitation import InvitationResponse
 from schemas.common import InvitationAction
 from core.uow import UnitOfWork
-from cache.cache_keys import project_key, user_projects_key
+from cache.cache_keys import project_key, user_projects_key, user_invitations_pattern
 from cache.cache_service import delete_cache
 from core.filters import InvitationFilter
 from fastapi_pagination import Page, Params
@@ -95,8 +95,10 @@ async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, curren
     if await uow.invitation.get_pending_invitation(project_id, user_id):
         raise ConflictException('Приглашение уже отправлено!')
     result = await uow.invitation.create_invitation(project_id, current_user_id, user_id, message)
+    await uow.session.refresh(result)
     answer = InvitationResponse.model_validate(result).model_dump(mode='json')
     answer['project_name'] = project.project_name
+    await delete_cache(user_invitations_pattern(user_id))
     return answer
 
 

@@ -10,7 +10,7 @@ async function ensureUserCached(userId) {
     if (!id || userCache.has(id)) return userCache.get(id) || null;
     try {
         const result = await api("GET", `/users/search?search_user=${encodeURIComponent(String(id))}`);
-        const list = Array.isArray(result) ? result : [];
+        const list = result?.items || (Array.isArray(result) ? result : []);
         const found = list.find(item => Number(item?.user_id ?? item?.id) === id) || list[0];
         if (found) {
             const name = cleanNickname(found.username || found.nickname || found.name);
@@ -26,7 +26,7 @@ async function searchUsers(query) {
     const normalized = cleanNickname(query);
     if (normalized.length < 2) return [];
     const result = await api("GET", `/users/search?search_user=${encodeURIComponent(normalized)}`);
-    const list = Array.isArray(result) ? result : [];
+    const list = result?.items || (Array.isArray(result) ? result : []);
     return list.map(item => ({
         id: Number(item?.user_id ?? item?.id),
         username: cleanNickname(item?.username || item?.nickname || item?.name),

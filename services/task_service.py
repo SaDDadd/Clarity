@@ -5,7 +5,7 @@ from core.exceptions import (InvalidDeadlineException, NotFoundException,
 from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentResponse
 from schemas.common import TaskStatus
 from core.uow import UnitOfWork
-from cache.cache_keys import task_key, TTL_TASK
+from cache.cache_keys import task_key, TTL_TASK, project_tasks_key, user_tasks_pattern, task_comments_list_key
 from cache.cache_service import get_cache, delete_cache, set_cache
 from core.filters import TaskFilter, CommentFilter
 from fastapi_pagination import Page, Params
@@ -52,6 +52,7 @@ async def update_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     await uow.task.update_task_by_id(project_id, task_id, update_data)
     await delete_cache(task_key(project_id, task_id))
+    await delete_cache(project_tasks_key(project_id))
     return {'message': 'Задача обновилась!'}
 
 
@@ -77,6 +78,7 @@ async def update_comment(uow: UnitOfWork, project_id: int, task_id: int, comment
     if message == comment.comment_text:
         return {'message': 'Комментарий не изменился!'}
     await uow.task.update_comment(comment_id, message)
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Комментарий обновлен!'}
 
 
@@ -169,6 +171,8 @@ async def change_status(uow: UnitOfWork, project_id: int, task_id: int, current_
     if not changed:
         return {'message': 'Статус уже установлен!'}
     await delete_cache(task_key(project_id, task_id))
+    await delete_cache(project_tasks_key(project_id))
+    await delete_cache(user_tasks_pattern(current_user_id))
     return {'message': 'Статус обновлен!'}
 
 
@@ -188,6 +192,7 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
     result = await uow.task.create_task(project_id, task)
     await uow.session.refresh(result)
     answer = TaskResponse.model_validate(result).model_dump(mode='json')
+    await delete_cache(project_tasks_key(project_id))
     return answer
 
 
@@ -203,6 +208,7 @@ async def create_task_comment(uow: UnitOfWork, project_id: int, task_id: int,
     result = await uow.task.create_comment(project_id, task_id, current_user_id, message)
     await uow.session.refresh(result)
     answer = TaskCommentResponse.model_validate(result).model_dump(mode='json')
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return answer
 
 
@@ -218,6 +224,8 @@ async def delete_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
         raise PermissionDeniedException('Только создатель или куратор может удалить задачу.')
     await uow.task.delete_task(task_id)
     await delete_cache(task_key(project_id, task_id))
+    await delete_cache(project_tasks_key(project_id))
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Задача удалена из проекта!'}
 
 
@@ -240,4 +248,5 @@ async def delete_task_comment(uow: UnitOfWork, project_id: int, task_id: int, co
     if not (is_admin_or_curator or (author_id is not None and author_id == current_user_id)):
         raise PermissionDeniedException('Не админ и не создатель комментария не может его удалить!')
     await uow.task.delete_comment(comment_id)
+    await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Комментарий удален!'}

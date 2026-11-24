@@ -51,21 +51,13 @@ async def update_user_email(uow: UnitOfWork, user_data: UpdateEmailRequest, curr
 
 
 async def search_by_username(uow: UnitOfWork, search_user: str, current_user_username: str, 
-                             params: Params | None = None) -> Page[UserSearchResponse]:
+                             params: Params | None = None):
     """Поиск пользователя по имени."""
     if len(search_user) == 0:
         raise NotFoundException('Нельзя найти пользователя, введите ник!')
     if search_user == current_user_username:
         raise ConflictException('Нельзя искать самого себя!')
-    users = await uow.user.search_by_username(search_user, params)
-    items = [UserSearchResponse.model_validate(user).model_dump(mode='json') for user in users.items]
-    return Page[UserSearchResponse](
-        items=items,
-        total=users.total,
-        page=users.page,
-        size=users.size,
-        pages=users.pages
-    )
+    return await uow.user.search_by_username(search_user, params)
 
 
 async def get_profile_info(current_user: UserModel) -> dict:

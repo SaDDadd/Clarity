@@ -200,6 +200,7 @@ async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_
     await uow.project.add_user(project_id, user_id_to_add)
     await delete_cache(project_key(project_id))
     await delete_cache(user_invitations_key(user_id_to_add, 'all'))
+    await delete_cache(user_projects_pattern(user_id_to_add))
     return {'message': 'Пользователь добавлен в проект!'}
 
 
@@ -244,6 +245,7 @@ async def delete_project_user(uow: UnitOfWork, project_id: int, current_user_id:
     await delete_cache(project_tasks_key(project_id))
     await delete_cache_by_pattern(user_tasks_pattern(user_id_to_del))
     await delete_cache_by_pattern(project_task_items_pattern(project_id))
+    await delete_cache(user_projects_pattern(user_id_to_del))
     return {'message': 'Пользователь удален из проекта!'}
 
 

@@ -101,11 +101,7 @@ class UserRepository:
 
     async def search_by_username(self, username: str, params: Params | None = None) -> Page[UserSearchResponse]:
         """Поиск пользователей по имени."""
-        query = select(
-                UserModel.user_id,
-                UserModel.email,
-                UserModel.username,
-                UserModel.created_date
+        query = select(UserModel.user_id, UserModel.username, UserModel.email
             ).where(
                 UserModel.username.ilike(f"%{username}%")
             ).order_by(
