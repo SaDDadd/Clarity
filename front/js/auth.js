@@ -73,7 +73,7 @@ async function registerAccount() {
     validateNickname(nickname);
     if (!email) throw new Error("Введите e-mail.");
     if (!isValidEmail) throw new Error("Введите корректный e-mail (например: name@example.com).")
-    if (password.length < 6) throw new Error("Пароль должен содержать минимум 6 символов.");
+    if (password.length < 8) throw new Error("Пароль должен содержать минимум 8 символов.");
     if (password !== confirmPassword) throw new Error("Пароли не совпадают.");
 
     await api("POST", "/auth/register", {
