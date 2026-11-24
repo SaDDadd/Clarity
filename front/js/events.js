@@ -242,6 +242,7 @@ document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
         closeTaskModal();
         closeProjectModal();
+        closeMembersModal();
         closeAllFloatingMenus();
     }
 
@@ -286,8 +287,24 @@ window.addEventListener("tasker:unauthorized", () => {
     user = { ...DEFAULT_USER };
     closeTaskModal();
     closeProjectModal();
+    closeMembersModal();
     showAuthScreen("login");
     showToast("Сессия истекла. Войдите снова.");
+});
+
+elements.membersFab.addEventListener("click", openMembersModal);
+elements.closeMembersModal.addEventListener("click", closeMembersModal);
+elements.membersCloseButton.addEventListener("click", closeMembersModal);
+
+elements.membersModal.addEventListener("click", event => {
+    if (event.target === elements.membersModal) closeMembersModal();
+});
+
+elements.membersAddButton.addEventListener("click", () => {
+    const project = getCurrentProject();
+    if (!project || !isProjectAdmin(project)) return;
+    closeMembersModal();
+    openProjectModal(project.id);
 });
 
 setAuthMode("login");

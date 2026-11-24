@@ -7,6 +7,12 @@ function isProjectAdmin(project, userId = currentUser?.id) {
     return Boolean(project && userId != null && Number(project.adminId) === Number(userId));
 }
 
+function canManageProject(project) {
+    if (!project) return false;
+    if (project.role == "admin" || project.role == "curator") return true;
+    return isProjectAdmin(project);
+}
+
 function isProjectMember(project, userId = currentUser?.id) {
     return Boolean(
         project &&
@@ -25,7 +31,7 @@ function getAccessibleProjects() {
 }
 
 function getAdminProjects() {
-    return projects.filter(project => isProjectAdmin(project));
+    return projects.filter(project => canManageProject(project));
 }
 
 function getProject(projectId) {
@@ -48,11 +54,17 @@ function getProjectAccounts(projectId) {
         const member = members.find(item => Number(item?.user_id ?? item?.id) === numberId);
         const nickname = userCache.get(numberId) || cleanNickname(member?.username || member?.nickname || member?.name);
         const email = String(member?.email || "");
+
+        let role = member?.role;
+        if (!role){
+            role = numberId === Number(project.adminId)? "admin" : "member";
+        }
         result.push({
             id: numberId,
             nickname: nickname || `Пользователь #${numberId}`,
             name: nickname || `Пользователь #${numberId}`,
-            email
+            email,
+            role
         });
     });
     return result;
@@ -74,15 +86,19 @@ function getProjectName(projectId) {
 
 async function loadWorkspaceFromServer() {
     const [projectResult, assignedResult] = await Promise.all([
-        api("GET", "/projects/all"),
-        api("GET", "/tasks")
+        api("GET", "/projects/all?size=1000"),
+        api("GET", "/tasks?size=1000")
     ]);
 
-    projects = (Array.isArray(projectResult) ? projectResult : [])
+    const rawProjects = projectResult?.items || []
+    const rawTasks = assignedResult?.items || []
+
+
+    projects = rawProjects
         .map(mapProjectFromServer)
         .filter(project => Number.isInteger(project.id));
 
-    tasks = (Array.isArray(assignedResult) ? assignedResult : [])
+    tasks = rawTasks
         .map(mapTaskFromServer)
         .filter(task => Number.isInteger(task.id));
 
@@ -100,7 +116,7 @@ async function loadProjectDetails(projectId) {
     const id = Number(projectId);
     const [detailsResult, taskResult] = await Promise.all([
         api("GET", `/projects/${id}`),
-        api("GET", `/projects/${id}/tasks`)
+        api("GET", `/projects/${id}/tasks?size=1000`)
     ]);
 
     const mappedProject = mapProjectFromServer(detailsResult);
@@ -108,9 +124,8 @@ async function loadProjectDetails(projectId) {
     if (index >= 0) projects[index] = mappedProject;
     else projects.push(mappedProject);
 
-    const mappedTasks = (Array.isArray(taskResult) ? taskResult : [])
-        .map(mapTaskFromServer)
-        .filter(task => Number(task.projectId) === id);
+    const rawTasks = taskResult?.items || [];
+    const mappedTasks = rawTasks.map(mapTaskFromServer).filter(task => Number(task.projectId) == id);
 
     projectTaskCache.set(id, mappedTasks);
     tasks = tasks.filter(task => Number(task.projectId) !== id);
@@ -205,7 +220,7 @@ async function selectProject(projectId) {
 
 async function addProjectMember(projectId, userId) {
     const project = getProject(projectId);
-    if (!project || !isProjectAdmin(project)) {
+    if (!project || !canManageProject(project)) {
         showToast("Только администратор может добавлять участников");
         return false;
     }
@@ -223,7 +238,7 @@ async function addProjectMember(projectId, userId) {
 
 async function removeProjectMember(projectId, userId) {
     const project = getProject(projectId);
-    if (!project || !isProjectAdmin(project)) return false;
+    if (!project || !canManageProject(project)) return false;
     if (Number(userId) === Number(project.adminId)) return false;
 
     const nickname = getNicknameById(userId);
@@ -237,7 +252,7 @@ async function removeProjectMember(projectId, userId) {
 
 async function inviteProjectMember(projectId, userId) {
     const project = getProject(projectId);
-    if (!project || !isProjectAdmin(project)) {
+    if (!project || !canManageProject(project)) {
         showToast("Только администратор может приглашать пользователей");
         return false;
     }

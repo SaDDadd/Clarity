@@ -157,6 +157,7 @@ function render() {
     renderPageHeader();
     renderViewButtons();
     renderUser();
+    updateMembersFab();
     renderContent();
 }
 
@@ -166,4 +167,10 @@ function validateCurrentProject() {
         currentProjectId = accessibleProjects[0]?.id || null;
     }
     if (!currentProjectId && accessibleProjects.length) currentProjectId = accessibleProjects[0].id;
+}
+
+function updateMembersFab() {
+    const project = getCurrentProject();
+    const visible = currentPage === "overview" && Boolean(project);
+    elements.membersFab.classList.toggle("hidden", !visible);
 }

@@ -1,19 +1,19 @@
 function canManageTask(task) {
-    return isProjectAdmin(getProject(task?.projectId));
+    return canManageProject(getProject(task?.projectId));
 }
 
 function canChangeTaskStatus(task) {
     const project = getProject(task?.projectId);
     return Boolean(
         project &&
-        (isProjectAdmin(project) || Number(task.assigneeId) === Number(currentUser?.id))
+        (canManageProject(project) || Number(task.assigneeId) === Number(currentUser?.id))
     );
 }
 
 async function createTask(data) {
     const project = getProject(data.projectId);
-    if (!project || !isProjectAdmin(project)) {
-        showToast("Только администратор проекта может создавать задачи");
+    if (!project || !canManageProject(project)) {
+        showToast("Только администратор проекта или куратор могут создавать задачи");
         return false;
     }
 
@@ -21,9 +21,8 @@ async function createTask(data) {
     const task = mapTaskFromServer(result);
 
     if (Number.isInteger(task.id)) {
-        tasks = tasks.filter(item => Number(item.id) !== Number(task.id));
         tasks.push(task);
-        projectTaskCache.set(Number(task.projectId), getProjectTasks(task.projectId));
+        await loadProjectDetails(task.projectId);
     }
 
     currentProjectId = Number(data.projectId);
@@ -37,23 +36,14 @@ async function createTask(data) {
 async function updateTask(taskId, data) {
     const task = tasks.find(item => Number(item.id) === Number(taskId));
     if (!task || !canManageTask(task)) {
-        showToast("Только администратор может редактировать параметры задачи");
+        showToast("Только администратор или куратор могут редактировать параметры задачи");
         return false;
     }
 
     const project = getProject(data.projectId);
-    if (!project || !isProjectAdmin(project)) return false;
+    if (!project || !canManageProject(project)) return false;
 
-    const result = await api(
-        "PUT",
-        `/projects/${Number(data.projectId)}/tasks/${Number(taskId)}`,
-        mapTaskToServer(data)
-    );
-
-    const mapped = mapTaskFromServer(result);
-    const index = tasks.findIndex(item => Number(item.id) === Number(taskId));
-    if (index >= 0) tasks[index] = mapped;
-    else tasks.push(mapped);
+    await api("PUT", `/projects/${Number(data.projectId)}/tasks/${Number(taskId)}`, mapTaskToServer(data));
 
     await loadProjectDetails(data.projectId);
     showToast("✓ Изменения сохранены");
@@ -102,7 +92,7 @@ async function changeTaskStatus(taskId, status) {
 async function toggleFavorite(taskId) {
     const task = tasks.find(item => Number(item.id) === Number(taskId));
     if (!task || !canManageTask(task)) {
-        showToast("Избранное для задачи может изменить только администратор проекта");
+        showToast("Избранное для задачи могут изменить только администратор или куратор проекта");
         return false;
     }
 
@@ -123,10 +113,9 @@ async function toggleFavorite(taskId) {
         mapTaskToServer(payload)
     );
 
-    task.favorite = !task.favorite;
+    await loadProjectDetails(task.projectId);
 
     closeTaskMenu();
-    render();
     showToast(task.favorite ? "✓ Добавлено в избранное" : "Удалено из избранного");
     return true;
 }

@@ -29,6 +29,12 @@ const PRIORITY = {
     low: "Низкий"
 };
 
+const ROLE = {
+    admin: "Администратор",
+    curator: "Куратор",
+    member: "Участник"
+};
+
 const DEFAULT_SETTINGS = {
     theme: "light",
     sort: "newest"

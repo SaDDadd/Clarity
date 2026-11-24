@@ -6,6 +6,11 @@ function normalizeNickname(value) {
     return cleanNickname(value).toLowerCase();
 }
 
+function isValidEmail(value) {
+    const text = String(value || "").trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+}
+
 function validateNickname(nickname) {
     if (nickname.length < 3 || nickname.length > 30) {
         throw new Error("Ник должен содержать от 3 до 30 символов.");

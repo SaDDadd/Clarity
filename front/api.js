@@ -43,8 +43,15 @@ async function api(method, path, body = undefined) {
             clearToken();
             window.dispatchEvent(new Event("tasker:unauthorized"));
         }
-        const message = data?.detail || `Ошибка HTTP ${response.status}`;
-        throw new Error(message);
+
+        let message;
+        if (Array.isArray(data?.detail)){
+            message = data.detail.map(item => item?.msg || String(item)).join("; ");
+        } 
+        else{
+            message = data?.detail;
+        }
+        throw new Error(message || `Ошибка HTTP ${response.status}`);
     }
 
     return data;

@@ -78,5 +78,12 @@ const elements = {
     sidebarAvatar: document.getElementById("sidebarAvatar"),
     topAvatar: document.getElementById("topAvatar"),
     helpButton: document.getElementById("helpButton"),
-    notificationButton: document.getElementById("notificationButton")
+    notificationButton: document.getElementById("notificationButton"),
+    membersFab: document.getElementById("membersFab"),
+    membersModal: document.getElementById("membersModal"),
+    membersModalList: document.getElementById("membersModalList"),
+    membersModalSubtitle: document.getElementById("membersModalSubtitle"),
+    membersAddButton: document.getElementById("membersAddButton"),
+    closeMembersModal: document.getElementById("closeMembersModal"),
+    membersCloseButton: document.getElementById("membersCloseButton")
 };

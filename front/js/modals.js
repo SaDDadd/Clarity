@@ -54,7 +54,7 @@ function renderProjectMembers(projectId) {
     const project = getProject(projectId);
     if (!project) return;
 
-    const admin = isProjectAdmin(project);
+    const admin = canManageProject(project);
     elements.projectMembersSection.classList.remove("hidden");
     elements.projectRoleBadge.textContent = admin ? "Администратор" : "Участник";
     elements.projectRoleBadge.classList.toggle("member", !admin);
@@ -64,7 +64,7 @@ function renderProjectMembers(projectId) {
     elements.projectMembersList.innerHTML = "";
 
     accounts.forEach(account => {
-        const isAdminAccount = Number(account.id) === Number(project.adminId);
+        const isAdminAccount = account.role === "admin";
         const row = document.createElement("div");
         row.className = "project-member-row";
         row.innerHTML = `
@@ -76,7 +76,7 @@ function renderProjectMembers(projectId) {
                 </div>
             </div>
             <div class="member-actions">
-                <span class="role-badge ${isAdminAccount ? "" : "member"}">${isAdminAccount ? "Админ" : "Участник"}</span>
+                <span class="role-badge ${isAdminAccount ? "" : "member"}">${escapeHTML(ROLE[account.role] || account.role)}</span>
                 ${admin && !isAdminAccount ? `<button class="member-remove-button" type="button">Удалить</button>` : ""}
             </div>
         `;
@@ -114,8 +114,8 @@ function populateTaskAssigneeSelect(projectId, selectedId = "") {
     elements.taskAssigneeInput.innerHTML =
         `<option value="">Не назначен</option>` +
         accounts.map(account => {
-            const role = Number(account.id) === Number(project.adminId) ? "Админ" : "Участник";
-            return `<option value="${escapeAttribute(account.id)}">@${escapeHTML(account.nickname || account.name)} — ${role}</option>`;
+            const role = ROLE[account.role] || account.role;
+            return `<option value="${escapeAttribute(account.id)}">@${escapeHTML(account.nickname || account.name)} — ${escapeHTML(role)}</option>`;
         }).join("");
 
     if (selectedId != null && accounts.some(account => Number(account.id) === Number(selectedId))) {
@@ -190,7 +190,7 @@ function openTaskModal(status = "todo", taskId = null) {
         setTaskFormAccess(mode);
     } else {
         const selectedProject = getProject(currentProjectId);
-        const projectId = selectedProject && isProjectAdmin(selectedProject)
+        const projectId = selectedProject && canManageProject(selectedProject)
             ? selectedProject.id
             : adminProjects[0].id;
 
@@ -292,4 +292,73 @@ function closeProjectModal() {
     elements.projectMemberSearchResults.innerHTML = "";
     elements.projectMemberSearch.value = "";
     delete elements.projectForm.dataset.editingId;
+}
+
+function renderMembersModal() {
+    const project = getCurrentProject();
+    if (!project) {
+        closeMembersModal();
+        return;
+    }
+
+    const admin = isProjectAdmin(project);
+    const total = (project.memberIds || []).length + 1;
+
+    elements.membersModalSubtitle.textContent = admin
+        ? `Вы администратор · участников: ${total}`
+        : `Вы участник · участников: ${total}`;
+
+    elements.membersAddButton.classList.toggle("hidden", !admin);
+
+    const accounts = getProjectAccounts(project.id);
+    elements.membersModalList.innerHTML = "";
+
+    if (!accounts.length) {
+        elements.membersModalList.innerHTML = `<div class="member-search-empty">В проекте пока нет участников.</div>`;
+        return;
+    }
+
+    accounts.forEach(account => {
+        const isAdminAccount = account.role === "admin";
+        const row = document.createElement("div");
+        row.className = "project-member-row";
+        row.innerHTML = `
+            <div class="project-member-identity">
+                <div class="member-avatar">${escapeHTML(getInitials(account.nickname || account.name))}</div>
+                <div class="project-member-copy">
+                    <strong>@${escapeHTML(account.nickname || account.name)}</strong>
+                    <span>${escapeHTML(account.email || "—")}</span>
+                </div>
+            </div>
+            <div class="member-actions">
+                <span class="role-badge ${isAdminAccount ? "" : "member"}">${escapeHTML(ROLE[account.role] || account.role)}</span>
+            </div>
+        `;
+        elements.membersModalList.appendChild(row);
+        if (account.id) ensureUserCached(account.id).then(() => {
+            if (document.body.contains(row)) {
+                const nameEl = row.querySelector(".project-member-copy strong");
+                const avatarEl = row.querySelector(".member-avatar");
+                const name = getNicknameById(account.id);
+                if (nameEl) nameEl.textContent = `@${name}`;
+                if (avatarEl) avatarEl.textContent = getInitials(name);
+            }
+        });
+    });
+}
+
+function openMembersModal() {
+    const project = getCurrentProject();
+    if (!project) {
+        showToast("Сначала выберите проект");
+        return;
+    }
+    closeAllFloatingMenus();
+    renderMembersModal();
+    elements.membersModal.classList.remove("hidden");
+}
+
+function closeMembersModal() {
+    elements.membersModal.classList.add("hidden");
+    elements.membersModalList.innerHTML = "";
 }

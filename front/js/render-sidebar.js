@@ -3,6 +3,7 @@ function renderProjectsSidebar() {
 
     getAccessibleProjects().forEach(project => {
         const admin = isProjectAdmin(project);
+        const canManage = canManageProject(project);
         const item = document.createElement("a");
         item.href = `#project-${project.id}`;
         item.className = "project";
@@ -10,14 +11,24 @@ function renderProjectsSidebar() {
             item.classList.add("active-project");
         }
 
+        let badgeText = "У";
+        let badgeClass = "member";
+        if (admin) {
+        badgeText = "A";
+        badgeClass = "";
+        } else if (project.role === "curator") {
+            badgeText = "К";
+            badgeClass = "curator";
+        }
+
         item.innerHTML = `
             <span class="project-dot purple"></span>
             <span class="project-name">${escapeHTML(project.name)}</span>
-            <span class="project-role-badge ${admin ? "" : "member"}">${admin ? "A" : "У"}</span>
-            ${admin ? `
+            <span class="project-role-badge ${badgeClass}">${badgeText}</span>
+            ${canManage ? `
                 <span class="project-actions">
                     <button class="project-edit" type="button" aria-label="Редактировать проект">✎</button>
-                    <button class="project-delete" type="button" aria-label="Удалить проект">×</button>
+                    ${admin ? '<button class="project-delete" type="button" aria-label="Удалить проект">×</button>' : ""}
                 </span>
             ` : ""}
         `;

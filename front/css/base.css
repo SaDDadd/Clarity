@@ -1,8 +1,14 @@
+@font-face {
+    src: "CopyrightBolditalicStudio-GearzThinTrial-BF6763961a4c3e2.otf";
+    font-family: "Thin";
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
+
 
 :root {
     --background: #f7f7f9;
@@ -30,12 +36,12 @@ body {
 }
 
 body {
-    font-family:
+   font-family:
         Inter,
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
-        Arial,
+        Thin,
         sans-serif;
     background: var(--background);
     color: var(--text);

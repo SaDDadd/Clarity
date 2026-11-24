@@ -94,7 +94,7 @@ function renderBoardView() {
                     <strong>${column.title}</strong>
                     <span class="task-count">${columnTasks.length}</span>
                 </div>
-                ${isProjectAdmin(project) ? `<button type="button" class="add-task-column" data-status="${column.id}" aria-label="Добавить задачу">+</button>` : ""}
+                ${canManageProject(project) ? `<button type="button" class="add-task-column" data-status="${column.id}" aria-label="Добавить задачу">+</button>` : ""}
             </div>
             <div class="tasks" data-status="${column.id}"></div>
         `;

@@ -191,13 +191,16 @@ function renderProjectsPage() {
         const done = projectTasks.filter(task => task.status === "done").length;
         const progress = projectTasks.length ? Math.round(done / projectTasks.length * 100) : 0;
         const admin = isProjectAdmin(project);
+        const canManage = canManageProject(project);
         const adminName = getNicknameById(project.adminId);
         const card = document.createElement("article");
         card.className = "project-card-large";
         card.innerHTML = `
             <div class="project-card-large-header">
                 <h3>${escapeHTML(project.name)}</h3>
-                <span class="project-role-badge ${admin ? "" : "member"}">${admin ? "Админ" : "Участник"}</span>
+                <span class="project-role-badge ${admin ? "" : (project.role === "curator" ? "curator" : "member")}">
+                    ${admin ? "Админ" : (project.role === "curator" ? "Куратор" : "Участник")}
+                </span>
             </div>
             <p>${escapeHTML(project.description || "Без описания")}</p>
             <div class="project-card-meta-line">
@@ -211,10 +214,10 @@ function renderProjectsPage() {
             </div>
             <div class="project-card-large-footer">
                 <span>${done} из ${projectTasks.length} выполнено</span>
-                ${admin ? `
+                ${canManage ? `
                     <div class="project-card-actions">
                         <button class="small-action edit-project" type="button">Управление</button>
-                        <button class="small-action danger delete-project" type="button">Удалить</button>
+                        ${admin ? '<button class="small-action danger delete-project" type="button">Удалить</button>' : ""};
                     </div>
                 ` : ""}
             </div>
@@ -257,7 +260,7 @@ async function renderSettingsPage() {
                     </label>
                     <label>
                         <span>Новый пароль</span>
-                        <input id="settingsPassword" type="password" minlength="6" maxlength="128" placeholder="Оставьте пустым без изменения">
+                        <input id="settingsPassword" type="password" minlength="8" maxlength="128" placeholder="Оставьте пустым без изменения">
                     </label>
                     <label>
                         <span>Тема</span>
@@ -299,6 +302,8 @@ async function renderSettingsPage() {
             validateNickname(nickname);
             if (email && !email.includes("@")) throw new Error("Введите корректный e-mail.");
 
+            if (password && password.length < 8) throw new Error("Пароль должен содержать минимум 8 символов.");
+
             if (nickname !== currentUser.username) {
                 const profile = await api("PUT", "/profile/username", { username: nickname });
                 mapProfileFromServer(profile?.user_id ? profile : { ...currentUser, username: nickname });
@@ -328,7 +333,9 @@ async function renderSettingsPage() {
 
     document.getElementById("refreshWorkspaceButton").addEventListener("click", async event => {
         const button = event.currentTarget;
+        const originalText = button.textContent;
         button.disabled = true;
+        button.textContent = "Загрузка данных..";
         try {
             await loadWorkspaceFromServer();
             await loadInvitations();
@@ -338,6 +345,7 @@ async function renderSettingsPage() {
             showToast(getErrorMessage(error));
         } finally {
             button.disabled = false;
+            button.textContent = originalText;
         }
     });
 }

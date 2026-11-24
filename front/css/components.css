@@ -13,9 +13,16 @@
 }
 
 .favorite-button:hover,
-.favorite-button.active { color: #f59e0b; background: #fffbeb; }
+.favorite-button.active { 
+    color: #f59e0b; 
+    background: #fffbeb; 
+}
 
-.task-top-actions { display: flex; align-items: center; gap: 2px; }
+.task-top-actions { 
+    display: flex; 
+    align-items: center; 
+    gap: 2px; 
+}
 
 .role-badge,
 .project-role-badge {
@@ -195,6 +202,53 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.members-fab {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+    z-index: 40;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+.members-fab:hover {
+    background: var(--primary-hover);
+    transform: translateY(-50%) scale(1.06);
+    box-shadow: 0 8px 24px rgba(99, 102, 241, 0.45);
+}
+
+.members-fab:active {
+    transform: translateY(-50%) scale(0.98);
+}
+
+.members-modal-actions {
+    margin-top: 18px;
+}
+
+@media (max-width: 700px) {
+    .members-fab {
+        right: 14px;
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
 }
 
 .toast-container { position: fixed; right: 22px; bottom: 22px; z-index: 20000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }

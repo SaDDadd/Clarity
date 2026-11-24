@@ -45,12 +45,12 @@
 
             <label>
                 <span>Пароль</span>
-                <input id="authPasswordInput" type="password" minlength="6" maxlength="128" autocomplete="current-password" placeholder="Минимум 6 символов" required>
+                <input id="authPasswordInput" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Минимум 8 символов" required>
             </label>
 
             <label id="authConfirmField" class="hidden">
                 <span>Повторите пароль</span>
-                <input id="authConfirmInput" type="password" minlength="6" maxlength="128" autocomplete="new-password" placeholder="Повторите пароль">
+                <input id="authConfirmInput" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Повторите пароль">
             </label>
 
             <div id="authMessage" class="auth-message" aria-live="polite"></div>
@@ -143,6 +143,8 @@
 
             <div id="board" class="board" aria-live="polite"></div>
         </section>
+
+        <button id="membersFab" class="members-fab hidden" type="button" aria-label="Участники проекта" title="Участники проекта">👥</button>
     </main>
 </div>
 
@@ -268,6 +270,29 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+
+<div id="membersModal" class="modal hidden">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="membersModalTitle">
+        <div class="modal-header">
+            <div>
+                <h2 id="membersModalTitle">Участники проекта</h2>
+                <p id="membersModalSubtitle">Список участников и их роли</p>
+            </div>
+            <button id="closeMembersModal" class="modal-close" type="button" aria-label="Закрыть">×</button>
+        </div>
+
+        <div id="membersModalList" class="project-members-list"></div>
+
+        <div class="modal-actions modal-actions-split members-modal-actions">
+            <div></div>
+            <div class="modal-actions-group">
+                <button id="membersCloseButton" class="cancel-button" type="button">Закрыть</button>
+                <button id="membersAddButton" class="modal-submit hidden" type="button">Добавить участника</button>
+            </div>
+        </div>
     </div>
 </div>
 

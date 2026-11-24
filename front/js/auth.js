@@ -72,6 +72,7 @@ async function registerAccount() {
     if (!nickname) throw new Error("Введите ник.");
     validateNickname(nickname);
     if (!email) throw new Error("Введите e-mail.");
+    if (!isValidEmail) throw new Error("Введите корректный e-mail (например: name@example.com).")
     if (password.length < 6) throw new Error("Пароль должен содержать минимум 6 символов.");
     if (password !== confirmPassword) throw new Error("Пароли не совпадают.");
 
@@ -118,6 +119,7 @@ function signOutAccount() {
     user = { ...DEFAULT_USER };
     closeTaskModal();
     closeProjectModal();
+    closeMembersModal();
     closeAllFloatingMenus();
     showAuthScreen("login");
 }
