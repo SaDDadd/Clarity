@@ -1,6 +1,9 @@
+// Файл для управления модальными окнами (задачи, проекты, участники)
+
+// Отрисовка результатов поиска пользователей для добавления в проект
 async function renderProjectMemberSearchResults(projectId, query) {
     const project = getProject(projectId);
-    if (!project || !isProjectAdmin(project)) return;
+    if (!project || !canManageProject(project)) return;
 
     const normalizedQuery = normalizeNickname(query);
     elements.projectMemberSearchResults.innerHTML = "";
@@ -50,6 +53,7 @@ async function renderProjectMemberSearchResults(projectId, query) {
     }
 }
 
+// Отрисовка списка участников проекта в модальном окне управления
 function renderProjectMembers(projectId) {
     const project = getProject(projectId);
     if (!project) return;
@@ -97,6 +101,7 @@ function renderProjectMembers(projectId) {
     }
 }
 
+// Заполнение селекта проектов в модалке задачи
 function populateTaskProjectSelect(selectedId = currentProjectId, adminOnly = true) {
     const source = adminOnly ? getAdminProjects() : getAccessibleProjects();
     elements.taskProjectInput.innerHTML = source.map(project =>
@@ -108,6 +113,7 @@ function populateTaskProjectSelect(selectedId = currentProjectId, adminOnly = tr
     }
 }
 
+// Заполнение селекта исполнителей в модалке задачи
 function populateTaskAssigneeSelect(projectId, selectedId = "") {
     const project = getProject(projectId);
     const accounts = project ? getProjectAccounts(project.id) : [];
@@ -125,6 +131,7 @@ function populateTaskAssigneeSelect(projectId, selectedId = "") {
     }
 }
 
+// Установка прав доступа (readonly) для формы задачи
 function setTaskFormAccess(mode) {
     const fullEdit = mode === "admin" || mode === "create";
     const statusOnly = mode === "status";
@@ -144,6 +151,7 @@ function setTaskFormAccess(mode) {
     elements.taskSubmitButton.classList.toggle("hidden", mode === "view");
 }
 
+// Открытие модального окна задачи
 function openTaskModal(status = "todo", taskId = null) {
     const adminProjects = getAdminProjects();
     if (!taskId && !adminProjects.length) {
@@ -213,6 +221,7 @@ function openTaskModal(status = "todo", taskId = null) {
     }, 30);
 }
 
+// Закрытие модального окна задачи
 function closeTaskModal() {
     elements.taskModal.classList.add("hidden");
     elements.taskForm.reset();
@@ -231,6 +240,7 @@ function closeTaskModal() {
     delete elements.taskForm.dataset.accessMode;
 }
 
+// Добавление кнопки "Пригласить" в модалку проекта
 function addInviteButtonToProjectModal(project) {
     let button = document.getElementById("inviteProjectButton");
     if (!button) {
@@ -249,6 +259,7 @@ function addInviteButtonToProjectModal(project) {
     };
 }
 
+// Открытие модального окна проекта
 function openProjectModal(projectId = null) {
     closeAllFloatingMenus();
     elements.projectForm.reset();
@@ -285,6 +296,7 @@ function openProjectModal(projectId = null) {
     setTimeout(() => elements.projectNameInput.focus(), 30);
 }
 
+// Закрытие модального окна проекта
 function closeProjectModal() {
     elements.projectModal.classList.add("hidden");
     elements.projectForm.reset();
@@ -294,6 +306,7 @@ function closeProjectModal() {
     delete elements.projectForm.dataset.editingId;
 }
 
+// Отрисовка модального окна со списком участников (вызывается по FAB)
 function renderMembersModal() {
     const project = getCurrentProject();
     if (!project) {
@@ -347,6 +360,7 @@ function renderMembersModal() {
     });
 }
 
+// Открытие модального окна участников
 function openMembersModal() {
     const project = getCurrentProject();
     if (!project) {
@@ -358,6 +372,7 @@ function openMembersModal() {
     elements.membersModal.classList.remove("hidden");
 }
 
+// Закрытие модального окна участников
 function closeMembersModal() {
     elements.membersModal.classList.add("hidden");
     elements.membersModalList.innerHTML = "";

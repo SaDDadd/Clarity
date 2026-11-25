@@ -1,3 +1,6 @@
+// Файл для работы с данными пользователей (кэширование, поиск)
+
+// Получение никнейма по ID из кэша
 function getNicknameById(userId) {
     const id = Number(userId);
     if (!id) return "Не назначен";
@@ -5,28 +8,33 @@ function getNicknameById(userId) {
     return userCache.get(id) || `Пользователь #${id}`;
 }
 
+// Асинхронная загрузка и кэширование имени пользователя
 async function ensureUserCached(userId) {
     const id = Number(userId);
     if (!id || userCache.has(id)) return userCache.get(id) || null;
     try {
         const result = await api("GET", `/users/search?search_user=${encodeURIComponent(String(id))}`);
-        const list = Array.isArray(result) ? result : [];
-        const found = list.find(item => Number(item?.user_id ?? item?.id) === id) || list[0];
+        // Бэкенд FastAPI может вернуть массив или объект с массивом в items
+        const list = Array.isArray(result) ? result : (Array.isArray(result?.items) ? result.items : []);
+        const found = list.find(item => Number(item?.user_id ?? item?.id) === id);
         if (found) {
             const name = cleanNickname(found.username || found.nickname || found.name);
-            if (name) userCache.set(Number(found.user_id ?? found.id), name);
+            if (name) userCache.set(id, name);
         }
-    } catch {
+    } 
+    catch {
         return null;
     }
     return userCache.get(id) || null;
 }
 
+// Поиск пользователей по никнейму
 async function searchUsers(query) {
     const normalized = cleanNickname(query);
     if (normalized.length < 2) return [];
     const result = await api("GET", `/users/search?search_user=${encodeURIComponent(normalized)}`);
-    const list = Array.isArray(result) ? result : [];
+    // Бэкенд FastAPI возвращает объект с массивом в items
+    const list = Array.isArray(result) ? result : (Array.isArray(result?.items) ? result.items : []);
     return list.map(item => ({
         id: Number(item?.user_id ?? item?.id),
         username: cleanNickname(item?.username || item?.nickname || item?.name),

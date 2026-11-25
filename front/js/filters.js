@@ -1,3 +1,6 @@
+// Файл для фильтрации и сортировки списка задач
+
+// Получение базового списка задач в зависимости от текущей страницы
 function getBaseTasksForPage() {
     const accessible = tasks.filter(task => Boolean(getProject(task.projectId)));
     if (currentPage === "overview") return getProjectTasks();
@@ -6,6 +9,7 @@ function getBaseTasksForPage() {
     return [];
 }
 
+// Получение отфильтрованного и отсортированного списка задач
 function getVisibleTasks() {
     let result = getBaseTasksForPage();
     const query = elements.searchInput.value.trim().toLowerCase();
@@ -29,6 +33,7 @@ function getVisibleTasks() {
     return sortTasks(result, settings.sort);
 }
 
+// Сортировка списка задач
 function sortTasks(list, sortType) {
     const priorityWeight = { high: 0, medium: 1, low: 2 };
     const statusWeight = { todo: 0, progress: 1, done: 2 };
@@ -57,6 +62,7 @@ function sortTasks(list, sortType) {
     return copy;
 }
 
+// Сброс всех фильтров
 function resetFilters(shouldRender = true) {
     filters.status = "all";
     filters.priority = "all";
@@ -66,6 +72,7 @@ function resetFilters(shouldRender = true) {
     if (shouldRender) renderContent();
 }
 
+// Синхронизация UI элементов с текущими значениями фильтров
 function syncFilterControls() {
     elements.filterStatus.value = filters.status;
     elements.filterPriority.value = filters.priority;
@@ -83,6 +90,7 @@ function syncFilterControls() {
     elements.filterButton.textContent = activeCount ? `Фильтр (${activeCount})` : "Фильтр";
 }
 
+// Заполнение выпадающего списка проектов для фильтрации
 function populateFilterProjects() {
     const accessibleProjects = getAccessibleProjects();
     elements.filterProject.innerHTML =

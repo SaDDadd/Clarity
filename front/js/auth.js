@@ -1,8 +1,12 @@
+// Файл для управления авторизацией, регистрацией и сессией пользователя
+
+// Вывод сообщения об ошибке или успехе на экране авторизации
 function setAuthMessage(message = "", success = false) {
     elements.authMessage.textContent = message;
     elements.authMessage.classList.toggle("success", success);
 }
 
+// Переключение режимов "Вход" и "Регистрация"
 function setAuthMode(mode) {
     authMode = mode === "register" ? "register" : "login";
     const registering = authMode === "register";
@@ -22,6 +26,7 @@ function setAuthMode(mode) {
     setAuthMessage();
 }
 
+// Показ экрана авторизации и скрытие основного интерфейса
 function showAuthScreen(mode = "login") {
     elements.app.classList.add("hidden");
     elements.authScreen.classList.remove("hidden");
@@ -30,6 +35,7 @@ function showAuthScreen(mode = "login") {
     setTimeout(() => elements.authEmailInput.focus(), 30);
 }
 
+// Вход в аккаунт после успешной авторизации
 async function enterAccount(profile) {
     mapProfileFromServer(profile);
     settings = loadSettings();
@@ -63,6 +69,7 @@ async function enterAccount(profile) {
     }
 }
 
+// Обработка формы регистрации
 async function registerAccount() {
     const nickname = cleanNickname(elements.authNameInput.value);
     const email = elements.authEmailInput.value.trim();
@@ -95,6 +102,7 @@ async function registerAccount() {
     showToast("✓ Аккаунт создан");
 }
 
+// Обработка формы входа
 async function signInAccount() {
     const identifier = elements.authEmailInput.value.trim();
     const password = elements.authPasswordInput.value;
@@ -112,6 +120,7 @@ async function signInAccount() {
     await enterAccount(profile);
 }
 
+// Выход из аккаунта
 function signOutAccount() {
     clearToken();
     clearLocalWorkspace();
@@ -124,6 +133,7 @@ function signOutAccount() {
     showAuthScreen("login");
 }
 
+// Инициализация авторизации при загрузке страницы
 async function initializeAuth() {
     const token = getToken();
     if (!token) {

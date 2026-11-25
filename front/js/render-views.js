@@ -1,3 +1,6 @@
+// Файл для альтернативных представлений задач (список, календарь) и страницы проектов/настроек
+
+// Создание карточки задачи для страницы списка задач
 function createPageTaskCard(task) {
     const card = document.createElement("article");
     const assigneeName = task.assigneeId ? getNicknameById(task.assigneeId) : "Не назначен";
@@ -36,6 +39,7 @@ function createPageTaskCard(task) {
     return card;
 }
 
+// Отрисовка задач в виде таблицы
 function renderTableView(taskList = getVisibleTasks()) {
     elements.board.className = "board single-view";
     elements.board.innerHTML = "";
@@ -81,6 +85,7 @@ function renderTableView(taskList = getVisibleTasks()) {
     elements.board.appendChild(wrap);
 }
 
+// Отрисовка задач в виде календаря
 function renderCalendarView() {
     elements.board.className = "board single-view";
     elements.board.innerHTML = "";
@@ -153,6 +158,7 @@ function renderCalendarView() {
     elements.board.appendChild(wrap);
 }
 
+// Отрисовка страниц "Мои задачи" и "Избранное"
 function renderTaskCollectionPage() {
     elements.board.className = "board single-view";
     elements.board.innerHTML = "";
@@ -173,6 +179,7 @@ function renderTaskCollectionPage() {
     elements.board.appendChild(list);
 }
 
+// Отрисовка страницы со всеми проектами пользователя
 function renderProjectsPage() {
     elements.board.className = "board single-view";
     elements.board.innerHTML = "";
@@ -239,6 +246,7 @@ function renderProjectsPage() {
     elements.board.appendChild(grid);
 }
 
+// Отрисовка страницы настроек
 async function renderSettingsPage() {
     elements.board.className = "board single-view";
     elements.board.innerHTML = `
@@ -291,6 +299,7 @@ async function renderSettingsPage() {
         : "—";
     document.getElementById("settingsTheme").value = settings.theme;
 
+    // Обработчик сохранения настроек профиля
     document.getElementById("saveSettingsButton").addEventListener("click", async event => {
         const button = event.currentTarget;
         button.disabled = true;
@@ -331,6 +340,7 @@ async function renderSettingsPage() {
         }
     });
 
+    // Обработчик принудительного обновления данных с сервера
     document.getElementById("refreshWorkspaceButton").addEventListener("click", async event => {
         const button = event.currentTarget;
         const originalText = button.textContent;
