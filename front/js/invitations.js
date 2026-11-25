@@ -3,7 +3,8 @@
 // Загрузка входящих приглашений с сервера
 async function loadInvitations() {
     const result = await api("GET", "/invitations");
-    invitations = (Array.isArray(result) ? result : []).map(mapInvitation);
+    const items = (result && Array.isArray(result.items)) ? result.items : [];
+    invitations = items.map(mapInvitation);
     renderInvitationsSidebar();
 }
 
@@ -54,7 +55,7 @@ async function renderProjectInvitations(projectId) {
 
     try {
         const result = await api("GET", `/invitations/project/${Number(projectId)}`);
-        const list = Array.isArray(result) ? result : [];
+        const list = (result && Array.isArray(result.items)) ? result.items : [];
 
         if (!list.length) {
             section.insertAdjacentHTML("beforeend", `<div class="member-search-empty">Нет активных приглашений.</div>`);
