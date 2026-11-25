@@ -1,7 +1,11 @@
+// Файл для работы с задачами (создание, обновление, удаление, смена статуса)
+
+// Проверка, может ли пользователь управлять задачей (админ или куратор)
 function canManageTask(task) {
     return canManageProject(getProject(task?.projectId));
 }
 
+// Проверка, может ли пользователь менять статус задачи
 function canChangeTaskStatus(task) {
     const project = getProject(task?.projectId);
     return Boolean(
@@ -10,6 +14,7 @@ function canChangeTaskStatus(task) {
     );
 }
 
+// Создание новой задачи
 async function createTask(data) {
     const project = getProject(data.projectId);
     if (!project || !canManageProject(project)) {
@@ -33,6 +38,7 @@ async function createTask(data) {
     return true;
 }
 
+// Обновление существующей задачи
 async function updateTask(taskId, data) {
     const task = tasks.find(item => Number(item.id) === Number(taskId));
     if (!task || !canManageTask(task)) {
@@ -50,6 +56,7 @@ async function updateTask(taskId, data) {
     return true;
 }
 
+// Удаление задачи
 async function deleteTask(taskId) {
     const task = tasks.find(item => Number(item.id) === Number(taskId));
     if (!task || !canManageTask(task)) {
@@ -68,6 +75,7 @@ async function deleteTask(taskId) {
     return true;
 }
 
+// Изменение статуса задачи
 async function changeTaskStatus(taskId, status) {
     const task = tasks.find(item => Number(item.id) === Number(taskId));
     if (!task || !STATUS[status]) return false;
@@ -89,6 +97,7 @@ async function changeTaskStatus(taskId, status) {
     return true;
 }
 
+// Добавление/удаление задачи из избранного
 async function toggleFavorite(taskId) {
     const task = tasks.find(item => Number(item.id) === Number(taskId));
     if (!task || !canManageTask(task)) {

@@ -1,3 +1,6 @@
+// Файл для отрисовки Kanban-доски и карточек задач
+
+// Создание DOM-элемента карточки задачи
 function createTaskElement(task, draggable = false) {
     const element = document.createElement("article");
     const assigneeName = task.assigneeId ? getNicknameById(task.assigneeId) : "Не назначен";
@@ -38,6 +41,7 @@ function createTaskElement(task, draggable = false) {
         openTaskMenu(task.id, event.currentTarget);
     });
 
+    // Асинхронная подгрузка имени исполнителя, если его нет в кэше
     if (task.assigneeId) ensureUserCached(task.assigneeId).then(() => {
         if (document.body.contains(element)) {
             const chip = element.querySelector(".task-assignee-chip span");
@@ -65,6 +69,7 @@ function createTaskElement(task, draggable = false) {
     return element;
 }
 
+// Отрисовка Kanban-доски с колонками
 function renderBoardView() {
     elements.board.className = "board";
     elements.board.innerHTML = "";
@@ -110,6 +115,7 @@ function renderBoardView() {
     });
 }
 
+// Настройка зоны для Drag-and-Drop
 function attachDropZone(container, status) {
     container.addEventListener("dragover", event => {
         const task = tasks.find(item => Number(item.id) === Number(draggedTaskId));

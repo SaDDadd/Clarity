@@ -1,3 +1,6 @@
+// Файл для преобразования данных между форматами бэкенда и фронтенда
+
+// Преобразование профиля пользователя
 function mapProfileFromServer(profile) {
     const nickname = cleanNickname(profile?.username || "Пользователь");
     const mapped = {
@@ -14,6 +17,7 @@ function mapProfileFromServer(profile) {
     return mapped;
 }
 
+// Преобразование задачи с сервера
 function mapTaskFromServer(task) {
     const rawStatus = String(task?.task_status || task?.status || "pending");
     return {
@@ -31,6 +35,7 @@ function mapTaskFromServer(task) {
     };
 }
 
+// Преобразование задачи для отправки на сервер
 function mapTaskToServer(payload) {
     const result = {
         title: String(payload.title || "").trim(),
@@ -44,6 +49,7 @@ function mapTaskToServer(payload) {
     return result;
 }
 
+// Преобразование проекта с сервера
 function mapProjectFromServer(project) {
     const adminId = Number(project?.admin_id ?? project?.adminId);
     const members = Array.isArray(project?.members) ? project.members : [];
@@ -64,10 +70,12 @@ function mapProjectFromServer(project) {
     };
 }
 
+// Получение ID приглашения
 function getInvitationId(invitation) {
     return Number(invitation?.invitation_id ?? invitation?.id);
 }
 
+// Преобразование приглашения с сервера
 function mapInvitation(invitation) {
     return {
         id: getInvitationId(invitation),

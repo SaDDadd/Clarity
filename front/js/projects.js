@@ -1,18 +1,24 @@
+// Файл для работы с проектами (права, загрузка, создание, удаление)
+
+// Получение проекта из массива без проверки прав
 function getProjectRaw(projectId) {
     const id = Number(projectId);
     return projects.find(project => Number(project.id) === id) || null;
 }
 
+// Проверка, является ли пользователь администратором проекта
 function isProjectAdmin(project, userId = currentUser?.id) {
     return Boolean(project && userId != null && Number(project.adminId) === Number(userId));
 }
 
+// Проверка, может ли пользователь управлять проектом (админ или куратор)
 function canManageProject(project) {
     if (!project) return false;
     if (project.role == "admin" || project.role == "curator") return true;
     return isProjectAdmin(project);
 }
 
+// Проверка, является ли пользователь участником проекта
 function isProjectMember(project, userId = currentUser?.id) {
     return Boolean(
         project &&
@@ -22,23 +28,28 @@ function isProjectMember(project, userId = currentUser?.id) {
     );
 }
 
+// Проверка доступа к проекту
 function canAccessProject(project, userId = currentUser?.id) {
     return isProjectAdmin(project, userId) || isProjectMember(project, userId);
 }
 
+// Получение списка доступных проектов
 function getAccessibleProjects() {
     return projects.filter(project => canAccessProject(project));
 }
 
+// Получение списка проектов, которыми можно управлять
 function getAdminProjects() {
     return projects.filter(project => canManageProject(project));
 }
 
+// Получение проекта, если есть доступ
 function getProject(projectId) {
     const project = getProjectRaw(projectId);
     return project && canAccessProject(project) ? project : null;
 }
 
+// Получение списка аккаунтов участников проекта
 function getProjectAccounts(projectId) {
     const project = getProject(projectId);
     if (!project) return [];
@@ -70,26 +81,31 @@ function getProjectAccounts(projectId) {
     return result;
 }
 
+// Получение текущего выбранного проекта
 function getCurrentProject() {
     return getProject(currentProjectId);
 }
 
+// Получение задач текущего проекта
 function getProjectTasks(projectId = currentProjectId) {
     const id = Number(projectId);
     if (!getProject(id)) return [];
     return tasks.filter(task => Number(task.projectId) === id);
 }
 
+// Получение названия проекта по ID
 function getProjectName(projectId) {
     return getProject(projectId)?.name || "Без проекта";
 }
 
+// Загрузка всех проектов и задач с сервера
 async function loadWorkspaceFromServer() {
     const [projectResult, assignedResult] = await Promise.all([
         api("GET", "/projects/all?size=100"),
         api("GET", "/tasks?size=100")
     ]);
 
+    // Бэкенд FastAPI возвращает объект с массивом внутри поля items
     const rawProjects = projectResult?.items || []
     const rawTasks = assignedResult?.items || []
 
@@ -112,6 +128,7 @@ async function loadWorkspaceFromServer() {
     validateCurrentProject();
 }
 
+// Загрузка деталей конкретного проекта и его задач
 async function loadProjectDetails(projectId) {
     const id = Number(projectId);
     const [detailsResult, taskResult] = await Promise.all([
@@ -124,6 +141,7 @@ async function loadProjectDetails(projectId) {
     if (index >= 0) projects[index] = mappedProject;
     else projects.push(mappedProject);
 
+    // Бэкенд FastAPI возвращает объект с массивом внутри поля items
     const rawTasks = taskResult?.items || [];
     const mappedTasks = rawTasks.map(mapTaskFromServer).filter(task => Number(task.projectId) == id);
 
@@ -140,6 +158,7 @@ async function loadProjectDetails(projectId) {
     render();
 }
 
+// Создание нового проекта
 async function createProject(name, description) {
     if (!currentUser) return false;
     const result = await api("POST", "/projects", {
@@ -160,6 +179,7 @@ async function createProject(name, description) {
     return true;
 }
 
+// Обновление информации о проекте
 async function updateProject(projectId, name, description) {
     const project = getProject(projectId);
     if (!project || !isProjectAdmin(project)) {
@@ -177,6 +197,7 @@ async function updateProject(projectId, name, description) {
     return true;
 }
 
+// Удаление проекта
 async function deleteProject(projectId) {
     const project = getProject(projectId);
     if (!project || !isProjectAdmin(project)) {
@@ -202,6 +223,7 @@ async function deleteProject(projectId) {
     return true;
 }
 
+// Выбор проекта для просмотра
 async function selectProject(projectId) {
     const project = getProject(projectId);
     if (!project) return;
@@ -218,6 +240,7 @@ async function selectProject(projectId) {
     }
 }
 
+// Добавление участника в проект
 async function addProjectMember(projectId, userId) {
     const project = getProject(projectId);
     if (!project || !canManageProject(project)) {
@@ -236,6 +259,7 @@ async function addProjectMember(projectId, userId) {
     return true;
 }
 
+// Удаление участника из проекта
 async function removeProjectMember(projectId, userId) {
     const project = getProject(projectId);
     if (!project || !canManageProject(project)) return false;
@@ -250,6 +274,7 @@ async function removeProjectMember(projectId, userId) {
     return true;
 }
 
+// Приглашение пользователя в проект
 async function inviteProjectMember(projectId, userId) {
     const project = getProject(projectId);
     if (!project || !canManageProject(project)) {

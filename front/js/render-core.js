@@ -1,3 +1,6 @@
+// Файл для отрисовки основных элементов интерфейса (навигация, заголовки, пустые состояния)
+
+// Отрисовка пустого состояния (заглушки)
 function renderEmptyState(title, text, buttonText = "", onClick = null) {
     elements.board.className = "board single-view";
     elements.board.innerHTML = "";
@@ -12,6 +15,7 @@ function renderEmptyState(title, text, buttonText = "", onClick = null) {
     elements.board.appendChild(state);
 }
 
+// Переключение страницы приложения
 function setPage(page) {
     if (!["overview", "my-tasks", "favorites", "projects", "settings", "invitations"].includes(page)) return;
     currentPage = page;
@@ -27,6 +31,7 @@ function setPage(page) {
     }
 }
 
+// Отрисовка активного состояния навигации
 function renderNavigation() {
     document.querySelectorAll("[data-page]").forEach(item => {
         item.classList.toggle("active", item.dataset.page === currentPage);
@@ -35,6 +40,7 @@ function renderNavigation() {
     renderInvitationsSidebar();
 }
 
+// Отрисовка заголовка страницы в зависимости от текущего раздела
 function renderPageHeader() {
     const project = getCurrentProject();
     const accessibleProjects = getAccessibleProjects();
@@ -106,6 +112,7 @@ function renderPageHeader() {
     elements.createTaskButton.classList.add("hidden");
 }
 
+// Отрисовка контента в зависимости от текущей страницы и вида
 function renderContent() {
     populateFilterProjects();
     syncFilterControls();
@@ -135,12 +142,14 @@ function renderContent() {
     if (currentPage === "settings") renderSettingsPage();
 }
 
+// Подсветка активной кнопки переключения вида (Доска/Список/Календарь)
 function renderViewButtons() {
     document.querySelectorAll("[data-view]").forEach(button => {
         button.classList.toggle("active-view", button.dataset.view === currentView);
     });
 }
 
+// Отрисовка информации о пользователе в интерфейсе
 function renderUser() {
     const nickname = user.nickname || user.name;
     const initials = getInitials(nickname);
@@ -150,6 +159,7 @@ function renderUser() {
     elements.topAvatar.textContent = initials;
 }
 
+// Главная функция отрисовки всего приложения
 function render() {
     validateCurrentProject();
     renderNavigation();
@@ -161,6 +171,7 @@ function render() {
     renderContent();
 }
 
+// Проверка и исправление текущего выбранного проекта
 function validateCurrentProject() {
     const accessibleProjects = getAccessibleProjects();
     if (currentProjectId && !getProject(currentProjectId)) {
@@ -169,6 +180,7 @@ function validateCurrentProject() {
     if (!currentProjectId && accessibleProjects.length) currentProjectId = accessibleProjects[0].id;
 }
 
+// Управление видимостью плавающей кнопки участников (FAB)
 function updateMembersFab() {
     const project = getCurrentProject();
     const visible = currentPage === "overview" && Boolean(project);

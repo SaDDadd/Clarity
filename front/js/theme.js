@@ -1,3 +1,6 @@
+// Файл для управления цветовой темой приложения
+
+// Применение темы (светлая, темная или системная)
 function applyTheme() {
     let dark = settings.theme === "dark";
     if (settings.theme === "system") {

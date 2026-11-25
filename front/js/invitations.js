@@ -1,9 +1,13 @@
+// Файл для управления приглашениями пользователей в проекты
+
+// Загрузка входящих приглашений с сервера
 async function loadInvitations() {
     const result = await api("GET", "/invitations");
     invitations = (Array.isArray(result) ? result : []).map(mapInvitation);
     renderInvitationsSidebar();
 }
 
+// Создание пункта меню для приглашений, если его нет
 function ensureInvitationNav() {
     let nav = document.getElementById("invitationsNavItem");
     if (nav) return nav;
@@ -24,6 +28,7 @@ function ensureInvitationNav() {
     return nav;
 }
 
+// Отрисовка счетчика приглашений в боковом меню
 function renderInvitationsSidebar() {
     const nav = ensureInvitationNav();
     nav.classList.toggle("active", currentPage === "invitations");
@@ -31,6 +36,7 @@ function renderInvitationsSidebar() {
     if (count) count.textContent = invitations.length ? String(invitations.length) : "";
 }
 
+// Отрисовка отправленных приглашений в модальном окне проекта
 async function renderProjectInvitations(projectId) {
     const project = getProject(projectId);
     if (!project || !isProjectAdmin(project)) return;
@@ -93,6 +99,7 @@ async function renderProjectInvitations(projectId) {
     }
 }
 
+// Отрисовка страницы с приглашениями
 function renderInvitationsPage() {
     elements.board.className = "board single-view";
     elements.board.innerHTML = "";
@@ -145,6 +152,7 @@ function renderInvitationsPage() {
     elements.board.appendChild(list);
 }
 
+// Ответ на приглашение (принять или отклонить)
 async function respondInvitation(invitationId, action) {
     await api("PATCH", `/invitations/${Number(invitationId)}`, { action });
     await Promise.all([loadInvitations(), loadWorkspaceFromServer()]);
@@ -153,6 +161,7 @@ async function respondInvitation(invitationId, action) {
     render();
 }
 
+// Удаление приглашения
 async function deleteInvitation(invitationId) {
     await api("DELETE", `/invitations/${Number(invitationId)}`);
     invitations = invitations.filter(item => Number(item.id) !== Number(invitationId));

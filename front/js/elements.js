@@ -1,3 +1,5 @@
+// Файл, содержащий ссылки на все DOM-элементы для быстрого доступа
+
 const elements = {
     app: document.getElementById("app"),
     authScreen: document.getElementById("authScreen"),

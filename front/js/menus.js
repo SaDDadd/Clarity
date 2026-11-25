@@ -1,9 +1,13 @@
+// Файл для управления всплывающими контекстными меню
+
+// Закрытие всех открытых меню
 function closeAllFloatingMenus() {
     closeTaskMenu();
     elements.filterMenu.classList.add("hidden");
     elements.sortMenu.classList.add("hidden");
 }
 
+// Позиционирование плавающего меню относительно кнопки
 function positionFloatingMenu(menu, button, width = 230) {
     const rect = button.getBoundingClientRect();
     menu.classList.remove("hidden");
@@ -16,6 +20,7 @@ function positionFloatingMenu(menu, button, width = 230) {
     menu.style.top = `${Math.max(10, top)}px`;
 }
 
+// Открытие контекстного меню для задачи
 function openTaskMenu(taskId, button) {
     currentTaskMenuId = Number(taskId);
     const task = tasks.find(item => Number(item.id) === Number(taskId));
@@ -41,6 +46,7 @@ function openTaskMenu(taskId, button) {
     positionFloatingMenu(elements.taskMenu, button, 190);
 }
 
+// Закрытие меню задачи
 function closeTaskMenu() {
     currentTaskMenuId = null;
     elements.taskMenu.classList.add("hidden");

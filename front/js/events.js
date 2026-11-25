@@ -1,3 +1,8 @@
+// Файл для обработки всех пользовательских событий (клики, ввод и т.д.)
+
+// ==========================================
+// СЕКЦИЯ: Авторизация
+// ==========================================
 elements.loginTab.addEventListener("click", () => setAuthMode("login"));
 elements.registerTab.addEventListener("click", () => setAuthMode("register"));
 
@@ -19,6 +24,9 @@ elements.authForm.addEventListener("submit", async event => {
 
 elements.logoutButton.addEventListener("click", signOutAccount);
 
+// ==========================================
+// СЕКЦИЯ: Навигация и вкладки
+// ==========================================
 document.querySelectorAll("[data-page]").forEach(item => {
     item.addEventListener("click", event => {
         event.preventDefault();
@@ -44,6 +52,9 @@ document.querySelectorAll("[data-view]").forEach(button => {
     });
 });
 
+// ==========================================
+// СЕКЦИЯ: Модальные окна и формы
+// ==========================================
 elements.closeTaskModal.addEventListener("click", closeTaskModal);
 elements.cancelTaskButton.addEventListener("click", closeTaskModal);
 elements.closeProjectModal.addEventListener("click", closeProjectModal);
@@ -157,6 +168,9 @@ elements.deleteProjectButton.addEventListener("click", async () => {
     }
 });
 
+// ==========================================
+// СЕКЦИЯ: Поиск, фильтры и сортировка
+// ==========================================
 elements.searchInput.addEventListener("input", () => {
     if (["overview", "my-tasks", "favorites"].includes(currentPage)) renderContent();
 });
@@ -203,6 +217,9 @@ elements.sortSelect.addEventListener("change", () => {
     renderContent();
 });
 
+// ==========================================
+// СЕКЦИЯ: Контекстное меню задачи
+// ==========================================
 elements.taskMenu.querySelectorAll("button").forEach(button => {
     button.addEventListener("click", async () => {
         const taskId = currentTaskMenuId;
@@ -220,6 +237,9 @@ elements.taskMenu.querySelectorAll("button").forEach(button => {
     });
 });
 
+// ==========================================
+// СЕКЦИЯ: Глобальные обработчики
+// ==========================================
 document.addEventListener("click", event => {
     if (!elements.taskMenu.contains(event.target)) closeTaskMenu();
     if (!elements.filterMenu.contains(event.target) && event.target !== elements.filterButton) {
@@ -252,6 +272,9 @@ document.addEventListener("keydown", event => {
     }
 });
 
+// ==========================================
+// СЕКЦИЯ: Вспомогательные кнопки
+// ==========================================
 elements.helpButton.addEventListener("click", () => {
     alert("Tasker: создавайте проекты и задачи, перетаскивайте карточки между колонками и используйте Ctrl+K для поиска.");
 });
@@ -292,6 +315,9 @@ window.addEventListener("tasker:unauthorized", () => {
     showToast("Сессия истекла. Войдите снова.");
 });
 
+// ==========================================
+// СЕКЦИЯ: Окно участников проекта (FAB)
+// ==========================================
 elements.membersFab.addEventListener("click", openMembersModal);
 elements.closeMembersModal.addEventListener("click", closeMembersModal);
 elements.membersCloseButton.addEventListener("click", closeMembersModal);

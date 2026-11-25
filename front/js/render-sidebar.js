@@ -1,3 +1,6 @@
+// Файл для отрисовки списка проектов в левом боковом меню
+
+// Отрисовка проектов в сайдбаре
 function renderProjectsSidebar() {
     elements.projectsList.innerHTML = "";
 
@@ -11,6 +14,7 @@ function renderProjectsSidebar() {
             item.classList.add("active-project");
         }
 
+        // Определение текста и стиля бейджа роли
         let badgeText = "У";
         let badgeClass = "member";
         if (admin) {

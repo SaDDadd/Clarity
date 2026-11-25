@@ -1,7 +1,11 @@
+// Файл для работы с localStorage (сохранение настроек и сессии)
+
+// Формирование ключа хранилища, привязанного к ID пользователя
 function userStorageKey(baseKey) {
     return currentUser?.id ? `${baseKey}::${currentUser.id}` : baseKey;
 }
 
+// Загрузка настроек из localStorage
 function loadSettings() {
     try {
         const raw = localStorage.getItem(userStorageKey(STORAGE.settings));
@@ -11,6 +15,7 @@ function loadSettings() {
     }
 }
 
+// Сохранение настроек в localStorage
 function saveSettings() {
     if (!currentUser) return;
     localStorage.setItem(userStorageKey(STORAGE.settings), JSON.stringify(settings));
@@ -23,6 +28,7 @@ function saveSettings() {
     }
 }
 
+// Очистка локальных данных при выходе из аккаунта
 function clearLocalWorkspace() {
     projects = [];
     tasks = [];
