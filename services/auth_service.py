@@ -1,6 +1,6 @@
 from core.config import settings
 from core.exceptions import AuthenticationException, ConflictException
-from core.security import create_access_token, async_hash_password, async_verify_password
+from core.security import create_access_token, async_hash_password, async_verify_password, create_refresh_token
 from schemas.auth import Token, UserLogin, UserRegister
 from core.uow import UnitOfWork
 
@@ -12,9 +12,11 @@ async def login_user(uow: UnitOfWork, user_data: UserLogin) -> Token:
         user = await uow.user.get_by_email(user_data.username_or_email)
     if user is None or not await async_verify_password(user_data.password, user.password_hash):
         raise AuthenticationException('Неверные учётные данные!')
-    token = create_access_token({'sub': user.user_id})
+    access_token = create_access_token({'sub': user.user_id})
+    refresh_token = create_refresh_token({'sub': user.user_id})
     return Token(
-        access_token=token,
+        access_token=access_token,
+        refresh_token=refresh_token,
         token_type='bearer',
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )

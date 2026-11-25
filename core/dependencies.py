@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import AsyncSessionLocal
 from core.exceptions import AuthenticationException
-from core.security import decode_access_token as decode_token
+from core.security import decode_token
 from models.user import UserModel
 from repositories.user_repository import UserRepository
 from core.uow import UnitOfWork

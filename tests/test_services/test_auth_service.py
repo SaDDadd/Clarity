@@ -5,7 +5,7 @@ from core.uow import UnitOfWork
 from services.auth_service import register_user, login_user
 from schemas.auth import UserRegister, UserLogin, Token
 from core.exceptions import ConflictException, AuthenticationException, ValidationError
-from core.security import decode_access_token
+from core.security import decode_token
 
 
 class TestAuthService:
@@ -156,7 +156,7 @@ class TestAuthService:
         )
         response = await login_user(uow, user_data)
         assert isinstance(response, Token)
-        payload = decode_access_token(response.access_token)
+        payload = decode_token(response.access_token)
         assert 'sub' in payload
         assert str(test_users['admin'].user_id) == payload['sub']
         assert 'exp' in payload

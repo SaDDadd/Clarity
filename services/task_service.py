@@ -6,7 +6,7 @@ from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentRespon
 from schemas.common import TaskStatus
 from core.uow import UnitOfWork
 from cache.cache_keys import task_key, TTL_TASK, project_tasks_key, user_tasks_pattern, task_comments_list_key
-from cache.cache_service import get_cache, delete_cache, set_cache
+from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
 from core.filters import TaskFilter, CommentFilter
 from fastapi_pagination import Page, Params
 
@@ -172,7 +172,7 @@ async def change_status(uow: UnitOfWork, project_id: int, task_id: int, current_
         return {'message': 'Статус уже установлен!'}
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
-    await delete_cache(user_tasks_pattern(current_user_id))
+    await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
     return {'message': 'Статус обновлен!'}
 
 

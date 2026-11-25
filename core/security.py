@@ -46,15 +46,19 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def create_refresh_token() -> str:
+def create_refresh_token(data: dict) -> str:
     """Создание refresh токена."""
-    pass
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire})
+    encode_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return encode_jwt
 
 
-def decode_access_token(token: str) -> dict:
+def decode_token(token: str) -> dict:
     """Декодирование токена доступа."""
     try:
         decoded = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return decoded
-    except JWTError as error:
-        raise error
+    except JWTError:
+        raise None
