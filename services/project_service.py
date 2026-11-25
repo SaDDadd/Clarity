@@ -108,6 +108,7 @@ async def get_project_info(uow: UnitOfWork, project_id: int, user_id: int) -> di
             {
                 'user_id': m.user_id,
                 'role': m.role_project,
+                'username': m.username,
                 'joined_date': m.joined_date.isoformat() if m.joined_date else None
             }
             for m in members

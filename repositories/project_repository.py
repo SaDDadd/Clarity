@@ -228,12 +228,15 @@ class ProjectRepository:
         """Получить всю информацию проекта."""
         project_object = await self.get_project_by_id(project_id)
         result = await self.session.execute(
-            select(ProjectMemberModel)
-            .where(
-                ProjectMemberModel.project_id == project_id
-            )
+            select(ProjectMemberModel, UserModel.username)
+            .join(UserModel, UserModel.user_id == ProjectMemberModel.user_id)
+            .where(ProjectMemberModel.project_id == project_id)
         )
-        return {"project": project_object, "members": result.scalars().all()}
+        members = []
+        for member_model, username in result.all():
+            member_model.username = username
+            members.append(member_model)
+        return {"project": project_object, "members": members}
 
 
     async def get_curators_list(self, project_id: int) -> list[ProjectMemberModel]:
