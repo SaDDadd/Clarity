@@ -128,11 +128,14 @@ async def get_user_projects(uow: UnitOfWork, current_user_id: int, project_filte
         role = await uow.project.get_user_role_in_project(project.project_id, current_user_id)
         if role is None:
             role = 'member'
+        info = await uow.project.get_project_all_info(project.project_id)
+        member_ids = [m.user_id for m in info['members'] if m.user_id != project.admin_id]
         result.append(UserProjectResponse(
             project_id=project.project_id,
             project_name=project.project_name,
             project_description=project.project_description or '',
             admin_id=project.admin_id,
+            member_ids=member_ids,
             role=role
         ))
     return Page[UserProjectResponse](
@@ -201,7 +204,7 @@ async def add_user(uow: UnitOfWork, project_id: int, current_user_id: int, user_
     await uow.project.add_user(project_id, user_id_to_add)
     await delete_cache(project_key(project_id))
     await delete_cache(user_invitations_key(user_id_to_add, 'all'))
-    await delete_cache(user_projects_pattern(user_id_to_add))
+    await delete_cache_by_pattern(user_projects_pattern(user_id_to_add))
     return {'message': 'Пользователь добавлен в проект!'}
 
 
@@ -223,6 +226,9 @@ async def delete_project(uow: UnitOfWork, project_id: int, user_id: int) -> dict
     for i in member_ids:
         """Инвалидируем кэш проектов."""
         await delete_cache_by_pattern(user_projects_pattern(i))
+    for iid in invitee_ids:
+        """Инвалидируем кэш проектов."""
+        await delete_cache_by_pattern(user_invitations_pattern(iid))
     return {'message': 'Проект успешно удален!'}
 
 
@@ -246,7 +252,7 @@ async def delete_project_user(uow: UnitOfWork, project_id: int, current_user_id:
     await delete_cache(project_tasks_key(project_id))
     await delete_cache_by_pattern(user_tasks_pattern(user_id_to_del))
     await delete_cache_by_pattern(project_task_items_pattern(project_id))
-    await delete_cache(user_projects_pattern(user_id_to_del))
+    await delete_cache_by_pattern(user_projects_pattern(user_id_to_del))
     return {'message': 'Пользователь удален из проекта!'}
 
 

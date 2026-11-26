@@ -67,7 +67,7 @@ class ProjectInvitationRepository:
         if filter:
             query = filter.filter(query)
         result = await self.session.execute(query)
-        return result.scalars().all()
+        return result.all()
 
         
     async def get_invitation_for_project_pagination(self, project_id: int, filter: InvitationFilter | None = None, 

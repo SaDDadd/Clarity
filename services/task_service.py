@@ -6,7 +6,7 @@ from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentRespon
 from schemas.common import TaskStatus
 from core.uow import UnitOfWork
 from cache.cache_keys import task_key, TTL_TASK, project_tasks_key, user_tasks_pattern, task_comments_list_key
-from cache.cache_service import get_cache, delete_cache, set_cache
+from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
 from core.filters import TaskFilter, CommentFilter
 from fastapi_pagination import Page, Params
 
@@ -53,6 +53,7 @@ async def update_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
     await uow.task.update_task_by_id(project_id, task_id, update_data)
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
+    await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
     return {'message': 'Задача обновилась!'}
 
 
@@ -91,6 +92,33 @@ async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: i
         raise PermissionDeniedException('Пользователя нет в проекте!')
     data = await uow.task.get_project_tasks(project_id, task_filter, params)
     items = [TaskResponse.model_validate(task).model_dump(mode='json') for task in data.items]
+    return Page[TaskResponse](
+        items=items,
+        total=data.total,
+        page=data.page,
+        size=data.size,
+        pages=data.pages
+    )
+
+
+async def get_all_user_tasks(uow: UnitOfWork, current_user_id: int, task_filter: TaskFilter | None = None, 
+                             params: Params | None = None) -> Page[dict]:
+    """Получить все задачи пользователя."""
+    data = await uow.task.get_all_tasks_for_user(current_user_id, task_filter, params)
+    items = [TaskResponse.model_validate(t).model_dump(mode='json') for t in data.items]
+    return Page[TaskResponse](
+        items=items, 
+        total=data.total, 
+        page=data.page, 
+        size=data.size, 
+        pages=data.pages
+    )
+
+async def get_favorite_tasks(uow: UnitOfWork, current_user_id: int, task_filter: TaskFilter | None = None,
+                             params: Params | None = None) -> Page[dict]:
+    """Получить избранные задачи пользователя."""
+    data = await uow.task.get_favorite_tasks_for_user(current_user_id, task_filter, params)
+    items = [TaskResponse.model_validate(t).model_dump(mode='json') for t in data.items]
     return Page[TaskResponse](
         items=items,
         total=data.total,
@@ -172,7 +200,7 @@ async def change_status(uow: UnitOfWork, project_id: int, task_id: int, current_
         return {'message': 'Статус уже установлен!'}
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
-    await delete_cache(user_tasks_pattern(current_user_id))
+    await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
     return {'message': 'Статус обновлен!'}
 
 

@@ -7,7 +7,7 @@ from schemas.task import TaskCreate, TaskStatusUpdate, TaskUpdate, TaskCommentCr
 from services.task_service import (change_status, create_task, delete_task,
                                    get_project_tasks, get_task_info, get_tasks_user,
                                    update_task, create_task_comment, delete_task_comment,
-                                   update_comment, get_task_comments)
+                                   update_comment, get_task_comments, get_favorite_tasks, get_all_user_tasks)
 from core.filters import TaskFilter, CommentFilter
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Params
@@ -42,6 +42,26 @@ async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user
     """Возвращает все задачи, назначенные на текущего пользователя."""
     # добавить фильтраию и пагинацию
     return await get_tasks_user(uow, current_user.user_id, task_filter, params)
+
+
+@router.get('/tasks/all', tags=['Задачи'], summary='Все задачи из доступных проектов')
+async def get_all_user_tasks_endpoint(current_user: UserModel = Depends(current_user),
+                                      task_filter: TaskFilter = FilterDepends(TaskFilter),
+                                      params: Params = Depends(),
+                                      uow: UnitOfWork = Depends(get_uow)):
+    """Получить все задачи пользователя."""
+    # добавить фильтрацию и пагинацию
+    return await get_all_user_tasks(uow, current_user.user_id, task_filter, params)
+
+
+@router.get('/tasks/favorites', tags=['Задачи'], summary='Получить избранные задачи.')
+async def get_favorite_tasks_endpoint(current_user: UserModel = Depends(current_user),
+                                      task_filter: TaskFilter = FilterDepends(TaskFilter),
+                                      params: Params = Depends(),
+                                      uow: UnitOfWork = Depends(get_uow)):
+    """Получить все избранные задачи пользователя."""
+    # добавить фильтрацию и пагинацию
+    return await get_favorite_tasks(uow, current_user.user_id, task_filter, params)
 
 
 @router.get('/projects/{project_id}/tasks', tags=['Задачи'],

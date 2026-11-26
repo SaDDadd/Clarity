@@ -60,6 +60,14 @@ async def search_by_username(uow: UnitOfWork, search_user: str, current_user_use
     return await uow.user.search_by_username(search_user, params)
 
 
+async def get_user_by_id(uow: UnitOfWork, user_id: int, current_user_id: int) -> UserResponse:
+    """Получить публичную карточку пользователя."""
+    user = await uow.user.get_by_id(user_id)
+    if user is None:
+        raise NotFoundException('Пользователь не найден!')
+    return UserSearchResponse.model_validate(user)
+
+
 async def get_profile_info(current_user: UserModel) -> dict:
     """Возвращает данные текущего пользователя."""
     key = user_key(current_user.user_id)

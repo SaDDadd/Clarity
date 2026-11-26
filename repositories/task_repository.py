@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.task import TaskModel
 from models.task_comments import TaskCommentsModel
+from models.project_members import ProjectMemberModel
 from schemas.task import TaskCreate
 from core.filters import TaskFilter, CommentFilter
 from fastapi_pagination import Page, Params
@@ -81,6 +82,36 @@ class TaskRepository:
                 TaskModel.task_id
             )
         if filter:
+            query = filter.filter(query)
+        return await apaginate(self.session, query, params=params)
+
+
+    async def get_all_tasks_for_user(self, user_id: int, filter: TaskFilter | None = None, 
+                                     params: Params | None = None) -> Page[TaskModel]:
+        """Получить все задачи пользователя."""
+        query = (
+            select(TaskModel)
+            .join(ProjectMemberModel, ProjectMemberModel.project_id == TaskModel.project_id)
+            .where(ProjectMemberModel.user_id == user_id)
+            .order_by(TaskModel.task_id)
+        )
+        if filter:
+            query = filter.filter(query)
+        return await apaginate(self.session, query, params=params)
+
+
+    async def get_favorite_tasks_for_user(self, user_id: int, filter: TaskFilter | None,
+                                          params: Params | None = None) -> Page[TaskModel]:
+        """Получить избранные задачи."""
+        query = select(TaskModel).join(
+            ProjectMemberModel, ProjectMemberModel.project_id == TaskModel.project_id
+        ).where(
+            ProjectMemberModel.user_id == user_id,
+            TaskModel.task_favorite.is_(True)
+        ).order_by(
+            TaskModel.task_id
+        )
+        if filter: 
             query = filter.filter(query)
         return await apaginate(self.session, query, params=params)
 

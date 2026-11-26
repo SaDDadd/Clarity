@@ -7,7 +7,7 @@ from schemas.invitation import InvitationResponse
 from schemas.common import InvitationAction
 from core.uow import UnitOfWork
 from cache.cache_keys import project_key, user_projects_key, user_invitations_pattern
-from cache.cache_service import delete_cache
+from cache.cache_service import delete_cache, delete_cache_by_pattern
 from core.filters import InvitationFilter
 from fastapi_pagination import Page, Params
 
@@ -76,6 +76,7 @@ async def response_to_invitation(uow: UnitOfWork, invitation_id: int, action: In
         await delete_cache(project_key(project_id))
         await delete_cache(user_projects_key(invitee_id, 'all'))
         await delete_cache(user_projects_key(invitee_id, 'admin'))
+        delete_cache_by_pattern(user_invitations_pattern(invitee_id))
     return {'message': f'Приглашение {action.value}!'}
 
 
