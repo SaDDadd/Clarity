@@ -3,8 +3,12 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import aiobcrypt
 from jose import JWTError, jwt
+from core.exceptions import AuthenticationException
 
 from core.config import settings
+
+ACCESS_TOKEN = 'access'
+REFRESH_TOKEN = 'refresh'
 
 
 def hash_password(password: str) -> str:
@@ -34,25 +38,38 @@ async def async_verify_password(plain_password: str, hashed_password: str) -> bo
     )
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
-    """Создание токена доступ."""
-    to_encode = data.copy()
+def create_jwt(token_type: str, token_data: dict, expires_delta: timedelta | None = None) -> str:
+    """Создание access и refresh токенов."""
+    jwt_payload = {'type': token_type}
+    jwt_payload.update(token_data)
     if expires_delta is None:
-        expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        if token_type == ACCESS_TOKEN:
+            expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        else:
+            expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     expire = datetime.now(timezone.utc) + expires_delta
-    to_encode.update({"exp": expire})
-    if 'sub' in to_encode:
-        to_encode['sub'] = str(to_encode['sub'])
-    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    jwt_payload.update({'exp': expire})
+    if token_type == ACCESS_TOKEN:
+        jwt_payload['sub'] = str(jwt_payload['sub'])
+        jwt_payload['username'] = str(jwt_payload['username'])
+    else:
+        jwt_payload['sub'] = str(jwt_payload['sub'])
+    return jwt.encode(jwt_payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+
+def create_access_token(data: dict) -> str:
+    """Создание токена доступ."""
+    token_data = {'sub': data['sub'], 
+                  'username': data.get('username')}
+    return create_jwt(token_type=ACCESS_TOKEN, token_data=token_data, expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    
 
 
 def create_refresh_token(data: dict) -> str:
     """Создание refresh токена."""
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire})
-    encode_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-    return encode_jwt
+    token_data = {'sub': data['sub']}
+    return create_jwt(token_type=REFRESH_TOKEN, token_data=token_data, expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
 
 
 def decode_token(token: str) -> dict:
@@ -60,5 +77,5 @@ def decode_token(token: str) -> dict:
     try:
         decoded = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
         return decoded
-    except JWTError:
-        raise None
+    except JWTError as e:
+        raise AuthenticationException('Недействительный токен') from e

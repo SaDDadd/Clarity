@@ -12,7 +12,7 @@ import uvicorn
 from cache.redis_client import close_redis_client, redis_health
 from core.database import engine
 from core.config import settings
-from core.dependencies import get_db
+from core.dependencies import get_db, http_bearer
 from core.exceptions import register_exception_handlers
 from fastapi_pagination import add_pagination
 
@@ -48,11 +48,11 @@ app.add_middleware(
     allow_credentials=True # Разрешить передачу учетных данных
 )
 
-app.include_router(router_auth, prefix='/api/v1')
-app.include_router(router_projects, prefix='/api/v1')
-app.include_router(router_tasks, prefix='/api/v1')
-app.include_router(router_invitations, prefix='/api/v1')
-app.include_router(router_user, prefix='/api/v1')
+app.include_router(router_auth, prefix='/api/v1', dependencies=[Depends(http_bearer)])
+app.include_router(router_projects, prefix='/api/v1', dependencies=[Depends(http_bearer)])
+app.include_router(router_tasks, prefix='/api/v1', dependencies=[Depends(http_bearer)])
+app.include_router(router_invitations, prefix='/api/v1', dependencies=[Depends(http_bearer)])
+app.include_router(router_user, prefix='/api/v1', dependencies=[Depends(http_bearer)])
 register_exception_handlers(app)
 add_pagination(app)
 

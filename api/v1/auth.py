@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from core.dependencies import get_uow
+from core.dependencies import get_uow, current_user_for_refresh
 from schemas.auth import UserLogin, UserRegister
-from services.auth_service import login_user, register_user
+from services.auth_service import login_user, register_user, refresh_tokens
 from core.uow import UnitOfWork
+from schemas.auth import Token
 
 router = APIRouter()
 
@@ -30,3 +31,8 @@ async def login_user_swagger(data: OAuth2PasswordRequestForm = Depends(),
     Нужен только для кнопки Authorize в Swagger UI."""
     user = UserLogin(username_or_email=data.username, password=data.password)
     return await login_user(uow, user)
+
+
+@router.post('/refresh', tags=['Аутентификация'], summary='Обновить пару токенов.')
+async def refresh_jwt(user = Depends(current_user_for_refresh)) -> Token:
+    return await refresh_tokens(user)

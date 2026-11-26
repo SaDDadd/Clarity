@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = 'HS256'
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_COOKIE_NAME: str = 'refresh_token'
+    REFRESH_COOKIE_PATH: str = '/api/v1/auth'
+    REFRESH_COOKIE_SECURE: bool = False
+    REFRESH_COOKIE_SAMESITE: str = 'lax'      
+    REFRESH_COOKIE_DOMAIN: str | None = None
 
     CORS_ORIGINS: str = ''
 
