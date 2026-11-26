@@ -3,13 +3,14 @@ from fastapi import APIRouter, Depends
 from core.dependencies import current_user, get_uow
 from core.uow import UnitOfWork
 from models.user import UserModel
-from schemas.invitation import InvitationCreate, InvitationStatusUpdate
+from schemas.invitation import InvitationCreate, InvitationStatusUpdate, InvitationResponse
 from services.invitation_service import (delete_invitation, get_project_invitations,
                                          get_user_invitations, response_to_invitation,
                                          send_invitation)
 from core.filters import InvitationFilter
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Params
+from fastapi_pagination import Page
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ router = APIRouter()
 async def user_invitations_endpoint(current_user: UserModel = Depends(current_user),
                                     invitation_filter: InvitationFilter = FilterDepends(InvitationFilter),
                                     params: Params = Depends(),
-                                    uow: UnitOfWork = Depends(get_uow)):
+                                    uow: UnitOfWork = Depends(get_uow)) -> Page[InvitationResponse]:
     """Возвращает все входящие приглашения для текущего пользователя."""
     # добавить фильтраию и пагинацию
     return await get_user_invitations(uow, current_user.user_id, invitation_filter, params)
@@ -31,7 +32,7 @@ async def project_invitations_endpoint(project_id: int,
                                        current_user: UserModel = Depends(current_user),
                                        invitation_filter: InvitationFilter = FilterDepends(InvitationFilter),
                                        params: Params = Depends(),
-                                       uow: UnitOfWork = Depends(get_uow)):
+                                       uow: UnitOfWork = Depends(get_uow)) -> Page[InvitationResponse]:
     """Возвращает все приглашения для указанного проекта (доступно только администратору)."""
     # добавить фильтраию и пагинацию
     return await get_project_invitations(uow, project_id, current_user.user_id, invitation_filter, params)
@@ -42,7 +43,7 @@ async def project_invitations_endpoint(project_id: int,
 async def response_to_invitation_endpoint(invitation_id: int,
                                           invitation_date: InvitationStatusUpdate,
                                           current_user: UserModel = Depends(current_user),
-                                          uow: UnitOfWork = Depends(get_uow)):
+                                          uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Принимает или отклоняет приглашение."""
     return await response_to_invitation(uow, invitation_id, invitation_date.action,
                                         current_user.user_id)
@@ -52,7 +53,7 @@ async def response_to_invitation_endpoint(invitation_id: int,
              summary='Отправка приглашения в проект пользователю')
 async def sending_invitations_endpoint(invitation_data: InvitationCreate, project_id: int,
                                        current_user: UserModel = Depends(current_user),
-                                       uow: UnitOfWork = Depends(get_uow)):
+                                       uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Отправляет приглашение в проект от администратора."""
     return await send_invitation(uow, project_id, invitation_data.user_id,
                                  current_user.user_id, invitation_data.message)
@@ -62,6 +63,6 @@ async def sending_invitations_endpoint(invitation_data: InvitationCreate, projec
                summary='Удаление приглашения')
 async def delete_invitation_endpoint(invitation_id: int,
                                      current_user: UserModel = Depends(current_user),
-                                     uow: UnitOfWork = Depends(get_uow)):
+                                     uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Удаляет приглашение. Доступно администратору проекта или отправителю."""
     return await delete_invitation(uow, invitation_id, current_user.user_id)

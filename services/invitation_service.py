@@ -76,7 +76,7 @@ async def response_to_invitation(uow: UnitOfWork, invitation_id: int, action: In
         await delete_cache(project_key(project_id))
         await delete_cache(user_projects_key(invitee_id, 'all'))
         await delete_cache(user_projects_key(invitee_id, 'admin'))
-        delete_cache_by_pattern(user_invitations_pattern(invitee_id))
+        await delete_cache_by_pattern(user_invitations_pattern(invitee_id))
     return {'message': f'Приглашение {action.value}!'}
 
 
@@ -89,6 +89,8 @@ async def send_invitation(uow: UnitOfWork, project_id: int, user_id: int, curren
         raise PermissionDeniedException('Вы не состоите в проекте!')
     if not await uow.user.get_by_id(user_id):
         raise NotFoundException('Пользователь не найден!')
+    if not await uow.project.is_user_admin_or_curator(project_id, current_user_id):
+        raise PermissionDeniedException('Только администратор или куратор может приглашать пользователей!')
     if current_user_id == user_id:
         raise InvalidInvitationStateException('Нельзя пригласить самого себя!')
     if await uow.project.is_user_in_project(project_id, user_id):

@@ -153,7 +153,7 @@ async def get_project_members(uow: UnitOfWork, project_id: int, user_id: int,
     if await uow.project.get_project_by_id(project_id) is None:
         raise NotFoundException('Проект не найден!')
     if not await uow.project.is_user_in_project(project_id, user_id):
-        raise ConflictException('Пользователь не состоит в проекте!')
+        raise PermissionDeniedException('Пользователь не состоит в проекте!')
     result = await uow.project.get_all_project_participants(project_id, user_filter, params)
     items = [UserSearchResponse.model_validate(project).model_dump(mode='json') for project in result.items]
     return Page(

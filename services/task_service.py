@@ -50,10 +50,17 @@ async def update_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
             raise NotFoundException('Такого пользователя не существует!')
         if not await uow.project.is_user_in_project(project_id, update_data['assigned_to']):
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
+    old_task = await uow.task.get_task_by_id(task_id)
+    old_assignee = old_task.assigned_to if old_task else None
+    new_assignee = update_data.get('assigned_to', old_assignee)
     await uow.task.update_task_by_id(project_id, task_id, update_data)
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
+    if new_assignee is not None and new_assignee != current_user_id:
+        await delete_cache_by_pattern(user_tasks_pattern(new_assignee))
+    if old_assignee is not None and old_assignee != new_assignee and old_assignee != current_user_id:
+        await delete_cache_by_pattern(user_tasks_pattern(old_assignee))
     return {'message': 'Задача обновилась!'}
 
 
@@ -198,6 +205,8 @@ async def change_status(uow: UnitOfWork, project_id: int, task_id: int, current_
     changed = await uow.task.update_task_status(project_id, task_id, task_status.value)
     if not changed:
         return {'message': 'Статус уже установлен!'}
+    if assignee is not None and assignee != current_user_id:
+        await delete_cache_by_pattern(user_tasks_pattern(assignee))
     await delete_cache(task_key(project_id, task_id))
     await delete_cache(project_tasks_key(project_id))
     await delete_cache_by_pattern(user_tasks_pattern(current_user_id))
@@ -221,6 +230,8 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
     await uow.session.refresh(result)
     answer = TaskResponse.model_validate(result).model_dump(mode='json')
     await delete_cache(project_tasks_key(project_id))
+    if task.assigned_to is not None:
+        await delete_cache_by_pattern(user_tasks_pattern(task.assigned_to))
     return answer
 
 

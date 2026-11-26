@@ -60,7 +60,7 @@ async def search_by_username(uow: UnitOfWork, search_user: str, current_user_use
     return await uow.user.search_by_username(search_user, params)
 
 
-async def get_user_by_id(uow: UnitOfWork, user_id: int, current_user_id: int) -> UserResponse:
+async def get_user_by_id(uow: UnitOfWork, user_id: int, current_user_id: int) -> UserSearchResponse:
     """Получить публичную карточку пользователя."""
     user = await uow.user.get_by_id(user_id)
     if user is None:
@@ -86,7 +86,7 @@ async def update_user_password(uow: UnitOfWork, user_data: UpdatePasswordRequest
         raise LackOfInformationException('Не указан новый пароль!')
     password = update_data['password']
     if len(password) < 8 or len(password) > 30:
-        raise LackOfInformationException('Пароль должен быть от 8 до 50 символов!')
+        raise LackOfInformationException('Пароль должен быть от 8 до 30 символов!')
     hashed_password = await async_hash_password(password)
     await uow.user.update_password(current_user_id, hashed_password)
     await delete_cache(user_key(current_user_id))
@@ -145,6 +145,10 @@ async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
     for pid, tid in comment_locations:
         """Инвалидируем кэш комментариев задач."""
         await delete_cache(task_comments_list_key(pid, tid))
+    for iid in invitee_ids_to_invalidate:
+        await delete_cache_by_pattern(user_invitations_pattern(iid))
+    await delete_cache(user_key(current_user_id))
+    await delete_cache_by_pattern(user_all_pattern(current_user_id))
     await delete_cache(user_key(current_user_id))
     await delete_cache_by_pattern(user_all_pattern(current_user_id))
     return {'message': 'Профиль удален!'}

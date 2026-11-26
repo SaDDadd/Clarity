@@ -16,7 +16,7 @@ router = APIRouter()
             summary='Обновить имя пользователя')
 async def update_username_endpoint(request: UpdateUsernameRequest,
                                    current_user: UserModel = Depends(current_user),
-                                   uow: UnitOfWork = Depends(get_uow)):
+                                   uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Обновляет имя текущего пользователя."""
     return await update_user_username(uow, request, current_user.user_id)
 
@@ -25,21 +25,21 @@ async def update_username_endpoint(request: UpdateUsernameRequest,
             summary='Обновить email пользователя')
 async def update_email_endpoint(request: UpdateEmailRequest,
                                 current_user: UserModel = Depends(current_user),
-                                uow: UnitOfWork = Depends(get_uow)):
+                                uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Обновляет email текущего пользователя."""
     return await update_user_email(uow, request, current_user.user_id)
 
 
 @router.get('/profile', tags=['Изменения профиля'],
             summary='Получить информацию о пользователе')
-async def get_profile_endpoint(current_user: UserModel = Depends(current_user)):
+async def get_profile_endpoint(current_user: UserModel = Depends(current_user)) -> UserResponse:
     """Возвращает данные текущего пользователя."""
     return await get_profile_info(current_user)
 
 
 @router.get('/users/search', response_model = Page[UserSearchResponse], tags=['Пользователи'], summary='Поиск пользователя по нику')
 async def search_users(search_user: str, current_user: UserModel = Depends(current_user), 
-                       params: Params = Depends(), uow: UnitOfWork = Depends(get_uow)):
+                       params: Params = Depends(), uow: UnitOfWork = Depends(get_uow)) -> Page[UserSearchResponse]:
     """Поиск пользователей."""
     # добавить пагинацию
     return await search_by_username(uow, search_user, current_user.username, params)
@@ -56,13 +56,13 @@ async def get_user_by_id_endpoint(user_id: int, current_user: UserModel = Depend
               summary='Обновить пароль пользователя')
 async def update_password_endpoint(request: UpdatePasswordRequest,
                                    current_user: UserModel = Depends(current_user),
-                                   uow: UnitOfWork = Depends(get_uow)):
+                                   uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Обновляет пароль текущего пользователя."""
     return await update_user_password(uow, request, current_user.user_id)
 
 
 @router.delete('/profile', tags=['Изменения профиля'], summary='Удаление профиля')
 async def delete_profile_endpoint(current_user: UserModel = Depends(current_user), 
-                                  uow: UnitOfWork = Depends(get_uow)):
+                                  uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Удаление провиля пользователя."""
     return await delete_profile(uow, current_user.user_id)

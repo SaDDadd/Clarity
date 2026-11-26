@@ -11,6 +11,8 @@ from services.task_service import (change_status, create_task, delete_task,
 from core.filters import TaskFilter, CommentFilter
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Params
+from fastapi_pagination import Page
+from schemas.task import TaskResponse, TaskCommentResponse
 
 router = APIRouter()
 
@@ -19,7 +21,7 @@ router = APIRouter()
             summary='Обновить задачу')
 async def update_task_endpoint(project_id: int, task_id: int, task: TaskUpdate,
                                current_user: UserModel = Depends(current_user),
-                               uow: UnitOfWork = Depends(get_uow)):
+                               uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Обновляет задачу. Доступно участникам проекта."""
     return await update_task(uow, project_id, task_id, current_user.user_id, task)
 
@@ -28,7 +30,7 @@ async def update_task_endpoint(project_id: int, task_id: int, task: TaskUpdate,
             summary='Обновление комментария задачи.')
 async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int,
                                   comment_id: int, current_user: UserModel = Depends(current_user),
-                                  uow: UnitOfWork = Depends(get_uow)):
+                                  uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Обновление комментария."""
     return await update_comment(uow, project_id, task_id, comment_id, message.comment_text, current_user.user_id)
 
@@ -38,7 +40,7 @@ async def update_comment_endpoint(message: TaskCommentCreate, project_id: int, t
 async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user),
                                   task_filter: TaskFilter = FilterDepends(TaskFilter),
                                   params: Params = Depends(),
-                                  uow: UnitOfWork = Depends(get_uow)):
+                                  uow: UnitOfWork = Depends(get_uow)) -> Page[TaskResponse]:
     """Возвращает все задачи, назначенные на текущего пользователя."""
     # добавить фильтраию и пагинацию
     return await get_tasks_user(uow, current_user.user_id, task_filter, params)
@@ -48,7 +50,7 @@ async def get_tasks_user_endpoint(current_user: UserModel = Depends(current_user
 async def get_all_user_tasks_endpoint(current_user: UserModel = Depends(current_user),
                                       task_filter: TaskFilter = FilterDepends(TaskFilter),
                                       params: Params = Depends(),
-                                      uow: UnitOfWork = Depends(get_uow)):
+                                      uow: UnitOfWork = Depends(get_uow)) -> Page[TaskResponse]:
     """Получить все задачи пользователя."""
     # добавить фильтрацию и пагинацию
     return await get_all_user_tasks(uow, current_user.user_id, task_filter, params)
@@ -58,7 +60,7 @@ async def get_all_user_tasks_endpoint(current_user: UserModel = Depends(current_
 async def get_favorite_tasks_endpoint(current_user: UserModel = Depends(current_user),
                                       task_filter: TaskFilter = FilterDepends(TaskFilter),
                                       params: Params = Depends(),
-                                      uow: UnitOfWork = Depends(get_uow)):
+                                      uow: UnitOfWork = Depends(get_uow)) -> Page[TaskResponse]:
     """Получить все избранные задачи пользователя."""
     # добавить фильтрацию и пагинацию
     return await get_favorite_tasks(uow, current_user.user_id, task_filter, params)
@@ -70,7 +72,7 @@ async def get_project_tasks_endpoint(project_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      task_filter: TaskFilter = FilterDepends(TaskFilter),
                                      params: Params = Depends(),
-                                     uow: UnitOfWork = Depends(get_uow)):
+                                     uow: UnitOfWork = Depends(get_uow)) -> Page[TaskResponse]:
     """Возвращает все задачи указанного проекта. Доступно участникам проекта."""
     # добавить фильтраию и пагинацию
     return await get_project_tasks(uow, project_id, current_user.user_id, task_filter, params)
@@ -80,7 +82,7 @@ async def get_project_tasks_endpoint(project_id: int,
             summary='Получить информацию о задаче')
 async def get_task_info_endpoint(project_id: int, task_id: int,
                                  current_user: UserModel = Depends(current_user),
-                                 uow: UnitOfWork = Depends(get_uow)):
+                                 uow: UnitOfWork = Depends(get_uow)) -> TaskResponse:
     """Возвращает детальную информацию о задаче. Доступно участникам проекта."""
     return await get_task_info(uow, project_id, current_user.user_id, task_id)
 
@@ -91,7 +93,7 @@ async def get_task_comments_endpoint(project_id: int, task_id: int,
                                      current_user: UserModel = Depends(current_user),
                                      comment_filter: CommentFilter = FilterDepends(CommentFilter),
                                      params: Params = Depends(),
-                                     uow: UnitOfWork = Depends(get_uow)):
+                                     uow: UnitOfWork = Depends(get_uow)) -> Page[TaskCommentResponse]:
     """Возвращает комментарии задачи."""
     # добавить фильтраию и пагинацию
     return await get_task_comments(uow, project_id, task_id, current_user.user_id, comment_filter, params)
@@ -101,7 +103,7 @@ async def get_task_comments_endpoint(project_id: int, task_id: int,
               summary='Изменить статус задачи')
 async def change_status_endpoint(task: TaskStatusUpdate, project_id: int, task_id: int,
                                  current_user: UserModel = Depends(current_user),
-                                 uow: UnitOfWork = Depends(get_uow)):
+                                 uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Изменяет статус задачи. Доступно участникам проекта."""
     return await change_status(uow, project_id, task_id, current_user.user_id,
                                task.task_status)
@@ -111,7 +113,7 @@ async def change_status_endpoint(task: TaskStatusUpdate, project_id: int, task_i
              summary='Создать задачу')
 async def create_task_endpoint(project_id: int, task: TaskCreate,
                                current_user: UserModel = Depends(current_user),
-                               uow: UnitOfWork = Depends(get_uow)):
+                               uow: UnitOfWork = Depends(get_uow)) -> TaskResponse:
     """Создаёт новую задачу в проекте. Доступно участникам проекта."""
     return await create_task(uow, project_id, current_user.user_id, task)
 
@@ -120,7 +122,7 @@ async def create_task_endpoint(project_id: int, task: TaskCreate,
              summary='Написать комментарий к задаче.')
 async def create_task_comment_endpoint(message: TaskCommentCreate, project_id: int, task_id: int,
                                        current_user: UserModel = Depends(current_user),
-                                       uow: UnitOfWork = Depends(get_uow)):
+                                       uow: UnitOfWork = Depends(get_uow)) -> TaskCommentResponse:
     """Написать комментарий к задаче проекта."""
     return await create_task_comment(uow, project_id, task_id, message.comment_text, current_user.user_id)
 
@@ -129,7 +131,7 @@ async def create_task_comment_endpoint(message: TaskCommentCreate, project_id: i
                summary='Удалить задачу')
 async def delete_task_endpoint(project_id: int, task_id: int,
                                current_user: UserModel = Depends(current_user),
-                               uow: UnitOfWork = Depends(get_uow)):
+                               uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Удаляет задачу. Доступно участникам проекта."""
     return await delete_task(uow, project_id, task_id, current_user.user_id)
 
@@ -138,6 +140,6 @@ async def delete_task_endpoint(project_id: int, task_id: int,
                summary='Удалить комментарий к задаче.')
 async def delete_task_comment_endpoint(project_id: int, task_id: int, comment_id: int,
                                       current_user: UserModel = Depends(current_user),
-                                      uow: UnitOfWork = Depends(get_uow)):
+                                      uow: UnitOfWork = Depends(get_uow)) -> dict:
     """Удаление комментария задачи."""
     return await delete_task_comment(uow, project_id, task_id, comment_id, current_user.user_id)
