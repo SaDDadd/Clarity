@@ -71,7 +71,7 @@ class ProjectInvitationRepository:
 
         
     async def get_invitation_for_project_pagination(self, project_id: int, filter: InvitationFilter | None = None, 
-                                                    params: Params | None = None) -> Page[dict[ProjectInvitationModel, str]]:
+                                                    params: Params | None = None) -> Page[tuple[ProjectInvitationModel, str]]:
         """Список приглашённых у проекта с пагинацией."""
         query = select(ProjectInvitationModel, 
                        UserModel.username).join(
@@ -97,7 +97,7 @@ class ProjectInvitationRepository:
 
 
     async def get_invitation_by_user_with_project(self, user_id: int, filter: InvitationFilter | None = None, 
-                                                  params: Params | None = None) -> Page[dict[ProjectInvitationModel, str]]:
+                                                  params: Params | None = None) -> Page[tuple[ProjectInvitationModel, str]]:
         """Входящие приглашения + имя проекта."""
         query = select(ProjectInvitationModel, ProjectModel.project_name).join(ProjectModel,
                   ProjectModel.project_id == ProjectInvitationModel.project_id

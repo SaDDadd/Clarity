@@ -16,9 +16,16 @@ async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
                     invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[InvitationResponse]:
     """Приглашения пользователя с project_name."""
     rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id, invitation_filter, params)
-    result = []
-    for invitation, project_name in rows.items:
-        # Создаем Pydantic-объект для каждого кортежа
+    result: list[InvitationResponse] = []
+    
+    # Если вдруг apaginate вернул сам кортеж без .items (на всякий случай)
+    items_to_iterate = rows.items if hasattr(rows, 'items') else rows
+    
+    for row in items_to_iterate:
+        # Распаковываем кортеж (Объект, Имя_проекта)
+        invitation = row[0]
+        project_name = row[1] if len(row) > 1 else None
+        
         data = InvitationResponse(
             invitation_id=invitation.invitation_id,
             project_id=invitation.project_id,
@@ -30,8 +37,8 @@ async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
             update_date=invitation.update_date,
             message=invitation.message,
         )
-        result.append(data)
-    # Возвращаем страницу с уже отформатированными объектами
+        # ВАЖНО: превращаем Pydantic-модель в обычный словарь!
+        result.append(data.model_dump())
     return Page[InvitationResponse](
         items=result,
         total=rows.total,
@@ -52,7 +59,10 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
         raise PermissionDeniedException('Не админ и не куратор не может смотреть приглашения в проект!')
     rows = await uow.invitation.get_invitation_for_project_pagination(project_id, invitation_filter, params)
     serialized = []
-    for invitation, username in rows.items:
+    items_to_iterate = rows.items if hasattr(rows, 'items') else rows
+    for row in items_to_iterate:
+        invitation = row[0]
+        username = row[1] if len(row) > 1 else None
         data = InvitationResponse(
             invitation_id=invitation.invitation_id,
             project_id=invitation.project_id,
@@ -64,8 +74,7 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
             update_date=invitation.update_date,
             message=invitation.message,
         )
-        serialized.append(data)
-        
+        serialized.append(data.model_dump()) # Тоже делаем dict
     return Page[InvitationResponse](
         items=serialized,
         total=rows.total,
