@@ -18,20 +18,20 @@ async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
     rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id, invitation_filter, params)
     result = []
     for invitation, project_name in rows.items:
-        data = InvitationResponse.model_validate(
-            {
-                "invitation_id": invitation.invitation_id,
-                "project_id": invitation.project_id,
-                "project_name": project_name,
-                "inviter_id": invitation.inviter_id,
-                "invitee_id": invitation.invitee_id,
-                "status_invited": invitation.status_invited,
-                "created_date": invitation.created_date,
-                "update_date": invitation.update_date,
-                "message": invitation.message,
-            }
+        # Создаем Pydantic-объект для каждого кортежа
+        data = InvitationResponse(
+            invitation_id=invitation.invitation_id,
+            project_id=invitation.project_id,
+            project_name=project_name,
+            inviter_id=invitation.inviter_id,
+            invitee_id=invitation.invitee_id,
+            status_invited=invitation.status_invited,
+            created_date=invitation.created_date,
+            update_date=invitation.update_date,
+            message=invitation.message,
         )
         result.append(data)
+    # Возвращаем страницу с уже отформатированными объектами
     return Page[InvitationResponse](
         items=result,
         total=rows.total,
@@ -53,20 +53,19 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
     rows = await uow.invitation.get_invitation_for_project_pagination(project_id, invitation_filter, params)
     serialized = []
     for invitation, username in rows.items:
-        data = InvitationResponse.model_validate(
-            {
-                "invitation_id": invitation.invitation_id,
-                "project_id": invitation.project_id,
-                "inviter_id": invitation.inviter_id,
-                "invitee_id": invitation.invitee_id,
-                "invitee_username": username,
-                "status_invited": invitation.status_invited,
-                "created_date": invitation.created_date,
-                "update_date": invitation.update_date,
-                "message": invitation.message,
-            }
+        data = InvitationResponse(
+            invitation_id=invitation.invitation_id,
+            project_id=invitation.project_id,
+            inviter_id=invitation.inviter_id,
+            invitee_id=invitation.invitee_id,
+            invitee_username=username,
+            status_invited=invitation.status_invited,
+            created_date=invitation.created_date,
+            update_date=invitation.update_date,
+            message=invitation.message,
         )
         serialized.append(data)
+        
     return Page[InvitationResponse](
         items=serialized,
         total=rows.total,
