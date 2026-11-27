@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -146,8 +147,8 @@ def register_exception_handlers(app: FastAPI):
         return JSONResponse(status_code=401, content={'detail':'Недействительный токен'})
 
     @app.exception_handler(ValidationError)
-    def er_validation(request, exc):
-        return JSONResponse(status_code=422, content={'detail': jsonable_encoder(exc.errors())})
+    def er_validation(request, exc: ValidationError):
+        return JSONResponse(status_code=422, content={'detail': json.loads(exc.json())})
 
     @app.exception_handler(AppException)
     def er_app(request, exc):

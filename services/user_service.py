@@ -8,7 +8,7 @@ from cache.cache_keys import (user_key, user_all_pattern, user_projects_pattern,
                                 user_invitations_pattern, project_all_pattern, project_key, TTL_USER,
                                 user_tasks_pattern, project_invitations_key, task_comments_list_key)
 from cache.cache_service import (set_cache, get_cache, delete_cache, delete_cache_by_pattern)
-from fastapi_pagination import Page, Params
+from fastapi_pagination import Params
 
 
 async def update_user_username(uow: UnitOfWork, user_data: UpdateUsernameRequest, current_user_id: int) -> dict:

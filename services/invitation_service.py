@@ -13,13 +13,24 @@ from fastapi_pagination import Page, Params
 
 
 async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
-                    invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[dict]:
+                    invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[InvitationResponse]:
     """Приглашения пользователя с project_name."""
     rows = await uow.invitation.get_invitation_by_user_with_project(current_user_id, invitation_filter, params)
     result = []
     for invitation, project_name in rows.items:
-        data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
-        data['project_name'] = project_name
+        data = InvitationResponse.model_validate(
+            {
+                "invitation_id": invitation.invitation_id,
+                "project_id": invitation.project_id,
+                "project_name": project_name,
+                "inviter_id": invitation.inviter_id,
+                "invitee_id": invitation.invitee_id,
+                "status_invited": invitation.status_invited,
+                "created_date": invitation.created_date,
+                "update_date": invitation.update_date,
+                "message": invitation.message,
+            }
+        )
         result.append(data)
     return Page[InvitationResponse](
         items=result,
@@ -31,7 +42,7 @@ async def get_user_invitations(uow: UnitOfWork, current_user_id: int,
 
 
 async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user_id: int,
-                                  invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[dict]:
+                                  invitation_filter: InvitationFilter | None = None, params: Params | None = None) -> Page[InvitationResponse]:
     """Возвращает приглашения проекта с учётом прав доступа."""
     if not await uow.project.get_project_by_id(project_id):
         raise NotFoundException('Проект не найден!')
@@ -42,9 +53,19 @@ async def get_project_invitations(uow: UnitOfWork, project_id: int, current_user
     rows = await uow.invitation.get_invitation_for_project_pagination(project_id, invitation_filter, params)
     serialized = []
     for invitation, username in rows.items:
-        """Формируем ответ для каждого приглашения."""
-        data = InvitationResponse.model_validate(invitation).model_dump(mode='json')
-        data['invitee_username'] = username
+        data = InvitationResponse.model_validate(
+            {
+                "invitation_id": invitation.invitation_id,
+                "project_id": invitation.project_id,
+                "inviter_id": invitation.inviter_id,
+                "invitee_id": invitation.invitee_id,
+                "invitee_username": username,
+                "status_invited": invitation.status_invited,
+                "created_date": invitation.created_date,
+                "update_date": invitation.update_date,
+                "message": invitation.message,
+            }
+        )
         serialized.append(data)
     return Page[InvitationResponse](
         items=serialized,

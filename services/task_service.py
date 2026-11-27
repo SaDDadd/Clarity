@@ -1,13 +1,13 @@
 import datetime
 
 from core.exceptions import (InvalidDeadlineException, NotFoundException,
-    PermissionDeniedException, LackOfInformationException, ConflictException)
-from schemas.task import TaskResponse, TaskCreate, TaskUpdate, TaskCommentResponse
+    PermissionDeniedException, LackOfInformationException)
+from schemas.task import TaskResponse, TaskCreate, TaskUpdate
 from schemas.common import TaskStatus
 from core.uow import UnitOfWork
 from cache.cache_keys import task_key, TTL_TASK, project_tasks_key, user_tasks_pattern, task_comments_list_key
 from cache.cache_service import get_cache, delete_cache, set_cache, delete_cache_by_pattern
-from core.filters import TaskFilter, CommentFilter
+from core.filters import TaskFilter
 from fastapi_pagination import Page, Params
 
 
@@ -62,32 +62,6 @@ async def update_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
     if old_assignee is not None and old_assignee != new_assignee and old_assignee != current_user_id:
         await delete_cache_by_pattern(user_tasks_pattern(old_assignee))
     return {'message': 'Задача обновилась!'}
-
-
-async def update_comment(uow: UnitOfWork, project_id: int, task_id: int, comment_id: int,
-                        message: str, current_user_id: int) -> dict:
-    """Обновить комментарий."""
-    if await uow.project.get_project_by_id(project_id) is None:
-        raise NotFoundException('Данного проекта не существует!')
-    if not await uow.project.is_user_in_project(project_id, current_user_id):
-        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if not await uow.task.is_task_in_project(project_id, task_id):
-        raise NotFoundException('Задачи нет в проекте!')
-    comment = await uow.task.get_comment_by_id(comment_id)
-    if comment is None:
-        raise NotFoundException('Комментарий не найден!')
-    if comment.project_id != project_id or comment.task_id != task_id:
-        raise ConflictException('Данные не подходят!')
-    is_admin_or_curator = await uow.project.is_user_admin_or_curator(project_id, current_user_id)
-    if not (is_admin_or_curator or comment.author_id == current_user_id):
-        raise PermissionDeniedException('Только админ, куратор или автор комментария могут изменить комментарий!')
-    if len(message) > 1000:
-        raise LackOfInformationException('Длина комментария не может быть больше 1000 символов!')
-    if message == comment.comment_text:
-        return {'message': 'Комментарий не изменился!'}
-    await uow.task.update_comment(comment_id, message)
-    await delete_cache(task_comments_list_key(project_id, task_id))
-    return {'message': 'Комментарий обновлен!'}
 
 
 async def get_project_tasks(uow: UnitOfWork, project_id: int, current_user_id: int,
@@ -167,26 +141,6 @@ async def get_tasks_user(uow: UnitOfWork, current_user_id: int, task_filter: Tas
     )
 
 
-async def get_task_comments(uow: UnitOfWork, project_id: int, task_id: int, current_user_id: int,
-                                comment_filter: CommentFilter | None = None, params: Params | None = None) -> Page[dict]:
-    """Список комментариев задачи."""
-    if await uow.project.get_project_by_id(project_id) is None:
-        raise NotFoundException('Данного проекта не существует!')
-    if not await uow.project.is_user_in_project(project_id, current_user_id):
-        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if not await uow.task.is_task_in_project(project_id, task_id):
-        raise NotFoundException('Задачи нет в проекте!')
-    result = await uow.task.get_task_comments(project_id, task_id, comment_filter, params)
-    items = [TaskCommentResponse.model_validate(comment).model_dump(mode='json') for comment in result.items]
-    return Page[TaskCommentResponse](
-        items=items,
-        total=result.total,
-        page=result.page,
-        size=result.size,
-        pages=result.pages
-    )
-
-
 async def change_status(uow: UnitOfWork, project_id: int, task_id: int, current_user_id: int,
                         task_status: TaskStatus) -> dict:
     """Изменяет статус задачи."""
@@ -235,22 +189,6 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
     return answer
 
 
-async def create_task_comment(uow: UnitOfWork, project_id: int, task_id: int,
-                              message: str, current_user_id: int) -> dict:
-    """Создаёт комментарий."""
-    if await uow.project.get_project_by_id(project_id) is None:
-        raise NotFoundException('Данного проекта не существует!')
-    if not await uow.project.is_user_in_project(project_id, current_user_id):
-        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if not await uow.task.is_task_in_project(project_id, task_id):
-        raise NotFoundException('Задачи нет в проекте!')
-    result = await uow.task.create_comment(project_id, task_id, current_user_id, message)
-    await uow.session.refresh(result)
-    answer = TaskCommentResponse.model_validate(result).model_dump(mode='json')
-    await delete_cache(task_comments_list_key(project_id, task_id))
-    return answer
-
-
 async def delete_task(uow: UnitOfWork, project_id: int, task_id: int, current_user_id: int) -> dict:
     """Удаляет задачу."""
     if await uow.project.get_project_by_id(project_id) is None:
@@ -266,26 +204,3 @@ async def delete_task(uow: UnitOfWork, project_id: int, task_id: int, current_us
     await delete_cache(project_tasks_key(project_id))
     await delete_cache(task_comments_list_key(project_id, task_id))
     return {'message': 'Задача удалена из проекта!'}
-
-
-async def delete_task_comment(uow: UnitOfWork, project_id: int, task_id: int, comment_id: int,
-                              current_user_id: int) -> dict:
-    """Удалить комментарий у задачи."""
-    if await uow.project.get_project_by_id(project_id) is None:
-        raise NotFoundException('Данного проекта не существует!')
-    if not await uow.project.is_user_in_project(project_id, current_user_id):
-        raise PermissionDeniedException('Текущего пользователя нет в проекте!')
-    if not await uow.task.is_task_in_project(project_id, task_id):
-        raise NotFoundException('Задачи нет в проекте!')
-    comment_info = await uow.task.get_comment_by_id(comment_id)
-    if comment_info is None:
-        raise NotFoundException('Комментарий не найден!')
-    if comment_info.project_id != project_id or comment_info.task_id != task_id:
-        raise ConflictException('Данные не подходят!')
-    author_id = comment_info.author_id
-    is_admin_or_curator = await uow.project.is_user_admin_or_curator(project_id, current_user_id)
-    if not (is_admin_or_curator or (author_id is not None and author_id == current_user_id)):
-        raise PermissionDeniedException('Не админ и не создатель комментария не может его удалить!')
-    await uow.task.delete_comment(comment_id)
-    await delete_cache(task_comments_list_key(project_id, task_id))
-    return {'message': 'Комментарий удален!'}

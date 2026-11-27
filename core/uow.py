@@ -3,6 +3,7 @@ from repositories.user_repository import UserRepository
 from repositories.project_repository import ProjectRepository
 from repositories.task_repository import TaskRepository
 from repositories.project_invitation_repository import ProjectInvitationRepository
+from repositories.comment_repository import CommentRepository
 from core.exceptions import ConflictException
 
 
@@ -15,6 +16,7 @@ class UnitOfWork():
         self.project = ProjectRepository(session)
         self.task = TaskRepository(session)
         self.invitation = ProjectInvitationRepository(session)
+        self.comment = CommentRepository(session)
 
 
     async def __aenter__(self) -> "UnitOfWork":

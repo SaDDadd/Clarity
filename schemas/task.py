@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import datetime
 from schemas.common import TaskStatus, TaskPriority
-from pydantic import ConfigDict
 
 class TaskBase(BaseModel):
     title: str = Field(min_length=1, max_length=150)
@@ -33,16 +32,4 @@ class TaskResponse(TaskBase):
     assigned_to: int | None
     created_date: datetime.datetime
     update_date: datetime.datetime | None = None
-    model_config = ConfigDict(from_attributes=True)
-
-class TaskCommentCreate(BaseModel):
-    comment_text: str = Field(min_length=1, max_length=1000)
-
-class TaskCommentResponse(BaseModel):
-    comment_id: int
-    task_id: int
-    author_id: int | None
-    comment_text: str = Field(min_length=1, max_length=1000)
-    created_date: datetime.datetime
-    update_date: datetime.datetime
     model_config = ConfigDict(from_attributes=True)

@@ -3,6 +3,7 @@ from api.v1.projects import router as router_projects
 from api.v1.tasks import router as router_tasks
 from api.v1.invitations import router as router_invitations
 from api.v1.user import router as router_user
+from api.v1.comments import router as router_comments
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -53,6 +54,7 @@ app.include_router(router_projects, prefix='/api/v1')
 app.include_router(router_tasks, prefix='/api/v1')
 app.include_router(router_invitations, prefix='/api/v1')
 app.include_router(router_user, prefix='/api/v1')
+app.include_router(router_comments, prefix='/api/v1')
 register_exception_handlers(app)
 add_pagination(app)
 

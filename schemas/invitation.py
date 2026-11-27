@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from schemas.common import InvitationRole, InvitationAction
 from datetime import datetime
-from pydantic import ConfigDict
+
 
 class InvitationBase(BaseModel):
     invitee_id : int
