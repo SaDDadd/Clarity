@@ -7,6 +7,7 @@ from models.project_invitations import ProjectInvitationModel
 from core.filters import InvitationFilter
 from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
+from schemas.invitation import InvitationResponse
 
 
 class ProjectInvitationRepository:
@@ -71,7 +72,7 @@ class ProjectInvitationRepository:
 
         
     async def get_invitation_for_project_pagination(self, project_id: int, filter: InvitationFilter | None = None, 
-                                                    params: Params | None = None) -> Page[tuple[ProjectInvitationModel, str]]:
+                                                    params: Params | None = None) -> Page[InvitationResponse]:
         """Список приглашённых у проекта с пагинацией."""
         query = select(ProjectInvitationModel, 
                        UserModel.username).join(
@@ -81,7 +82,16 @@ class ProjectInvitationRepository:
             ).order_by(ProjectInvitationModel.invitation_id)
         if filter:
             query = filter.filter(query)
-        return await apaginate(self.session, query, params=params)
+        return await apaginate(self.session, query, params=params, transformer=lambda rows: [InvitationResponse(invitation_id=row[0].invitation_id,
+                                                                                            project_id=row[0].project_id,
+                                                                                            inviter_id=row[0].inviter_id,
+                                                                                            invitee_id=row[0].invitee_id,
+                                                                                            invitee_username=row[1],
+                                                                                            status_invited=row[0].status_invited,
+                                                                                            created_date=row[0].created_date,
+                                                                                            update_date=row[0].update_date,
+                                                                                            message=row[0].message,
+                                                                                            ) for row in rows])
 
 
     async def get_pending_invitations_by_inviter(self, inviter_id: int) -> list[ProjectInvitationModel]:
@@ -97,7 +107,7 @@ class ProjectInvitationRepository:
 
 
     async def get_invitation_by_user_with_project(self, user_id: int, filter: InvitationFilter | None = None, 
-                                                  params: Params | None = None) -> Page[tuple[ProjectInvitationModel, str]]:
+                                                  params: Params | None = None) -> Page[InvitationResponse]:
         """Входящие приглашения + имя проекта."""
         query = select(ProjectInvitationModel, ProjectModel.project_name).join(ProjectModel,
                   ProjectModel.project_id == ProjectInvitationModel.project_id
@@ -109,7 +119,16 @@ class ProjectInvitationRepository:
             )
         if filter:
             query = filter.filter(query)
-        return await apaginate(self.session, query, params=params)
+        return await apaginate(self.session, query, params=params, transformer=lambda rows: [InvitationResponse(invitation_id=row[0].invitation_id,
+                                                                                            project_id=row[0].project_id,
+                                                                                            project_name=row[1],
+                                                                                            inviter_id=row[0].inviter_id,
+                                                                                            invitee_id=row[0].invitee_id,
+                                                                                            status_invited=row[0].status_invited,
+                                                                                            created_date=row[0].created_date,
+                                                                                            update_date=row[0].update_date,
+                                                                                            message=row[0].message
+                                                                                            ) for row in rows])
 
 
     async def create_invitation(self, project_id: int, inviter_id: int, 
