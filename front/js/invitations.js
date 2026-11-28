@@ -1,10 +1,13 @@
 // Файл для управления приглашениями пользователей в проекты
 
 // Загрузка входящих приглашений с сервера
+let incomingInvitationVersion = 0;
 async function loadInvitations() {
-    const result = await api("GET", "/invitations");
-    const items = (result && Array.isArray(result.items)) ? result.items : [];
-    invitations = items.map(mapInvitation);
+    const generation = sessionGeneration, version = ++incomingInvitationVersion;
+    const items = await apiAll("/invitations?status_invited=pending");
+    assertSession(generation);
+    if (version !== incomingInvitationVersion) return;
+    invitations = items.filter(item => item.status_invited === "pending").map(mapInvitation);
     renderInvitationsSidebar();
 }
 
@@ -38,9 +41,13 @@ function renderInvitationsSidebar() {
 }
 
 // Отрисовка отправленных приглашений в модальном окне проекта
+let invitationRenderVersion = 0;
 async function renderProjectInvitations(projectId) {
+    const version = ++invitationRenderVersion;
+    const generation = sessionGeneration;
+    const isCurrent = () => generation === sessionGeneration && version === invitationRenderVersion && Number(elements.projectForm.dataset.editingId) === Number(projectId);
     const project = getProject(projectId);
-    if (!project || !isProjectAdmin(project)) return;
+    if (!project || !canManageProject(project)) return;
 
     let section = document.getElementById("projectInvitationsSection");
     if (!section) {
@@ -54,8 +61,8 @@ async function renderProjectInvitations(projectId) {
     section.innerHTML = `<div class="project-members-heading"><strong>Отправленные приглашения</strong></div>`;
 
     try {
-        const result = await api("GET", `/invitations/project/${Number(projectId)}`);
-        const list = (result && Array.isArray(result.items)) ? result.items : [];
+        const list = (await apiAll(`/invitations/project/${Number(projectId)}?status_invited=pending`)).filter(item => item.status_invited === "pending");
+        if (!isCurrent()) return;
 
         if (!list.length) {
             section.insertAdjacentHTML("beforeend", `<div class="member-search-empty">Нет активных приглашений.</div>`);
@@ -65,8 +72,8 @@ async function renderProjectInvitations(projectId) {
         list.forEach(raw => {
             const invitation = mapInvitation(raw);
             const recipientId = raw?.user_id ?? raw?.recipient_id ?? raw?.invitee_id;
-            const recipientName = raw?.username || raw?.recipient_username || (recipientId ? getNicknameById(recipientId) : "Пользователь");
-            if (recipientId) userCache.set(Number(recipientId), cleanNickname(recipientName));
+            const recipientName = raw?.invitee_username || raw?.username || raw?.recipient_username || (recipientId ? getNicknameById(recipientId) : "Пользователь");
+            if (recipientId && (raw?.invitee_username || raw?.username || raw?.recipient_username)) userCache.set(Number(recipientId), cleanNickname(recipientName));
 
             const row = document.createElement("div");
             row.className = "project-member-row";
@@ -84,19 +91,21 @@ async function renderProjectInvitations(projectId) {
                 </div>
             `;
 
-            row.querySelector(".member-remove-button").addEventListener("click", async () => {
+            row.querySelector(".member-remove-button").addEventListener("click", async event => {
+                const button = event.currentTarget;
+                if (button.disabled) return;
+                button.disabled = true;
                 try {
-                    await deleteInvitation(invitation.id);
-                    await renderProjectInvitations(projectId);
+                    if (await deleteInvitation(invitation.id) && isCurrent()) await renderProjectInvitations(projectId);
                 } catch (error) {
                     showToast(getErrorMessage(error));
-                }
+                } finally { button.disabled = false; }
             });
 
             section.appendChild(row);
         });
     } catch (error) {
-        section.insertAdjacentHTML("beforeend", `<div class="member-search-empty">${escapeHTML(getErrorMessage(error))}</div>`);
+        if (isCurrent()) section.insertAdjacentHTML("beforeend", `<div class="member-search-empty">${escapeHTML(getErrorMessage(error))}</div>`);
     }
 }
 
@@ -130,7 +139,6 @@ function renderInvitationsPage() {
             <div class="page-task-actions">
                 <button class="small-action accept-invitation" type="button">Принять</button>
                 <button class="small-action danger decline-invitation" type="button">Отклонить</button>
-                <button class="small-action delete-invitation" type="button">Удалить</button>
             </div>
         `;
 
@@ -142,10 +150,6 @@ function renderInvitationsPage() {
             event.stopPropagation();
             try { await respondInvitation(invitation.id, "declined"); } catch (error) { showToast(getErrorMessage(error)); }
         });
-        card.querySelector(".delete-invitation").addEventListener("click", async event => {
-            event.stopPropagation();
-            try { await deleteInvitation(invitation.id); } catch (error) { showToast(getErrorMessage(error)); }
-        });
 
         list.appendChild(card);
     });
@@ -155,18 +159,25 @@ function renderInvitationsPage() {
 
 // Ответ на приглашение (принять или отклонить)
 async function respondInvitation(invitationId, action) {
-    await api("PATCH", `/invitations/${Number(invitationId)}`, { action });
-    await Promise.all([loadInvitations(), loadWorkspaceFromServer()]);
-    if (action === "accepted") showToast("✓ Приглашение принято");
-    else showToast("Приглашение отклонено");
-    render();
+    if (!["accepted", "declined"].includes(action)) return false;
+    return withWriteLock(`invitation:${Number(invitationId)}`, async generation => {
+        await api("PATCH", `/invitations/${Number(invitationId)}`, { action });
+        assertSession(generation); incomingInvitationVersion++;
+        invitations = invitations.filter(item => item.id !== Number(invitationId));
+        render(); showToast(action === "accepted" ? "✓ Приглашение принято" : "Приглашение отклонено");
+        if (action === "accepted") {
+            try { await loadWorkspaceFromServer(); assertSession(generation); render(); }
+            catch (error) { if (generation === sessionGeneration) showToast("Приглашение принято. Обновите данные для отображения проекта."); }
+        }
+        return true;
+    });
 }
 
-// Удаление приглашения
 async function deleteInvitation(invitationId) {
-    await api("DELETE", `/invitations/${Number(invitationId)}`);
-    invitations = invitations.filter(item => Number(item.id) !== Number(invitationId));
-    renderInvitationsSidebar();
-    render();
-    showToast("Приглашение удалено");
+    return withWriteLock(`invitation:${Number(invitationId)}`, async generation => {
+        await api("DELETE", `/invitations/${Number(invitationId)}`);
+        assertSession(generation); incomingInvitationVersion++;
+        invitations = invitations.filter(item => item.id !== Number(invitationId));
+        renderInvitationsSidebar(); showToast("Приглашение отменено"); return true;
+    });
 }

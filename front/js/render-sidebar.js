@@ -7,8 +7,7 @@ function renderProjectsSidebar() {
     getAccessibleProjects().forEach(project => {
         const admin = isProjectAdmin(project);
         const canManage = canManageProject(project);
-        const item = document.createElement("a");
-        item.href = `#project-${project.id}`;
+        const item = document.createElement("div");
         item.className = "project";
         if (currentPage === "overview" && Number(project.id) === Number(currentProjectId)) {
             item.classList.add("active-project");
@@ -26,9 +25,11 @@ function renderProjectsSidebar() {
         }
 
         item.innerHTML = `
-            <span class="project-dot purple"></span>
-            <span class="project-name">${escapeHTML(project.name)}</span>
-            <span class="project-role-badge ${badgeClass}">${badgeText}</span>
+            <a class="project-link" href="#project-${project.id}">
+                <span class="project-dot purple"></span>
+                <span class="project-name">${escapeHTML(project.name)}</span>
+                <span class="project-role-badge ${badgeClass}">${badgeText}</span>
+            </a>
             ${canManage ? `
                 <span class="project-actions">
                     <button class="project-edit" type="button" aria-label="Редактировать проект">✎</button>
@@ -37,7 +38,7 @@ function renderProjectsSidebar() {
             ` : ""}
         `;
 
-        item.addEventListener("click", event => {
+        item.querySelector(".project-link").addEventListener("click", event => {
             event.preventDefault();
             if (event.target.closest(".project-edit") || event.target.closest(".project-delete")) return;
             selectProject(project.id);

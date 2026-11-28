@@ -16,7 +16,7 @@ function createTaskElement(task, draggable = false) {
         <div class="task-top">
             <span class="priority ${task.priority}">${PRIORITY[task.priority]}</span>
             <div class="task-top-actions">
-                <button class="favorite-button ${task.favorite ? "active" : ""}" type="button" aria-label="Избранное">${task.favorite ? "★" : "☆"}</button>
+                <button class="favorite-button ${task.favorite ? "active" : ""}" type="button" ${canEditTask(task) ? "" : "disabled"} aria-label="Избранное">${task.favorite ? "★" : "☆"}</button>
                 <button class="more" type="button" aria-label="Действия">⋯</button>
             </div>
         </div>
@@ -32,6 +32,7 @@ function createTaskElement(task, draggable = false) {
     `;
 
     element.addEventListener("click", () => openTaskModal("todo", task.id));
+    bindTaskKeyboard(element, task.id);
     element.querySelector(".favorite-button").addEventListener("click", async event => {
         event.stopPropagation();
         try { await toggleFavorite(task.id); } catch (error) { showToast(getErrorMessage(error)); }
@@ -47,7 +48,7 @@ function createTaskElement(task, draggable = false) {
             const chip = element.querySelector(".task-assignee-chip span");
             const avatar = element.querySelector(".task-avatar");
             const name = getNicknameById(task.assigneeId);
-            if (chip) chip.textContent = `@${name}`;
+            if (chip) { chip.textContent = `@${name}`; chip.parentElement.title = `Исполнитель: @${name}`; }
             if (avatar) avatar.textContent = getInitials(name);
         }
     });

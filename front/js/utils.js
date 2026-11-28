@@ -72,6 +72,7 @@ function getInitials(name) {
 
 // Показ всплывающего уведомления (тоста)
 function showToast(message) {
+    if (!message || message === "Сессия изменена") return;
     const toast = document.createElement("div");
     toast.className = "toast";
     toast.textContent = message;

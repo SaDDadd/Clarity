@@ -34,6 +34,8 @@ function clearLocalWorkspace() {
     tasks = [];
     invitations = [];
     projectTaskCache.clear();
+    projectRequests.clear();
+    workspaceRequest++;
     currentProjectDetails = null;
     currentProjectId = null;
     currentPage = "overview";

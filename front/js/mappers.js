@@ -4,13 +4,14 @@
 function mapProfileFromServer(profile) {
     const nickname = cleanNickname(profile?.username || "Пользователь");
     const mapped = {
-        id: Number(profile?.user_id),
+        id: Number(profile?.user_id ?? profile?.id),
         username: nickname,
         nickname,
         name: nickname,
         email: String(profile?.email || ""),
-        createdAt: profile?.created_date || null
+        createdAt: profile?.created_date || profile?.createdAt || null
     };
+    if (!Number.isInteger(mapped.id) || mapped.id <= 0) throw new Error("Некорректный ID пользователя");
     currentUser = mapped;
     user = { ...DEFAULT_USER, ...mapped };
     userCache.set(mapped.id, nickname);
@@ -31,7 +32,7 @@ function mapTaskFromServer(task) {
         status: statusFromBackend[rawStatus] || "todo",
         favorite: Boolean(task?.task_favorite),
         createdAt: task?.created_date || null,
-        updatedAt: task?.updated_date || task?.created_date || null
+        updatedAt: task?.update_date || task?.created_date || null
     };
 }
 
@@ -53,9 +54,11 @@ function mapTaskToServer(payload) {
 function mapProjectFromServer(project) {
     const adminId = Number(project?.admin_id ?? project?.adminId);
     const members = Array.isArray(project?.members) ? project.members : [];
-    const memberIds = members
-        .map(member => Number(member?.user_id ?? member?.id))
-        .filter(id => Number.isInteger(id) && id !== adminId);
+    const memberIds = [
+        ...(Array.isArray(project?.member_ids) ? project.member_ids : []),
+        ...members.map(member => member?.user_id ?? member?.id)
+    ].map(Number)
+        .filter(id => Number.isInteger(id) && id > 0 && id !== adminId);
 
     return {
         id: Number(project?.project_id ?? project?.id),

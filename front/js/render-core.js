@@ -58,12 +58,12 @@ function renderPageHeader() {
             elements.projectDescription.textContent = "Создайте проект или попросите администратора добавить вас в существующий.";
             elements.breadcrumbProject.textContent = "Проект";
         } else {
-            const role = isProjectAdmin(project) ? "Администратор" : "Участник";
+            const role = ROLE[getProjectRole(project)] || "Нет доступа";
             elements.projectTitle.textContent = project.name;
             elements.projectDescription.textContent = `${project.description || "Задачи этого проекта"} · ${role}`;
             elements.breadcrumbProject.textContent = project.name;
         }
-        elements.createTaskButton.classList.toggle("hidden", !project || !isProjectAdmin(project));
+        elements.createTaskButton.classList.toggle("hidden", !project || !canManageProject(project));
         return;
     }
 
@@ -89,8 +89,9 @@ function renderPageHeader() {
     if (currentPage === "projects") {
         elements.breadcrumb.classList.add("hidden");
         elements.projectTitle.textContent = "Мои проекты";
-        elements.projectDescription.textContent = `Доступно проектов: ${accessibleProjects.length} · администратор: ${adminProjects.length}`;
+        elements.projectDescription.textContent = `Доступно проектов: ${accessibleProjects.length} · администратор: ${accessibleProjects.filter(p => isProjectAdmin(p)).length} · куратор: ${accessibleProjects.filter(p => getProjectRole(p) === "curator").length}`;
         elements.toolbar.classList.add("hidden");
+        elements.views.classList.add("hidden");
         elements.createTaskButton.classList.remove("hidden");
         elements.createTaskButtonText.textContent = "Новый проект";
         return;
@@ -101,6 +102,7 @@ function renderPageHeader() {
         elements.projectTitle.textContent = "Входящие приглашения";
         elements.projectDescription.textContent = invitations.length ? `Новых приглашений: ${invitations.length}` : "Новых приглашений нет";
         elements.toolbar.classList.add("hidden");
+        elements.views.classList.add("hidden");
         elements.createTaskButton.classList.add("hidden");
         return;
     }
@@ -109,6 +111,7 @@ function renderPageHeader() {
     elements.projectTitle.textContent = "Настройки";
     elements.projectDescription.textContent = "Профиль, внешний вид и серверные данные";
     elements.toolbar.classList.add("hidden");
+        elements.views.classList.add("hidden");
     elements.createTaskButton.classList.add("hidden");
 }
 

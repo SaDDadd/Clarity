@@ -9,23 +9,24 @@ function getNicknameById(userId) {
 }
 
 // Асинхронная загрузка и кэширование имени пользователя
+const pendingUsers = new Map();
 async function ensureUserCached(userId) {
     const id = Number(userId);
     if (!id || userCache.has(id)) return userCache.get(id) || null;
-    try {
-        const result = await api("GET", `/users/search?search_user=${encodeURIComponent(String(id))}`);
-        // Бэкенд FastAPI может вернуть массив или объект с массивом в items
-        const list = Array.isArray(result) ? result : (Array.isArray(result?.items) ? result.items : []);
-        const found = list.find(item => Number(item?.user_id ?? item?.id) === id);
-        if (found) {
-            const name = cleanNickname(found.username || found.nickname || found.name);
-            if (name) userCache.set(id, name);
-        }
-    } 
-    catch {
-        return null;
-    }
-    return userCache.get(id) || null;
+    const key = `${sessionGeneration}:${id}`;
+    if (pendingUsers.has(key)) return pendingUsers.get(key);
+    const generation = sessionGeneration;
+    const request = (async () => {
+        try {
+            const found = await api("GET", `/users/${id}`);
+            const name = cleanNickname(found?.username);
+            if (generation === sessionGeneration && name) userCache.set(id, name);
+            return generation === sessionGeneration ? name || null : null;
+        } catch { return null; }
+        finally { pendingUsers.delete(key); }
+    })();
+    pendingUsers.set(key, request);
+    return request;
 }
 
 // Поиск пользователей по никнейму

@@ -1,3 +1,4 @@
+let profileSaving = null;
 // Файл для альтернативных представлений задач (список, календарь) и страницы проектов/настроек
 
 // Создание карточки задачи для страницы списка задач
@@ -17,13 +18,13 @@ function createPageTaskCard(task) {
                 <span>${escapeHTML(getProjectName(task.projectId))}</span>
                 <span>${STATUS[task.status]}</span>
                 <span>${task.date ? formatDate(task.date) : "Без срока"}</span>
-                <span>Исполнитель: ${task.assigneeId ? `@${escapeHTML(assigneeName)}` : "не назначен"}</span>
+                <span class="assignee-label">Исполнитель: ${task.assigneeId ? `@${escapeHTML(assigneeName)}` : "не назначен"}</span>
                 ${isOverdue(task) ? `<span style="color:var(--danger)">Просрочено</span>` : ""}
             </div>
         </div>
         <div class="page-task-actions">
-            <button class="favorite-button ${task.favorite ? "active" : ""}" type="button">${task.favorite ? "★" : "☆"}</button>
-            <button class="small-action edit-task" type="button">${canManageTask(task) ? "Редактировать" : "Открыть"}</button>
+            <button class="favorite-button ${task.favorite ? "active" : ""}" type="button" ${canEditTask(task) ? "" : "disabled"}>${task.favorite ? "★" : "☆"}</button>
+            <button class="small-action edit-task" type="button">${canEditTask(task) ? "Редактировать" : "Открыть"}</button>
         </div>
     `;
 
@@ -36,6 +37,8 @@ function createPageTaskCard(task) {
         event.stopPropagation();
         openTaskModal("todo", task.id);
     });
+    bindTaskKeyboard(card, task.id);
+    if (task.assigneeId) ensureUserCached(task.assigneeId).then(name => { if (name && card.isConnected) card.querySelector(".assignee-label").textContent = `Исполнитель: @${name}`; });
     return card;
 }
 
@@ -69,17 +72,19 @@ function renderTableView(taskList = getVisibleTasks()) {
         row.innerHTML = `
             <td class="task-title-cell">${escapeHTML(task.title)}</td>
             <td>${escapeHTML(getProjectName(task.projectId))}</td>
-            <td>${task.assigneeId ? `@${escapeHTML(getNicknameById(task.assigneeId))}` : "Не назначен"}</td>
+            <td class="assignee-label">${task.assigneeId ? `@${escapeHTML(getNicknameById(task.assigneeId))}` : "Не назначен"}</td>
             <td><span class="priority ${task.priority}">${PRIORITY[task.priority]}</span></td>
             <td style="${isOverdue(task) ? "color:var(--danger);font-weight:600;" : ""}">${task.date ? formatDate(task.date) : "Без срока"}</td>
             <td>${STATUS[task.status]}</td>
-            <td class="star-cell"><button class="favorite-button ${task.favorite ? "active" : ""}" type="button">${task.favorite ? "★" : "☆"}</button></td>
+            <td class="star-cell"><button class="favorite-button ${task.favorite ? "active" : ""}" type="button" ${canEditTask(task) ? "" : "disabled"}>${task.favorite ? "★" : "☆"}</button></td>
         `;
         row.addEventListener("click", () => openTaskModal("todo", task.id));
         row.querySelector(".favorite-button").addEventListener("click", async event => {
             event.stopPropagation();
             try { await toggleFavorite(task.id); } catch (error) { showToast(getErrorMessage(error)); }
         });
+        bindTaskKeyboard(row, task.id);
+        if (task.assigneeId) ensureUserCached(task.assigneeId).then(name => { if (name && row.isConnected) row.querySelector(".assignee-label").textContent = `@${name}`; });
         tbody.appendChild(row);
     });
     elements.board.appendChild(wrap);
@@ -211,8 +216,8 @@ function renderProjectsPage() {
             </div>
             <p>${escapeHTML(project.description || "Без описания")}</p>
             <div class="project-card-meta-line">
-                <span>Админ: @${escapeHTML(adminName)}</span>
-                <span>Участников: ${(project.memberIds || []).length}</span>
+                <span class="project-admin-label">Админ: @${escapeHTML(adminName)}</span>
+                <span>Участников: ${(project.memberIds || []).length + 1}</span>
                 <span>Задач: ${projectTasks.length}${projectTaskCache.has(Number(project.id)) ? "" : " · откройте проект для загрузки"}</span>
             </div>
             <div class="project-progress">
@@ -221,12 +226,11 @@ function renderProjectsPage() {
             </div>
             <div class="project-card-large-footer">
                 <span>${done} из ${projectTasks.length} выполнено</span>
-                ${canManage ? `
-                    <div class="project-card-actions">
-                        <button class="small-action edit-project" type="button">Управление</button>
-                        ${admin ? '<button class="small-action danger delete-project" type="button">Удалить</button>' : ""};
-                    </div>
-                ` : ""}
+                <div class="project-card-actions">
+                    ${canManage ? '<button class="small-action edit-project" type="button">Управление</button>' : ""}
+                    ${admin ? '<button class="small-action danger delete-project" type="button">Удалить</button>' : ""}
+                    <button class="small-action leave-project" type="button">Выйти</button>
+                </div>
             </div>
         `;
 
@@ -239,8 +243,9 @@ function renderProjectsPage() {
             event.stopPropagation();
             try { await deleteProject(project.id); } catch (error) { showToast(getErrorMessage(error)); }
         });
+        card.querySelector(".leave-project").addEventListener("click", async event => { event.stopPropagation(); await runButtonAction(event.currentTarget, () => leaveProject(project.id)); });
         grid.appendChild(card);
-        if (project.adminId) ensureUserCached(project.adminId).then(() => {});
+        if (project.adminId) ensureUserCached(project.adminId).then(name => { if (name && card.isConnected) card.querySelector(".project-admin-label").textContent = `Админ: @${name}`; });
     });
 
     elements.board.appendChild(grid);
@@ -260,7 +265,7 @@ async function renderSettingsPage() {
                     </label>
                     <label>
                         <span>E-mail аккаунта</span>
-                        <input id="settingsUserEmail" type="email" maxlength="160">
+                        <input id="settingsUserEmail" type="email" maxlength="100">
                     </label>
                     <label>
                         <span>Дата регистрации</span>
@@ -268,7 +273,7 @@ async function renderSettingsPage() {
                     </label>
                     <label>
                         <span>Новый пароль</span>
-                        <input id="settingsPassword" type="password" minlength="8" maxlength="128" placeholder="Оставьте пустым без изменения">
+                        <input id="settingsPassword" type="password" minlength="8" maxlength="50" placeholder="Оставьте пустым без изменения">
                     </label>
                     <label>
                         <span>Тема</span>
@@ -287,6 +292,7 @@ async function renderSettingsPage() {
                 <h3>Серверные данные</h3>
                 <div class="settings-actions">
                     <button id="refreshWorkspaceButton" class="small-action" type="button">Обновить данные</button>
+                    <button id="deleteAccountButton" class="small-action danger" type="button">Удалить аккаунт</button>
                 </div>
             </section>
         </div>
@@ -302,16 +308,20 @@ async function renderSettingsPage() {
     // Обработчик сохранения настроек профиля
     document.getElementById("saveSettingsButton").addEventListener("click", async event => {
         const button = event.currentTarget;
+        const generation = sessionGeneration;
+        if (profileSaving === generation) return;
+        profileSaving = generation;
         button.disabled = true;
         try {
             const nickname = cleanNickname(document.getElementById("settingsUserName").value);
             const email = document.getElementById("settingsUserEmail").value.trim();
             const password = document.getElementById("settingsPassword").value;
+            const theme = document.getElementById("settingsTheme").value;
 
             validateNickname(nickname);
-            if (email && !email.includes("@")) throw new Error("Введите корректный e-mail.");
+            if (!isValidEmail(email) || email.length > 100) throw new Error("Введите корректный e-mail.");
 
-            if (password && password.length < 8) throw new Error("Пароль должен содержать минимум 8 символов.");
+            if (password && (password.length < 8 || password.length > 50)) throw new Error("Пароль должен содержать от 8 до 50 символов.");
 
             if (nickname !== currentUser.username) {
                 const profile = await api("PUT", "/profile/username", { username: nickname });
@@ -327,17 +337,29 @@ async function renderSettingsPage() {
                 await api("PATCH", "/profile/password", { password });
             }
 
-            settings.theme = document.getElementById("settingsTheme").value;
+            assertSession(generation);
+            settings.theme = theme;
             saveSettings();
             applyTheme();
             renderUser();
             renderProjectsSidebar();
+            if (button.isConnected) document.getElementById("settingsPassword").value = "";
             showToast("✓ Настройки сохранены");
         } catch (error) {
             showToast(getErrorMessage(error));
         } finally {
+            if (profileSaving === generation) profileSaving = null;
             button.disabled = false;
         }
+    });
+
+    document.getElementById("deleteAccountButton").addEventListener("click", async event => {
+        const button = event.currentTarget;
+        await runButtonAction(button, () => withWriteLock("profile", async generation => {
+            if (!confirm("Безвозвратно удалить аккаунт? Сервер снимет ваши назначения и передаст или удалит проекты, которыми вы управляете.")) return false;
+            await api("DELETE", "/profile");
+            assertSession(generation); signOutAccount(); setAuthMessage("Аккаунт удалён", true); return true;
+        }));
     });
 
     // Обработчик принудительного обновления данных с сервера

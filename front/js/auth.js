@@ -13,6 +13,11 @@ function setAuthMode(mode) {
 
     elements.loginTab.classList.toggle("active", !registering);
     elements.registerTab.classList.toggle("active", registering);
+    elements.loginTab.setAttribute("aria-selected", String(!registering));
+    elements.registerTab.setAttribute("aria-selected", String(registering));
+    elements.loginTab.tabIndex = registering ? -1 : 0;
+    elements.registerTab.tabIndex = registering ? 0 : -1;
+    elements.authForm.setAttribute("aria-labelledby", registering ? "registerTab" : "loginTab");
     elements.authNameField.classList.toggle("hidden", !registering);
     elements.authConfirmField.classList.toggle("hidden", !registering);
     elements.authNameInput.required = registering;
@@ -37,6 +42,7 @@ function showAuthScreen(mode = "login") {
 
 // Вход в аккаунт после успешной авторизации
 async function enterAccount(profile) {
+    const generation = sessionGeneration;
     mapProfileFromServer(profile);
     settings = loadSettings();
 
@@ -49,9 +55,16 @@ async function enterAccount(profile) {
     currentView = ["board", "list", "calendar"].includes(savedView) ? savedView : "board";
     currentProjectId = savedProject ? Number(savedProject) : null;
 
-    await loadWorkspaceFromServer();
-    await loadInvitations();
+    try {
+        await loadWorkspaceFromServer();
+        await loadInvitations();
+        assertSession(generation);
+    } catch (error) {
+        if (generation === sessionGeneration) { clearLocalWorkspace(); currentUser = null; user = { ...DEFAULT_USER }; }
+        throw error;
+    }
 
+    assertSession(generation);
     if (!getAccessibleProjects().some(project => Number(project.id) === Number(currentProjectId))) {
         currentProjectId = getAccessibleProjects()[0]?.id || null;
     }
@@ -79,8 +92,8 @@ async function registerAccount() {
     if (!nickname) throw new Error("Введите ник.");
     validateNickname(nickname);
     if (!email) throw new Error("Введите e-mail.");
-    if (!isValidEmail) throw new Error("Введите корректный e-mail (например: name@example.com).")
-    if (password.length < 8) throw new Error("Пароль должен содержать минимум 8 символов.");
+    if (!isValidEmail(email) || email.length > 100) throw new Error("Введите корректный e-mail (например: name@example.com).")
+    if (password.length < 8 || password.length > 50) throw new Error("Пароль должен содержать от 8 до 50 символов.");
     if (password !== confirmPassword) throw new Error("Пароли не совпадают.");
 
     await api("POST", "/auth/register", {
@@ -104,9 +117,10 @@ async function registerAccount() {
 
 // Обработка формы входа
 async function signInAccount() {
-    const identifier = elements.authEmailInput.value.trim();
+    const identifier = cleanNickname(elements.authEmailInput.value);
     const password = elements.authPasswordInput.value;
-    if (!identifier) throw new Error("Введите ник или e-mail.");
+    if (!identifier || identifier.length > 100) throw new Error("Введите корректный ник или e-mail.");
+    if (password.length < 8 || password.length > 50) throw new Error("Пароль должен содержать от 8 до 50 символов.");
 
     const result = await api("POST", "/auth/login", {
         username_or_email: identifier,
@@ -124,17 +138,23 @@ async function signInAccount() {
 function signOutAccount() {
     clearToken();
     clearLocalWorkspace();
+    document.getElementById("toastContainer").replaceChildren();
+    closeMobileMenu();
+    currentUser = null;
+    draggedTaskId = null;
     settings = { ...DEFAULT_SETTINGS };
     user = { ...DEFAULT_USER };
     closeTaskModal();
     closeProjectModal();
     closeMembersModal();
     closeAllFloatingMenus();
+    applyTheme();
     showAuthScreen("login");
 }
 
 // Инициализация авторизации при загрузке страницы
 async function initializeAuth() {
+    const generation = sessionGeneration;
     const token = getToken();
     if (!token) {
         showAuthScreen("login");
@@ -145,8 +165,13 @@ async function initializeAuth() {
         const profile = await api("GET", "/profile");
         await enterAccount(profile);
     } catch (error) {
-        clearToken();
-        clearLocalWorkspace();
-        showAuthScreen("login");
+        if (generation !== sessionGeneration) return;
+        if (error.status === 401) signOutAccount();
+        else {
+            clearLocalWorkspace();
+            currentUser = null;
+            showAuthScreen("login");
+            setAuthMessage(getErrorMessage(error));
+        }
     }
 }

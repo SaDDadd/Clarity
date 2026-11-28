@@ -5,6 +5,12 @@
 // ==========================================
 elements.loginTab.addEventListener("click", () => setAuthMode("login"));
 elements.registerTab.addEventListener("click", () => setAuthMode("register"));
+[elements.loginTab, elements.registerTab].forEach(tab => tab.addEventListener("keydown", event => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const target = event.key === "Home" ? elements.loginTab : event.key === "End" ? elements.registerTab : tab === elements.loginTab ? elements.registerTab : elements.loginTab;
+    target.click(); target.focus();
+}));
 
 elements.authForm.addEventListener("submit", async event => {
     event.preventDefault();
@@ -69,6 +75,7 @@ elements.projectMemberSearch.addEventListener("input", () => {
     const projectId = elements.projectForm.dataset.editingId;
     if (!projectId) return;
     clearTimeout(memberSearchTimer);
+    memberSearchVersion++;
     memberSearchTimer = setTimeout(() => {
         renderProjectMemberSearchResults(projectId, elements.projectMemberSearch.value);
     }, 250);
@@ -79,6 +86,7 @@ elements.taskForm.addEventListener("submit", async event => {
     if (elements.taskSubmitButton.disabled) return;
 
     const editingId = elements.taskForm.dataset.editingId;
+    const formVersion = taskFormVersion;
     const accessMode = elements.taskForm.dataset.accessMode;
 
     if (editingId && accessMode === "view") return;
@@ -86,8 +94,7 @@ elements.taskForm.addEventListener("submit", async event => {
     elements.taskSubmitButton.disabled = true;
     try {
         if (editingId && accessMode === "status") {
-            await changeTaskStatus(editingId, elements.taskStatusInput.value);
-            closeTaskModal();
+            if (await changeTaskStatus(editingId, elements.taskStatusInput.value) && formVersion === taskFormVersion) closeTaskModal();
             return;
         }
 
@@ -105,10 +112,8 @@ elements.taskForm.addEventListener("submit", async event => {
             favorite: elements.taskFavoriteInput.checked
         };
 
-        if (editingId) await updateTask(Number(editingId), data);
-        else await createTask(data);
-
-        closeTaskModal();
+        const saved = editingId ? await updateTask(Number(editingId), data) : await createTask(data);
+        if (saved && formVersion === taskFormVersion) closeTaskModal();
     } catch (error) {
         showToast(getErrorMessage(error));
     } finally {
@@ -136,16 +141,16 @@ elements.projectForm.addEventListener("submit", async event => {
     if (elements.projectSubmitButton.disabled) return;
 
     const name = elements.projectNameInput.value.trim();
-    if (!name) return;
+    if (!name) { showToast("Введите название проекта"); return; }
 
     const description = elements.projectDescriptionInput.value.trim();
     const editingId = elements.projectForm.dataset.editingId;
+    const formVersion = projectFormVersion;
     elements.projectSubmitButton.disabled = true;
 
     try {
-        if (editingId) await updateProject(Number(editingId), name, description);
-        else await createProject(name, description);
-        closeProjectModal();
+        const saved = editingId ? await updateProject(Number(editingId), name, description) : await createProject(name, description);
+        if (saved && formVersion === projectFormVersion) closeProjectModal();
     } catch (error) {
         showToast(getErrorMessage(error));
     } finally {
@@ -266,7 +271,7 @@ document.addEventListener("keydown", event => {
         closeAllFloatingMenus();
     }
 
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+    if (!activeDialog() && currentUser && (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         elements.searchInput.focus();
     }
@@ -304,14 +309,7 @@ if (window.matchMedia) {
 }
 
 window.addEventListener("tasker:unauthorized", () => {
-    clearLocalWorkspace();
-    currentUser = null;
-    settings = { ...DEFAULT_SETTINGS };
-    user = { ...DEFAULT_USER };
-    closeTaskModal();
-    closeProjectModal();
-    closeMembersModal();
-    showAuthScreen("login");
+    signOutAccount();
     showToast("Сессия истекла. Войдите снова.");
 });
 
@@ -328,7 +326,7 @@ elements.membersModal.addEventListener("click", event => {
 
 elements.membersAddButton.addEventListener("click", () => {
     const project = getCurrentProject();
-    if (!project || !isProjectAdmin(project)) return;
+    if (!project || !canManageProject(project)) return;
     closeMembersModal();
     openProjectModal(project.id);
 });

@@ -1,7 +1,10 @@
 // Файл для управления модальными окнами (задачи, проекты, участники)
 
 // Отрисовка результатов поиска пользователей для добавления в проект
+let memberSearchVersion = 0;
 async function renderProjectMemberSearchResults(projectId, query) {
+    const version = ++memberSearchVersion, generation = sessionGeneration;
+    const isCurrent = () => generation === sessionGeneration && version === memberSearchVersion && Number(elements.projectForm.dataset.editingId) === Number(projectId) && normalizeNickname(elements.projectMemberSearch.value) === normalizeNickname(query);
     const project = getProject(projectId);
     if (!project || !canManageProject(project)) return;
 
@@ -11,6 +14,7 @@ async function renderProjectMemberSearchResults(projectId, query) {
 
     try {
         const accounts = await searchUsers(normalizedQuery);
+        if (!isCurrent()) return;
         const filtered = accounts
             .filter(account => Number(account.id) !== Number(project.adminId))
             .slice(0, 8);
@@ -39,17 +43,22 @@ async function renderProjectMemberSearchResults(projectId, query) {
                     : `<button class="member-add-button" type="button">Пригласить</button>`}
             `;
 
-            row.querySelector(".member-add-button")?.addEventListener("click", async () => {
+            row.querySelector(".member-add-button")?.addEventListener("click", async event => {
+                const button = event.currentTarget;
+                if (button.disabled) return;
+                button.disabled = true;
                 try {
-                    await inviteProjectMember(project.id, account.id);
+                    if (await inviteProjectMember(project.id, account.id)) button.textContent = "Отправлено";
+                    else button.disabled = false;
                 } catch (error) {
+                    button.disabled = false;
                     showToast(getErrorMessage(error));
                 }
             });
             elements.projectMemberSearchResults.appendChild(row);
         });
     } catch (error) {
-        elements.projectMemberSearchResults.innerHTML = `<div class="member-search-empty">${escapeHTML(getErrorMessage(error))}</div>`;
+        if (isCurrent()) elements.projectMemberSearchResults.innerHTML = `<div class="member-search-empty">${escapeHTML(getErrorMessage(error))}</div>`;
     }
 }
 
@@ -60,8 +69,9 @@ function renderProjectMembers(projectId) {
 
     const admin = canManageProject(project);
     elements.projectMembersSection.classList.remove("hidden");
-    elements.projectRoleBadge.textContent = admin ? "Администратор" : "Участник";
-    elements.projectRoleBadge.classList.toggle("member", !admin);
+    elements.projectRoleBadge.textContent = ROLE[getProjectRole(project)] || "Нет доступа";
+    elements.projectRoleBadge.classList.toggle("member", getProjectRole(project) === "member");
+    elements.projectRoleBadge.classList.toggle("curator", getProjectRole(project) === "curator");
     elements.projectMemberSearchWrap.classList.toggle("hidden", !admin);
 
     const accounts = getProjectAccounts(projectId);
@@ -80,11 +90,20 @@ function renderProjectMembers(projectId) {
                 </div>
             </div>
             <div class="member-actions">
-                <span class="role-badge ${isAdminAccount ? "" : "member"}">${escapeHTML(ROLE[account.role] || account.role)}</span>
-                ${admin && !isAdminAccount ? `<button class="member-remove-button" type="button">Удалить</button>` : ""}
+                <span class="role-badge ${isAdminAccount ? "" : account.role === "curator" ? "curator" : "member"}">${escapeHTML(ROLE[account.role] || account.role)}</span>
+                ${admin && !isAdminAccount && account.id !== currentUser?.id && project.members.length ? `
+                    <button class="small-action member-role-button" type="button">${account.role === "curator" ? "Сделать участником" : "Сделать куратором"}</button>
+                    ${isProjectAdmin(project) ? '<button class="small-action member-transfer-button" type="button">Передать администрирование</button>' : ""}
+                    <button class="member-remove-button" type="button">Удалить</button>` : ""}
             </div>
         `;
 
+        row.querySelector(".member-role-button")?.addEventListener("click", async event => {
+            await runButtonAction(event.currentTarget, () => changeMemberRole(project.id, account.id, account.role === "curator" ? "member" : "curator"));
+        });
+        row.querySelector(".member-transfer-button")?.addEventListener("click", async event => {
+            await runButtonAction(event.currentTarget, () => transferProjectAdmin(project.id, account.id));
+        });
         row.querySelector(".member-remove-button")?.addEventListener("click", async () => {
             try {
                 await removeProjectMember(project.id, account.id);
@@ -129,13 +148,22 @@ function populateTaskAssigneeSelect(projectId, selectedId = "") {
     } else {
         elements.taskAssigneeInput.value = "";
     }
+    const version = taskFormVersion, generation = sessionGeneration;
+    accounts.forEach(account => {
+        ensureUserCached(account.id).then(name => {
+            if (!name || generation !== sessionGeneration || version !== taskFormVersion || Number(elements.taskProjectInput.value) !== Number(projectId)) return;
+            const option = [...elements.taskAssigneeInput.options].find(item => Number(item.value) === account.id);
+            if (option) option.textContent = `@${name} — ${ROLE[account.role] || account.role}`;
+        });
+    });
 }
 
 // Установка прав доступа (readonly) для формы задачи
 function setTaskFormAccess(mode) {
     const fullEdit = mode === "admin" || mode === "create";
     const statusOnly = mode === "status";
-    elements.taskForm.classList.toggle("form-readonly", !fullEdit);
+    const performer = mode === "performer";
+    elements.taskForm.classList.toggle("form-readonly", mode === "view");
 
     [
         elements.taskTitleInput,
@@ -147,15 +175,19 @@ function setTaskFormAccess(mode) {
         elements.taskFavoriteInput
     ].forEach(control => control.disabled = !fullEdit);
 
-    elements.taskStatusInput.disabled = !(fullEdit || statusOnly);
+    if (performer) [elements.taskTitleInput, elements.taskDescriptionInput, elements.taskFavoriteInput].forEach(control => control.disabled = false);
+    elements.taskProjectInput.disabled = mode !== "create";
+    elements.taskStatusInput.disabled = !(fullEdit || statusOnly || performer);
     elements.taskSubmitButton.classList.toggle("hidden", mode === "view");
 }
 
 // Открытие модального окна задачи
 function openTaskModal(status = "todo", taskId = null) {
+    taskFormVersion++;
+    closeTaskComments();
     const adminProjects = getAdminProjects();
     if (!taskId && !adminProjects.length) {
-        showToast("Создавать задачи может только администратор проекта");
+        showToast("Создавать задачи может администратор или куратор проекта");
         return;
     }
 
@@ -170,16 +202,16 @@ function openTaskModal(status = "todo", taskId = null) {
         if (!task || !getProject(task.projectId)) return;
 
         const admin = canManageTask(task);
-        const statusOnly = !admin && Number(task.assigneeId) === Number(currentUser.id);
-        const mode = admin ? "admin" : (statusOnly ? "status" : "view");
+        const statusOnly = !admin && isTaskPerformer(task);
+        const mode = admin ? "admin" : (statusOnly ? "performer" : "view");
 
         elements.taskForm.dataset.editingId = String(task.id);
         elements.taskForm.dataset.accessMode = mode;
-        elements.taskModalTitle.textContent = admin ? "Редактировать задачу" : "Задача";
+        elements.taskModalTitle.textContent = canEditTask(task) ? "Редактировать задачу" : "Задача";
         elements.taskModalSubtitle.textContent = admin
             ? "Измените параметры и назначьте исполнителя"
-            : (statusOnly ? "Вы назначены исполнителем и можете изменить статус" : "Просмотр задачи проекта");
-        elements.taskSubmitButton.textContent = admin ? "Сохранить" : "Сохранить статус";
+            : (statusOnly ? "Вы назначены исполнителем и можете изменить название, описание, статус и избранное" : "Просмотр задачи проекта");
+        elements.taskSubmitButton.textContent = "Сохранить";
         elements.deleteTaskButton.classList.toggle("hidden", !admin);
 
         populateTaskProjectSelect(task.projectId, admin);
@@ -215,15 +247,31 @@ function openTaskModal(status = "todo", taskId = null) {
         setTaskFormAccess("create");
     }
 
-    elements.taskModal.classList.remove("hidden");
-    setTimeout(() => {
-        if (!elements.taskTitleInput.disabled) elements.taskTitleInput.focus();
-    }, 30);
+    elements.taskDateInput.min = taskId && elements.taskDateInput.value && elements.taskDateInput.value < getTodayISO() ? elements.taskDateInput.value : getTodayISO();
+    showDialog(elements.taskModal, elements.taskTitleInput);
+    const edited = taskId ? tasks.find(item => item.id === Number(taskId)) : null;
+    if (edited) openTaskComments(edited);
+    const version = taskFormVersion, generation = sessionGeneration;
+    const projectId = Number(elements.taskProjectInput.value);
+    const project = getProject(projectId);
+    if (project && !project.members.length) {
+        // Подробные данные нужны для правильных ролей и назначений, но форму не перезаписываем.
+        api("GET", `/projects/${projectId}`).then(raw => {
+            if (generation !== sessionGeneration || version !== taskFormVersion || Number(elements.taskProjectInput.value) !== projectId) return;
+            const live = getProjectRaw(projectId);
+            const mapped = mapProjectFromServer(raw);
+            if (!live || mapped.id !== projectId) return;
+            Object.assign(live, mapped);
+            populateTaskAssigneeSelect(projectId, elements.taskAssigneeInput.value);
+        }).catch(error => { if (generation === sessionGeneration && version === taskFormVersion) showToast(getErrorMessage(error)); });
+    }
 }
 
 // Закрытие модального окна задачи
 function closeTaskModal() {
-    elements.taskModal.classList.add("hidden");
+    taskFormVersion++;
+    closeTaskComments();
+    hideDialog(elements.taskModal);
     elements.taskForm.reset();
     elements.taskForm.classList.remove("form-readonly");
     [
@@ -252,7 +300,7 @@ function addInviteButtonToProjectModal(project) {
         elements.projectMembersSection.querySelector(".project-members-heading")?.appendChild(button);
     }
 
-    button.classList.toggle("hidden", !project || !isProjectAdmin(project));
+    button.classList.toggle("hidden", !project || !canManageProject(project));
     button.onclick = () => {
         elements.projectMemberSearch.focus();
         showToast("Найдите пользователя по нику и нажмите «Пригласить».");
@@ -261,6 +309,7 @@ function addInviteButtonToProjectModal(project) {
 
 // Открытие модального окна проекта
 function openProjectModal(projectId = null) {
+    projectFormVersion++;
     closeAllFloatingMenus();
     elements.projectForm.reset();
     delete elements.projectForm.dataset.editingId;
@@ -272,8 +321,8 @@ function openProjectModal(projectId = null) {
     if (projectId) {
         const project = getProject(projectId);
         if (!project) return;
-        if (!isProjectAdmin(project)) {
-            showToast("Управление участниками доступно только администратору");
+        if (!canManageProject(project)) {
+            showToast("Управление проектом доступно администратору или куратору");
             return;
         }
 
@@ -281,7 +330,7 @@ function openProjectModal(projectId = null) {
         elements.projectModalTitle.textContent = "Управление проектом";
         elements.projectModalSubtitle.textContent = "Название, описание, роли и участники проекта";
         elements.projectSubmitButton.textContent = "Сохранить";
-        elements.deleteProjectButton.classList.remove("hidden");
+        elements.deleteProjectButton.classList.toggle("hidden", !isProjectAdmin(project));
         elements.projectNameInput.value = project.name;
         elements.projectDescriptionInput.value = project.description;
         renderProjectMembers(project.id);
@@ -292,13 +341,19 @@ function openProjectModal(projectId = null) {
         elements.projectSubmitButton.textContent = "Создать проект";
     }
 
-    elements.projectModal.classList.remove("hidden");
-    setTimeout(() => elements.projectNameInput.focus(), 30);
+    showDialog(elements.projectModal, elements.projectNameInput);
+    if (projectId) loadProjectDetails(projectId).catch(error => {
+        if (Number(elements.projectForm.dataset.editingId) === Number(projectId)) showToast(getErrorMessage(error));
+    });
 }
 
 // Закрытие модального окна проекта
 function closeProjectModal() {
-    elements.projectModal.classList.add("hidden");
+    projectFormVersion++;
+    clearTimeout(memberSearchTimer);
+    memberSearchVersion++;
+    invitationRenderVersion++;
+    hideDialog(elements.projectModal);
     elements.projectForm.reset();
     elements.projectMembersSection.classList.add("hidden");
     elements.projectMemberSearchResults.innerHTML = "";
@@ -314,12 +369,10 @@ function renderMembersModal() {
         return;
     }
 
-    const admin = isProjectAdmin(project);
+    const admin = canManageProject(project);
     const total = (project.memberIds || []).length + 1;
 
-    elements.membersModalSubtitle.textContent = admin
-        ? `Вы администратор · участников: ${total}`
-        : `Вы участник · участников: ${total}`;
+    elements.membersModalSubtitle.textContent = `Роль: ${ROLE[getProjectRole(project)] || "Нет доступа"} · участников: ${total}`;
 
     elements.membersAddButton.classList.toggle("hidden", !admin);
 
@@ -344,7 +397,7 @@ function renderMembersModal() {
                 </div>
             </div>
             <div class="member-actions">
-                <span class="role-badge ${isAdminAccount ? "" : "member"}">${escapeHTML(ROLE[account.role] || account.role)}</span>
+                <span class="role-badge ${isAdminAccount ? "" : account.role === "curator" ? "curator" : "member"}">${escapeHTML(ROLE[account.role] || account.role)}</span>
             </div>
         `;
         elements.membersModalList.appendChild(row);
@@ -369,11 +422,12 @@ function openMembersModal() {
     }
     closeAllFloatingMenus();
     renderMembersModal();
-    elements.membersModal.classList.remove("hidden");
+    showDialog(elements.membersModal, elements.closeMembersModal);
+    loadProjectDetails(project.id).catch(error => { if (!elements.membersModal.classList.contains("hidden")) showToast(getErrorMessage(error)); });
 }
 
 // Закрытие модального окна участников
 function closeMembersModal() {
-    elements.membersModal.classList.add("hidden");
+    hideDialog(elements.membersModal);
     elements.membersModalList.innerHTML = "";
 }

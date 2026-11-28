@@ -28,11 +28,11 @@
         </div>
 
         <div class="auth-tabs" role="tablist" aria-label="Авторизация">
-            <button id="loginTab" class="auth-tab active" type="button" data-auth-mode="login">Войти</button>
-            <button id="registerTab" class="auth-tab" type="button" data-auth-mode="register">Регистрация</button>
+            <button id="loginTab" class="auth-tab active" type="button" role="tab" aria-selected="true" aria-controls="authForm" data-auth-mode="login">Войти</button>
+            <button id="registerTab" class="auth-tab" type="button" role="tab" aria-selected="false" aria-controls="authForm" data-auth-mode="register">Регистрация</button>
         </div>
 
-        <form id="authForm" class="auth-form">
+        <form id="authForm" class="auth-form" role="tabpanel" aria-labelledby="loginTab">
             <label id="authNameField" class="hidden">
                 <span>Ник</span>
                 <input id="authNameInput" type="text" minlength="3" maxlength="30" autocomplete="username" placeholder="Например: alex.dev">
@@ -40,17 +40,17 @@
 
             <label>
                 <span id="authLoginLabel">Ник или e-mail</span>
-                <input id="authEmailInput" type="text" maxlength="160" autocomplete="username" placeholder="@nickname или name@example.com" required>
+                <input id="authEmailInput" type="text" maxlength="100" autocomplete="username" placeholder="@nickname или name@example.com" required>
             </label>
 
             <label>
                 <span>Пароль</span>
-                <input id="authPasswordInput" type="password" minlength="8" maxlength="128" autocomplete="current-password" placeholder="Минимум 8 символов" required>
+                <input id="authPasswordInput" type="password" minlength="8" maxlength="50" autocomplete="current-password" placeholder="Минимум 8 символов" required>
             </label>
 
             <label id="authConfirmField" class="hidden">
                 <span>Повторите пароль</span>
-                <input id="authConfirmInput" type="password" minlength="8" maxlength="128" autocomplete="new-password" placeholder="Повторите пароль">
+                <input id="authConfirmInput" type="password" minlength="8" maxlength="50" autocomplete="new-password" placeholder="Повторите пароль">
             </label>
 
             <div id="authMessage" class="auth-message" aria-live="polite"></div>
@@ -62,7 +62,7 @@
 </div>
 
 <div id="app" class="app hidden">
-    <aside class="sidebar">
+    <aside class="sidebar" id="mobileSidebar">
         <div class="logo">
             <div class="logo-icon">✓</div>
             <span>Tasker</span>
@@ -105,9 +105,10 @@
 
     <main class="main">
         <header class="topbar">
+            <button id="mobileMenuButton" class="mobile-menu-button" type="button" aria-label="Меню" aria-controls="mobileSidebar" aria-expanded="false">☰</button>
             <div class="search">
                 <span class="search-icon">⌕</span>
-                <input id="searchInput" type="text" placeholder="Поиск задач..." autocomplete="off">
+                <input id="searchInput" aria-label="Поиск задач" type="text" placeholder="Поиск задач..." autocomplete="off">
                 <kbd>Ctrl K</kbd>
             </div>
             <div class="topbar-actions">
@@ -162,12 +163,12 @@
         <form id="taskForm">
             <label>
                 <span>Название задачи</span>
-                <input id="taskTitleInput" type="text" placeholder="Например: Создать главную страницу" maxlength="100" required>
+                <input id="taskTitleInput" type="text" placeholder="Например: Создать главную страницу" maxlength="150" required>
             </label>
 
             <label>
                 <span>Описание</span>
-                <textarea id="taskDescriptionInput" placeholder="Описание задачи..." maxlength="500"></textarea>
+                <textarea id="taskDescriptionInput" placeholder="Описание задачи..." maxlength="1000"></textarea>
             </label>
 
             <div class="form-row">
@@ -218,6 +219,14 @@
                 </div>
             </div>
         </form>
+        <section id="taskCommentsSection" class="task-comments hidden" aria-labelledby="taskCommentsTitle">
+            <h3 id="taskCommentsTitle">Комментарии</h3>
+            <div id="taskCommentsList" aria-live="polite"></div>
+            <form id="taskCommentForm">
+                <label><span>Новый комментарий</span><textarea id="taskCommentText" maxlength="1000" required placeholder="Напишите комментарий"></textarea></label>
+                <button id="taskCommentSubmit" type="submit" class="modal-submit">Отправить</button>
+            </form>
+        </section>
     </div>
 </div>
 
@@ -235,11 +244,11 @@
         <form id="projectForm">
             <label>
                 <span>Название проекта</span>
-                <input id="projectNameInput" type="text" placeholder="Например: Интернет-магазин" maxlength="60" required>
+                <input id="projectNameInput" type="text" placeholder="Например: Интернет-магазин" maxlength="100" required>
             </label>
             <label>
                 <span>Описание</span>
-                <textarea id="projectDescriptionInput" placeholder="Краткое описание проекта..." maxlength="300"></textarea>
+                <textarea id="projectDescriptionInput" placeholder="Краткое описание проекта..." maxlength="1000"></textarea>
             </label>
 
             <section id="projectMembersSection" class="project-members-section hidden">
@@ -248,7 +257,7 @@
                         <strong>Участники проекта</strong>
                         <span id="projectRoleBadge" class="role-badge"></span>
                     </div>
-                    <small>Администратор может добавлять пользователей по нику и удалять участников.</small>
+                    <small>Администратор и куратор могут приглашать пользователей, управлять ролями и удалять участников.</small>
                 </div>
 
                 <div id="projectMembersList" class="project-members-list"></div>
@@ -374,6 +383,8 @@
 <script src="js/theme.js"></script>
 <script src="js/menus.js"></script>
 <script src="js/modals.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/comments.js"></script>
 <script src="js/render-sidebar.js"></script>
 <script src="js/render-board.js"></script>
 <script src="js/render-views.js"></script>
