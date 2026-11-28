@@ -121,11 +121,9 @@ async def delete_profile(uow: UnitOfWork, current_user_id: int) -> dict:
         if inv.project_id not in project_ids:
             invited_project_ids.add(inv.project_id)
     sent_invitations = await uow.invitation.get_pending_invitations_by_inviter(current_user_id)
-    sent_project_ids = {inv.project_id for inv in sent_invitations}
     sent_invitee_ids = {inv.invitee_id for inv in sent_invitations}
-    project_invitation_ids = sent_project_ids | invited_project_ids
     invitee_ids_to_invalidate = affected_invitee_ids | sent_invitee_ids
-    comment_locations = await uow.task.get_task_comment_locations_by_author(current_user_id)
+    comment_locations = await uow.comment.get_task_comment_locations_by_author(current_user_id)
     await uow.project.unassign_all_tasks_from_user(current_user_id)
     for project in admin_projects:
         """Передаём администрирование или удаляем проект."""
