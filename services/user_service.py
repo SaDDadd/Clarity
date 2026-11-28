@@ -65,7 +65,7 @@ async def get_user_by_id(uow: UnitOfWork, user_id: int, current_user_id: int) ->
     user = await uow.user.get_by_id(user_id)
     if user is None:
         raise NotFoundException('Пользователь не найден!')
-    return UserSearchResponse.model_validate(user)
+    return user
 
 
 async def get_profile_info(current_user: UserModel) -> dict:

@@ -65,9 +65,8 @@ async def create_task_comment(uow: UnitOfWork, project_id: int, task_id: int,
         raise NotFoundException('Задачи нет в проекте!')
     result = await uow.comment.create_comment(project_id, task_id, current_user_id, message)
     await uow.session.refresh(result)
-    answer = TaskCommentResponse.model_validate(result).model_dump(mode='json')
     await delete_cache(task_comments_list_key(project_id, task_id))
-    return answer
+    return result
 
 
 async def delete_task_comment(uow: UnitOfWork, project_id: int, task_id: int, comment_id: int,

@@ -121,10 +121,9 @@ async def get_task_info(uow: UnitOfWork, project_id: int, current_user_id: int, 
     cached = await get_cache(key)
     if cached is not None:
         return cached
-    data = await uow.task.get_task_by_id(task_id)
-    answer = TaskResponse.model_validate(data).model_dump(mode='json')
-    await set_cache(key, answer, TTL_TASK)
-    return answer
+    result = await uow.task.get_task_by_id(task_id)
+    await set_cache(key, result, TTL_TASK)
+    return result
 
 
 async def get_tasks_user(uow: UnitOfWork, current_user_id: int, task_filter: TaskFilter | None = None, 
@@ -182,11 +181,10 @@ async def create_task(uow: UnitOfWork, project_id: int, current_user_id: int, ta
             raise PermissionDeniedException('Добавляемого пользователя нет в проекте!')
     result = await uow.task.create_task(project_id, task)
     await uow.session.refresh(result)
-    answer = TaskResponse.model_validate(result).model_dump(mode='json')
     await delete_cache(project_tasks_key(project_id))
     if task.assigned_to is not None:
         await delete_cache_by_pattern(user_tasks_pattern(task.assigned_to))
-    return answer
+    return result
 
 
 async def delete_task(uow: UnitOfWork, project_id: int, task_id: int, current_user_id: int) -> dict:
